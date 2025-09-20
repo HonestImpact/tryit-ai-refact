@@ -3,9 +3,9 @@ import { generateText } from 'ai';
 import { NextRequest, NextResponse } from 'next/server';
 import { withLogging } from '@/lib/logging-middleware';
 
-async function artifactHandler(req: NextRequest) {
+async function artifactHandler(req: NextRequest): Promise<NextResponse<{ content: string }>> {
   try {
-    const { userInput, response } = await req.json();
+    const { userInput } = await req.json();
 
     const { text } = await generateText({
       model: anthropic('claude-sonnet-4-20250514'),
@@ -27,7 +27,7 @@ Keep it simple, immediately useful, and respectful of their intelligence.`
   } catch (error) {
     console.error('Artifact API Error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate artifact' },
+      { content: 'Failed to generate artifact' },
       { status: 500 }
     );
   }

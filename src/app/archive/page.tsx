@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ConversationLog, ArtifactLog, ArchiveStats } from '@/lib/archiver';
 
 interface DashboardData {
@@ -20,12 +20,7 @@ export default function ArchiveDashboard() {
   const [days, setDays] = useState(7);
   const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-    fetchData();
-  }, [days]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [statsResponse, recentResponse] = await Promise.all([
@@ -49,7 +44,12 @@ export default function ArchiveDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [days]);
+
+  useEffect(() => {
+    setIsClient(true);
+    fetchData();
+  }, [fetchData]);
 
   const formatDate = (timestamp: string) => {
     // Use a consistent format to avoid hydration issues
@@ -161,7 +161,7 @@ export default function ArchiveDashboard() {
               <button
                 key={tab.id}
                 onClick={() => {
-                  setActiveTab(tab.id as any);
+                  setActiveTab(tab.id as 'overview' | 'conversations' | 'artifacts' | 'conversation-detail');
                   setSelectedConversation(null);
                 }}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -272,7 +272,7 @@ export default function ArchiveDashboard() {
             <div className="bg-white p-6 rounded-lg shadow-sm border">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Common Conversation Patterns</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {data.stats.commonPatterns.map((pattern, index) => (
+                {data.stats.commonPatterns.map((pattern) => (
                   <div key={pattern.pattern} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <span className="font-medium text-gray-900 capitalize">{pattern.pattern}</span>
                     <span className="text-sm text-gray-600">{pattern.frequency} occurrences</span>

@@ -601,7 +601,7 @@ export default function TrustRecoveryProtocol() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
-                    <p className="text-sm text-slate-600">Skeptic mode - Noah becomes your devil's advocate</p>
+                    <p className="text-sm text-slate-600">Skeptic mode - Noah becomes your devil&apos;s advocate</p>
                   </div>
                   <div className="flex items-start space-x-3">
                     <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -630,12 +630,20 @@ export default function TrustRecoveryProtocol() {
                   <span className="text-xs text-slate-500">No data collection • No tracking • No manipulation</span>
                 </div>
                 <p className="text-xs text-slate-400 mb-1">Built by skeptics, improved by skeptics</p>
-                <a 
-                  href="/archive" 
-                  className="text-xs text-slate-300 hover:text-slate-200 transition-colors"
-                >
-                  View Archive Dashboard
-                </a>
+                <div className="flex items-center space-x-4">
+                  <a 
+                    href="/archive" 
+                    className="text-xs text-slate-300 hover:text-slate-200 transition-colors"
+                  >
+                    View Archive Dashboard
+                  </a>
+                  <a 
+                    href="/admin" 
+                    className="text-xs text-slate-300 hover:text-slate-200 transition-colors"
+                  >
+                    Admin Dashboard
+                  </a>
+                </div>
               </div>
             </div>
           </div>

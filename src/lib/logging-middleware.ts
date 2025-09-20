@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { archiver } from './archiver';
+import { supabaseArchiver } from './supabase-archiver';
 
 export interface LoggingContext {
   sessionId: string;
@@ -10,7 +11,7 @@ export interface LoggingContext {
 }
 
 // Middleware to wrap API routes with logging
-export function withLogging<T = any>(
+export function withLogging<T = unknown>(
   handler: (req: NextRequest, context: LoggingContext) => Promise<NextResponse<T>>
 ) {
   return async (req: NextRequest): Promise<NextResponse<T>> => {
@@ -20,8 +21,7 @@ export function withLogging<T = any>(
     
     const startTime = Date.now();
     
-    // Clone the request to read body for logging without affecting the handler
-    const reqClone = req.clone();
+    // We'll pass the original request to logging functions
     const context: LoggingContext = {
       sessionId,
       startTime
@@ -31,7 +31,7 @@ export function withLogging<T = any>(
       const response = await handler(req, context);
       
       // Log the interaction after successful response
-      await logInteraction(reqClone, response, context);
+      await logInteraction(req, response, context);
       
       return response;
     } catch (error) {
@@ -39,7 +39,7 @@ export function withLogging<T = any>(
       
       // Still try to log the error case
       try {
-        await logError(reqClone, error, context);
+        await logError(req, error as Error, context);
       } catch (logError) {
         console.error('Failed to log error:', logError);
       }
@@ -86,16 +86,35 @@ async function logChatInteraction(
     // Count artifacts in the response
     const artifactsGenerated = (responseData.content || '').includes('TITLE:') ? 1 : 0;
     
-    // Log the conversation
-    await archiver.logConversation(
-      context.sessionId,
-      messages,
-      trustLevel,
-      skepticMode,
-      artifactsGenerated
-    );
-    
-    console.log(`📝 Logged conversation for session ${context.sessionId}`);
+    // Log the conversation to both local files and Supabase
+    try {
+      // Local file logging (existing)
+      await archiver.logConversation(
+        context.sessionId,
+        messages,
+        trustLevel,
+        skepticMode,
+        artifactsGenerated
+      );
+      
+      // Supabase logging (new)
+      await supabaseArchiver.logConversation({
+        sessionId: context.sessionId,
+        messages: messages.map((msg: { role: string; content: string }) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: Date.now()
+        })),
+        trustLevel,
+        skepticMode,
+        artifactsGenerated
+      });
+      
+      console.log(`📝 Logged conversation for session ${context.sessionId} to both local and Supabase`);
+    } catch (error) {
+      console.error('Error logging conversation:', error);
+      // Continue execution even if logging fails
+    }
   } catch (error) {
     console.error('Failed to log chat interaction:', error);
   }
@@ -112,14 +131,29 @@ async function logArtifactInteraction(
     const responseData = await responseClone.json();
     const generationTime = context.startTime ? Date.now() - context.startTime : 0;
     
-    await archiver.logArtifact(
-      context.sessionId,
-      body.userInput || '',
-      responseData.content || '',
-      generationTime
-    );
-    
-    console.log(`🔧 Logged artifact for session ${context.sessionId}`);
+    // Log artifact to both local files and Supabase
+    try {
+      // Local file logging (existing)
+      await archiver.logArtifact(
+        context.sessionId,
+        body.userInput || '',
+        responseData.content || '',
+        generationTime
+      );
+      
+      // Supabase logging (new)
+      await supabaseArchiver.logArtifact({
+        sessionId: context.sessionId,
+        userInput: body.userInput || '',
+        artifactContent: responseData.content || '',
+        generationTime
+      });
+      
+      console.log(`🔧 Logged artifact for session ${context.sessionId} to both local and Supabase`);
+    } catch (error) {
+      console.error('Error logging artifact:', error);
+      // Continue execution even if logging fails
+    }
   } catch (error) {
     console.error('Failed to log artifact interaction:', error);
   }
@@ -127,7 +161,7 @@ async function logArtifactInteraction(
 
 async function logError(
   req: NextRequest,
-  error: any,
+  error: Error,
   context: LoggingContext
 ): Promise<void> {
   try {

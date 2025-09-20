@@ -3,7 +3,7 @@ import { generateText } from 'ai';
 import { NextRequest, NextResponse } from 'next/server';
 import { withLogging } from '@/lib/logging-middleware';
 
-async function chatHandler(req: NextRequest) {
+async function chatHandler(req: NextRequest): Promise<NextResponse<{ content: string }>> {
   try {
     const { messages } = await req.json();
 
@@ -49,7 +49,7 @@ When they share a frustration, offer to co-create a micro-tool that addresses it
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json(
-      { error: 'Something went wrong. Want to try that again? I learn from failures.' },
+      { content: 'Something went wrong. Want to try that again? I learn from failures.' },
       { status: 500 }
     );
   }

@@ -120,7 +120,7 @@ class ConversationArchiver {
     };
   }
 
-  private determineTrack(messages: any[]): 'skeptical' | 'small-pain' | 'tiny-tool' | 'unknown' {
+  private determineTrack(messages: Array<{ content: string; role: 'user' | 'assistant' }>): 'skeptical' | 'small-pain' | 'tiny-tool' | 'unknown' {
     const allContent = messages.map(m => m.content || '').join(' ').toLowerCase();
     
     if (allContent.includes('skeptical') || allContent.includes('doubt') || allContent.includes('trust')) {
@@ -151,7 +151,7 @@ class ConversationArchiver {
 
   async logConversation(
     sessionId: string,
-    messages: any[],
+    messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp?: number }>,
     trustLevel: number,
     skepticMode: boolean,
     artifactsGenerated: number = 0
@@ -188,7 +188,7 @@ class ConversationArchiver {
       noahUncertainty,
       artifactsGenerated,
       conversationPattern: this.identifyPattern(sanitizedMessages),
-      effectiveness: {} as any // Will be calculated below
+      effectiveness: { userEngagement: 'low', trustProgression: 'neutral', toolAdoption: 'none' } // Will be calculated below
     };
 
     conversationLog.effectiveness = this.calculateEffectiveness(conversationLog);
@@ -225,7 +225,7 @@ class ConversationArchiver {
     const artifactLog: ArtifactLog = {
       id: `artifact_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date().toISOString(),
-      track: this.determineTrack([{ content: sanitizedInput }]),
+      track: this.determineTrack([{ role: 'user' as const, content: sanitizedInput }]),
       sessionId,
       userInput: sanitizedInput,
       artifactContent: sanitizedArtifact,
