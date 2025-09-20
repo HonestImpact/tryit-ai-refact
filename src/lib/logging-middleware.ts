@@ -1,0 +1,167 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { archiver } from './archiver';
+
+export interface LoggingContext {
+  sessionId: string;
+  track?: string;
+  trustLevel?: number;
+  skepticMode?: boolean;
+  startTime?: number;
+}
+
+// Middleware to wrap API routes with logging
+export function withLogging<T = any>(
+  handler: (req: NextRequest, context: LoggingContext) => Promise<NextResponse<T>>
+) {
+  return async (req: NextRequest): Promise<NextResponse<T>> => {
+    const sessionId = req.headers.get('x-session-id') || 
+                     req.cookies.get('session-id')?.value || 
+                     `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const startTime = Date.now();
+    
+    // Clone the request to read body for logging without affecting the handler
+    const reqClone = req.clone();
+    const context: LoggingContext = {
+      sessionId,
+      startTime
+    };
+
+    try {
+      const response = await handler(req, context);
+      
+      // Log the interaction after successful response
+      await logInteraction(reqClone, response, context);
+      
+      return response;
+    } catch (error) {
+      console.error('API Error with logging context:', error);
+      
+      // Still try to log the error case
+      try {
+        await logError(reqClone, error, context);
+      } catch (logError) {
+        console.error('Failed to log error:', logError);
+      }
+      
+      throw error;
+    }
+  };
+}
+
+async function logInteraction(
+  req: NextRequest, 
+  response: NextResponse, 
+  context: LoggingContext
+): Promise<void> {
+  try {
+    const url = new URL(req.url);
+    const endpoint = url.pathname;
+    
+    if (endpoint === '/api/chat') {
+      await logChatInteraction(req, response, context);
+    } else if (endpoint === '/api/artifact') {
+      await logArtifactInteraction(req, response, context);
+    }
+  } catch (error) {
+    console.error('Failed to log interaction:', error);
+  }
+}
+
+async function logChatInteraction(
+  req: NextRequest,
+  response: NextResponse,
+  context: LoggingContext
+): Promise<void> {
+  try {
+    const body = await req.json();
+    const responseClone = response.clone();
+    const responseData = await responseClone.json();
+    
+    // Extract conversation data
+    const messages = body.messages || [];
+    const trustLevel = body.trustLevel || 50; // Default trust level
+    const skepticMode = body.skepticMode || false;
+    
+    // Count artifacts in the response
+    const artifactsGenerated = (responseData.content || '').includes('TITLE:') ? 1 : 0;
+    
+    // Log the conversation
+    await archiver.logConversation(
+      context.sessionId,
+      messages,
+      trustLevel,
+      skepticMode,
+      artifactsGenerated
+    );
+    
+    console.log(`📝 Logged conversation for session ${context.sessionId}`);
+  } catch (error) {
+    console.error('Failed to log chat interaction:', error);
+  }
+}
+
+async function logArtifactInteraction(
+  req: NextRequest,
+  response: NextResponse,
+  context: LoggingContext
+): Promise<void> {
+  try {
+    const body = await req.json();
+    const responseClone = response.clone();
+    const responseData = await responseClone.json();
+    const generationTime = context.startTime ? Date.now() - context.startTime : 0;
+    
+    await archiver.logArtifact(
+      context.sessionId,
+      body.userInput || '',
+      responseData.content || '',
+      generationTime
+    );
+    
+    console.log(`🔧 Logged artifact for session ${context.sessionId}`);
+  } catch (error) {
+    console.error('Failed to log artifact interaction:', error);
+  }
+}
+
+async function logError(
+  req: NextRequest,
+  error: any,
+  context: LoggingContext
+): Promise<void> {
+  try {
+    const errorLog = {
+      id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date().toISOString(),
+      sessionId: context.sessionId,
+      endpoint: new URL(req.url).pathname,
+      error: error.message || 'Unknown error',
+      stack: error.stack || '',
+      userAgent: req.headers.get('user-agent') || '',
+      ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+    };
+    
+    // Log to console for now, could be extended to file logging
+    console.error('🚨 API Error logged:', errorLog);
+  } catch (logError) {
+    console.error('Failed to log error:', logError);
+  }
+}
+
+// Utility function to generate session IDs
+export function generateSessionId(): string {
+  // Use crypto.randomUUID if available (more reliable), fallback to timestamp + random
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `session_${crypto.randomUUID()}`;
+  }
+  // Fallback for environments without crypto.randomUUID
+  return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Utility function to extract session ID from request
+export function getSessionId(req: NextRequest): string {
+  return req.headers.get('x-session-id') || 
+         req.cookies.get('session-id')?.value || 
+         generateSessionId();
+}

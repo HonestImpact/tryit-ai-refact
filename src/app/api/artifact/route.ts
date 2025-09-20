@@ -1,8 +1,9 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { NextRequest, NextResponse } from 'next/server';
+import { withLogging } from '@/lib/logging-middleware';
 
-export async function POST(req: NextRequest) {
+async function artifactHandler(req: NextRequest) {
   try {
     const { userInput, response } = await req.json();
 
@@ -31,3 +32,5 @@ Keep it simple, immediately useful, and respectful of their intelligence.`
     );
   }
 }
+
+export const POST = withLogging(artifactHandler);

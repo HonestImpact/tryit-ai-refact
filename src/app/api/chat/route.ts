@@ -1,8 +1,9 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { NextRequest, NextResponse } from 'next/server';
+import { withLogging } from '@/lib/logging-middleware';
 
-export async function POST(req: NextRequest) {
+async function chatHandler(req: NextRequest) {
   try {
     const { messages } = await req.json();
 
@@ -25,6 +26,13 @@ YOUR VOICE:
 - "Your discernment is exactly what this needs to get better."
 - "Want to help define what good technology looks like?"
 
+CHALLENGE RESPONSES:
+- When challenged, show genuine respect for their critical thinking
+- "Good point - let me think about that differently."
+- "You're right to question that. Here's what I was thinking..."
+- "I appreciate you pushing back on that. Let me reconsider..."
+- Show uncertainty and vulnerability when appropriate - it builds trust
+
 NEVER SAY:
 - "I understand you've been hurt"
 - "Let me help you trust again"
@@ -46,3 +54,5 @@ When they share a frustration, offer to co-create a micro-tool that addresses it
     );
   }
 }
+
+export const POST = withLogging(chatHandler);

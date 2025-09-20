@@ -19,7 +19,7 @@ export default function TrustRecoveryProtocol() {
     {
       role: 'assistant',
       content: "Hi, I'm Noah. I don't know why you're here or what you expect. Most AI tools oversell and underdeliver. This one's different, but you'll have to see for yourself. Want to test it with something small?",
-      timestamp: Date.now()
+      timestamp: 0 // Will be updated on client-side
     }
   ]);
   const [input, setInput] = useState('');
@@ -35,20 +35,33 @@ export default function TrustRecoveryProtocol() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change (but not on initial load)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Only auto-scroll if we have more than the initial message
+    if (messages.length > 1) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
-  // Auto-focus input on page load
+  // Auto-focus input on page load and fix initial timestamp
   useEffect(() => {
+    // Ensure page starts at the top
+    window.scrollTo(0, 0);
+    
     if (inputRef.current) {
       inputRef.current.focus();
     }
+    
+    // Fix the initial message timestamp to prevent hydration mismatch
+    setMessages(prev => prev.map((msg, index) => 
+      index === 0 && msg.timestamp === 0 
+        ? { ...msg, timestamp: Date.now() }
+        : msg
+    ));
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
@@ -82,21 +95,10 @@ export default function TrustRecoveryProtocol() {
 
       const data = await response.json();
       
-      // Check if response contains artifact markers and parse accordingly
-      let cleanContent = data.content;
-      let hasArtifact = false;
-      
-      if (data.content.includes('TITLE:') && data.content.includes('TOOL:')) {
-        // Extract the clean conversation content (everything before TITLE:)
-        const titleIndex = data.content.indexOf('TITLE:');
-        cleanContent = data.content.substring(0, titleIndex).trim();
-        hasArtifact = true;
-      }
-      
-      // Add Noah's response with clean content
+      // Add Noah's response
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: cleanContent,
+        content: data.content,
         timestamp: Date.now()
       }]);
 
@@ -105,8 +107,10 @@ export default function TrustRecoveryProtocol() {
         setTrustLevel(prev => Math.min(100, prev + 5));
       }
 
-      // Check if we should generate an artifact
-      if (hasArtifact || (userMessage.length > 15 && (
+      // Check if we should generate an artifact based on user message
+      // Trigger when user mentions problems, asks for help, or corrects/clarifies
+      const shouldGenerateArtifact = userMessage.length > 15 && (
+        // Original problem indicators
         userMessage.toLowerCase().includes('frustrat') ||
         userMessage.toLowerCase().includes('annoying') ||
         userMessage.toLowerCase().includes('annoy') ||
@@ -116,10 +120,30 @@ export default function TrustRecoveryProtocol() {
         userMessage.toLowerCase().includes('ugh') ||
         userMessage.toLowerCase().includes('wish') ||
         userMessage.toLowerCase().includes('struggle') ||
-        data.content.toLowerCase().includes('co-create') ||
-        data.content.toLowerCase().includes('micro-tool') ||
-        data.content.toLowerCase().includes('build something')
-      ))) {
+        // Help requests
+        userMessage.toLowerCase().includes('help me') ||
+        userMessage.toLowerCase().includes('need help') ||
+        userMessage.toLowerCase().includes('can you help') ||
+        userMessage.toLowerCase().includes('build me') ||
+        userMessage.toLowerCase().includes('create a tool') ||
+        userMessage.toLowerCase().includes('make me a') ||
+        userMessage.toLowerCase().includes('i need a tool') ||
+        // Corrections and clarifications
+        userMessage.toLowerCase().includes('that\'s not right') ||
+        userMessage.toLowerCase().includes('that\'s not what i meant') ||
+        userMessage.toLowerCase().includes('i meant') ||
+        userMessage.toLowerCase().includes('actually') ||
+        userMessage.toLowerCase().includes('no, i need') ||
+        userMessage.toLowerCase().includes('what i really need') ||
+        userMessage.toLowerCase().includes('let me clarify') ||
+        userMessage.toLowerCase().includes('i was thinking') ||
+        userMessage.toLowerCase().includes('something more like') ||
+        userMessage.toLowerCase().includes('instead of that') ||
+        userMessage.toLowerCase().includes('can you make it') ||
+        userMessage.toLowerCase().includes('can you change it')
+      );
+
+      if (shouldGenerateArtifact) {
         await generateArtifact(userMessage, data.content);
       }
 
@@ -151,6 +175,8 @@ export default function TrustRecoveryProtocol() {
       }
 
       const data = await artifactResponse.json();
+      console.log('Artifact API response:', data.content); // Debug log
+      
       const lines = data.content.split('\n');
       const titleLine = lines.find((line: string) => line.startsWith('TITLE:'));
       const toolStart = lines.findIndex((line: string) => line.startsWith('TOOL:'));
@@ -161,12 +187,16 @@ export default function TrustRecoveryProtocol() {
         const toolContent = lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : undefined).join('\n').trim();
         const reasoningContent = reasoningStart !== -1 ? lines.slice(reasoningStart + 1).join('\n').trim() : '';
 
+        console.log('Parsed artifact:', { title, toolContent, reasoningContent }); // Debug log
+
         setTimeout(() => {
           setArtifact({ title, content: toolContent });
           setReasoning(reasoningContent);
           setIsGeneratingArtifact(false);
         }, 800);
       } else {
+        console.log('Failed to parse artifact - missing TITLE or TOOL markers');
+        console.log('Available lines:', lines);
         setIsGeneratingArtifact(false);
       }
     } catch (error) {
@@ -190,14 +220,113 @@ export default function TrustRecoveryProtocol() {
     URL.revokeObjectURL(url);
   };
 
-  const challengeMessage = (messageIndex: number) => {
-    setChallengedMessages(prev => new Set([...prev, messageIndex]));
-    setTrustLevel(prev => Math.min(100, prev + 3));
-  };
-
   const toggleSkepticMode = () => {
     setSkepticMode(!skepticMode);
     setTrustLevel(prev => Math.max(0, prev - 10));
+  };
+
+  const challengeMessage = async (messageIndex: number) => {
+    if (isLoading) return;
+    
+    const message = messages[messageIndex];
+    if (message.role !== 'assistant') return;
+    
+    // Mark as challenged
+    setChallengedMessages(prev => new Set(prev).add(messageIndex));
+    
+    // Increase trust level for challenging (shows the system respects skepticism)
+    setTrustLevel(prev => Math.min(100, prev + 3));
+    
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            ...messages.slice(0, messageIndex + 1),
+            {
+              role: 'user',
+              content: `I want to challenge your previous response: "${message.content}". Can you think about this differently or explain your reasoning more clearly?`
+            }
+          ],
+          trustLevel,
+          skepticMode
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const data = await response.json();
+      
+      // Add the challenge response
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: data.content,
+        timestamp: Date.now()
+      }]);
+
+      // Adjust trust level based on response quality
+      if (data.content.toLowerCase().includes('uncertain') || data.content.toLowerCase().includes('not sure')) {
+        setTrustLevel(prev => Math.min(100, prev + 5));
+      }
+
+      // Check if the challenge response should generate a micro-tool
+      // Look for the original user message that might have triggered the need for a tool
+      const originalUserMessage = messages[messageIndex - 1]?.content || '';
+      const shouldGenerateArtifact = originalUserMessage.length > 15 && (
+        // Original problem indicators
+        originalUserMessage.toLowerCase().includes('frustrat') ||
+        originalUserMessage.toLowerCase().includes('annoying') ||
+        originalUserMessage.toLowerCase().includes('annoy') ||
+        originalUserMessage.toLowerCase().includes('problem') ||
+        originalUserMessage.toLowerCase().includes('difficult') ||
+        originalUserMessage.toLowerCase().includes('hate') ||
+        originalUserMessage.toLowerCase().includes('ugh') ||
+        originalUserMessage.toLowerCase().includes('wish') ||
+        originalUserMessage.toLowerCase().includes('struggle') ||
+        // Help requests
+        originalUserMessage.toLowerCase().includes('help me') ||
+        originalUserMessage.toLowerCase().includes('need help') ||
+        originalUserMessage.toLowerCase().includes('can you help') ||
+        originalUserMessage.toLowerCase().includes('build me') ||
+        originalUserMessage.toLowerCase().includes('create a tool') ||
+        originalUserMessage.toLowerCase().includes('make me a') ||
+        originalUserMessage.toLowerCase().includes('i need a tool') ||
+        // Corrections and clarifications
+        originalUserMessage.toLowerCase().includes('that\'s not right') ||
+        originalUserMessage.toLowerCase().includes('that\'s not what i meant') ||
+        originalUserMessage.toLowerCase().includes('i meant') ||
+        originalUserMessage.toLowerCase().includes('actually') ||
+        originalUserMessage.toLowerCase().includes('no, i need') ||
+        originalUserMessage.toLowerCase().includes('what i really need') ||
+        originalUserMessage.toLowerCase().includes('let me clarify') ||
+        originalUserMessage.toLowerCase().includes('i was thinking') ||
+        originalUserMessage.toLowerCase().includes('something more like') ||
+        originalUserMessage.toLowerCase().includes('instead of that') ||
+        originalUserMessage.toLowerCase().includes('can you make it') ||
+        originalUserMessage.toLowerCase().includes('can you change it')
+      );
+
+      if (shouldGenerateArtifact) {
+        await generateArtifact(originalUserMessage, data.content);
+      }
+
+    } catch (error) {
+      console.error('Error:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'I appreciate the challenge, but I\'m having trouble responding right now. Want to try that again?',
+        timestamp: Date.now()
+      }]);
+    }
+
+    setIsLoading(false);
   };
 
   return (
@@ -365,11 +494,18 @@ export default function TrustRecoveryProtocol() {
                       target.style.height = 'auto';
                       target.style.height = Math.min(target.scrollHeight, 128) + 'px';
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSubmit();
+                      }
+                    }}
                   />
                   <button
                     type="submit"
                     disabled={!input.trim() || isLoading}
-                    className="absolute right-2 top-2 bottom-2 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium text-sm hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+                    tabIndex={0}
+                    className="absolute right-2 top-2 bottom-2 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium text-sm hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     Send
                   </button>
@@ -493,7 +629,13 @@ export default function TrustRecoveryProtocol() {
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-xs text-slate-500">No data collection • No tracking • No manipulation</span>
                 </div>
-                <p className="text-xs text-slate-400">Built by skeptics, improved by skeptics</p>
+                <p className="text-xs text-slate-400 mb-1">Built by skeptics, improved by skeptics</p>
+                <a 
+                  href="/archive" 
+                  className="text-xs text-slate-300 hover:text-slate-200 transition-colors"
+                >
+                  View Archive Dashboard
+                </a>
               </div>
             </div>
           </div>
