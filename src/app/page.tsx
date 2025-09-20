@@ -627,21 +627,15 @@ export default function TrustRecoveryProtocol() {
               <div className="text-center pt-6 border-t border-slate-200">
                 <div className="flex items-center justify-center space-x-2 mb-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-xs text-slate-500">No data collection • No tracking • No manipulation</span>
+                  <span className="text-xs text-slate-500">No tracking • No name or email required</span>
                 </div>
                 <p className="text-xs text-slate-400 mb-1">Built by skeptics, improved by skeptics</p>
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center justify-center">
                   <a 
                     href="/archive" 
-                    className="text-xs text-slate-300 hover:text-slate-200 transition-colors"
+                    className="text-xs text-slate-600 hover:text-slate-800 transition-colors font-medium"
                   >
                     View Archive Dashboard
-                  </a>
-                  <a 
-                    href="/admin" 
-                    className="text-xs text-slate-300 hover:text-slate-200 transition-colors"
-                  >
-                    Admin Dashboard
                   </a>
                 </div>
               </div>
