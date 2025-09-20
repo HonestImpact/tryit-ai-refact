@@ -156,65 +156,65 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      <div className="container mx-auto px-6 py-8">
+    <div className="min-h-screen" style={{ background: 'var(--background)' }}>
+      <div className="container-premium py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+        <div className="text-center mb-12 premium-fade-in">
+          <h1 className="text-headline mb-3">
             TryIt-AI Kit
           </h1>
-          <p className="text-gray-300 text-lg">Co-creating solutions with your discernment</p>
+          <p className="text-body">Co-creating solutions with your discernment</p>
         </div>
 
-        {/* Notification for micro-tool creation */}
+        {/* Premium Notification */}
         {showNotification && (
-          <div className="fixed top-4 right-4 z-50 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 rounded-xl shadow-2xl border border-green-500/50 animate-in slide-in-from-right duration-500">
+          <div className="fixed top-6 right-6 z-50 premium-surface-elevated p-4 premium-scale-in">
             <div className="flex items-center space-x-3">
-              <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                <svg className="w-4 h-4 status-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
               <div>
-                <p className="font-semibold">Micro-Tool Created!</p>
-                <p className="text-sm opacity-90">Something useful just appeared in your sidebar</p>
+                <p className="text-title">Micro-Tool Created</p>
+                <p className="text-caption">Something useful just appeared in your sidebar</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Fixed Layout - No more jumping */}
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-12 gap-8 h-[calc(100vh-200px)]">
-            {/* Chat Area - Takes up most space */}
+        {/* Premium Layout */}
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-12 gap-8 h-[calc(100vh-180px)]">
+            {/* Chat Area */}
             <div className="lg:col-span-8 flex flex-col">
               <div 
                 ref={chatContainerRef}
-                className="flex-1 bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-600/50 overflow-y-auto p-6 mb-4 shadow-xl chat-scroll gentle-glow"
+                className="flex-1 premium-surface-elevated overflow-y-auto p-6 mb-6 premium-scroll"
               >
                 <div className="space-y-6">
                   {messages.map((message, index) => (
                     <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-2xl px-6 py-4 rounded-2xl ${
                         message.role === 'user' 
-                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' 
-                          : 'bg-gray-700/80 text-gray-100 border border-gray-600/50'
+                          ? 'premium-button' 
+                          : 'premium-surface'
                       }`}>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                        <p className="text-body whitespace-pre-wrap">{message.content}</p>
                       </div>
                     </div>
                   ))}
                   
                   {isLoading && (
                     <div className="flex justify-start">
-                      <div className="bg-gray-700/80 text-gray-100 px-6 py-4 rounded-2xl border border-gray-600/50">
-                        <div className="flex items-center space-x-2">
+                      <div className="premium-surface px-6 py-4">
+                        <div className="flex items-center space-x-3">
                           <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                            <div className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--text-tertiary)' }}></div>
+                            <div className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--text-tertiary)', animationDelay: '0.1s' }}></div>
+                            <div className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--text-tertiary)', animationDelay: '0.2s' }}></div>
                           </div>
-                          <span className="text-sm">Noah is thinking...</span>
+                          <span className="text-caption">Noah is thinking...</span>
                         </div>
                       </div>
                     </div>
@@ -224,36 +224,36 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              {/* Input Form - Fixed at bottom */}
-              <form onSubmit={handleSubmit} className="flex gap-3">
+              {/* Input Form */}
+              <form onSubmit={handleSubmit} className="flex gap-4">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Share what's on your mind..."
-                  className="flex-1 px-6 py-4 bg-gray-800/60 backdrop-blur-xl border border-gray-600/50 rounded-xl respectful-focus transition-all"
+                  className="flex-1 premium-input premium-focus"
                   disabled={isLoading}
                 />
                 <button
                   type="submit"
                   disabled={isLoading || !input.trim()}
-                  className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-600 disabled:to-gray-700 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 disabled:transform-none shadow-lg"
+                  className="premium-button disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Send
                 </button>
               </form>
             </div>
 
-            {/* Right Panel - Fixed height, no jumping */}
+            {/* Sidebar */}
             <div className="lg:col-span-4 space-y-6">
               {/* Artifact Generation Indicator */}
               {isGeneratingArtifact && (
-                <div className="bg-gradient-to-r from-green-800/40 to-green-700/40 backdrop-blur-xl rounded-2xl border border-green-600/50 p-6 shadow-xl">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                <div className="premium-surface-elevated p-6 premium-fade-in">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--success)', borderTopColor: 'transparent' }}></div>
                     <div>
-                      <h3 className="font-semibold text-green-400">Creating Micro-Tool</h3>
-                      <p className="text-sm text-gray-300">Building something useful for you...</p>
+                      <h3 className="text-title status-success">Creating Micro-Tool</h3>
+                      <p className="text-caption">Building something useful for you...</p>
                     </div>
                   </div>
                 </div>
@@ -261,21 +261,21 @@ export default function ChatPage() {
 
               {/* Artifact Display */}
               {artifact && (
-                <div className="bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-600/50 p-6 shadow-xl micro-tool-created">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                      <h3 className="font-semibold text-green-400">Micro-Tool Created</h3>
+                <div className="premium-surface-elevated p-6 premium-scale-in">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 status-success rounded-full"></div>
+                      <h3 className="text-title status-success">Micro-Tool Created</h3>
                     </div>
                     <button
                       onClick={downloadArtifact}
-                      className="text-sm bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors font-medium"
+                      className="premium-button text-sm px-4 py-2"
                     >
                       Download
                     </button>
                   </div>
-                  <h4 className="font-semibold text-white mb-3 text-lg">{artifact.title}</h4>
-                  <div className="bg-gray-900/80 p-4 rounded-xl text-sm whitespace-pre-wrap font-mono border border-gray-700/50 max-h-64 overflow-y-auto">
+                  <h4 className="text-title mb-4">{artifact.title}</h4>
+                  <div className="premium-surface p-4 rounded-lg text-caption whitespace-pre-wrap font-mono max-h-64 overflow-y-auto premium-scroll">
                     {artifact.content}
                   </div>
                 </div>
@@ -283,44 +283,60 @@ export default function ChatPage() {
 
               {/* Reasoning Panel */}
               {reasoning && (
-                <div className="bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-600/50 p-6 shadow-xl">
+                <div className="premium-surface p-6 premium-hover">
                   <button
                     onClick={() => setShowReasoning(!showReasoning)}
-                    className="flex items-center justify-between w-full text-left mb-3"
+                    className="flex items-center justify-between w-full text-left mb-4"
                   >
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                      <h3 className="font-semibold text-blue-400">How I Designed This</h3>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 rounded-full" style={{ background: 'var(--accent)' }}></div>
+                      <h3 className="text-title" style={{ color: 'var(--accent)' }}>How I Designed This</h3>
                     </div>
-                    <span className="text-gray-400 text-xl">{showReasoning ? '−' : '+'}</span>
+                    <span className="text-caption text-xl">{showReasoning ? '−' : '+'}</span>
                   </button>
                   {showReasoning && (
-                    <div className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed bg-gray-900/40 p-4 rounded-xl border border-gray-700/50">
+                    <div className="text-caption whitespace-pre-wrap leading-relaxed premium-surface p-4 rounded-lg">
                       {reasoning}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Trust Indicators - Always visible */}
-              <div className="bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-600/50 p-6 shadow-xl respectful-hover">
-                <h3 className="font-semibold mb-4 text-gray-200 text-lg">Why This Is Different</h3>
-                <div className="space-y-3 text-sm">
+              {/* Trust Indicators */}
+              <div className="premium-surface p-6 premium-hover">
+                <h3 className="text-title mb-6">Why This Is Different</h3>
+                <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <span className="text-green-400 text-lg mt-0.5 trust-indicator">✓</span>
-                    <span className="text-gray-300">Shows reasoning behind suggestions</span>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center mt-0.5" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                      <svg className="w-3 h-3 status-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-body">Shows reasoning behind suggestions</span>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="text-green-400 text-lg mt-0.5 trust-indicator">✓</span>
-                    <span className="text-gray-300">Admits uncertainty and limitations</span>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center mt-0.5" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                      <svg className="w-3 h-3 status-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-body">Admits uncertainty and limitations</span>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="text-green-400 text-lg mt-0.5 trust-indicator">✓</span>
-                    <span className="text-gray-300">Treats you as co-architect, not user</span>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center mt-0.5" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                      <svg className="w-3 h-3 status-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-body">Treats you as co-architect, not user</span>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="text-green-400 text-lg mt-0.5 trust-indicator">✓</span>
-                    <span className="text-gray-300">Gets better when challenged</span>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center mt-0.5" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                      <svg className="w-3 h-3 status-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-body">Gets better when challenged</span>
                   </div>
                 </div>
               </div>
