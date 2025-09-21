@@ -44,7 +44,15 @@ export default function ArchiveDashboard() {
 
       // Ensure we have the expected structure
       const safeData = {
-        stats: stats.stats || {},
+        stats: stats.stats || {
+          totalConversations: 0,
+          totalArtifacts: 0,
+          averageConversationLength: 0,
+          averageTrustProgression: 0,
+          mostEffectiveTracks: [],
+          commonPatterns: [],
+          artifactSuccessRate: 0
+        },
         recentLogs: {
           conversations: recentLogs.logs?.conversations || [],
           artifacts: recentLogs.logs?.artifacts || []
@@ -57,7 +65,15 @@ export default function ArchiveDashboard() {
       setError(err instanceof Error ? err.message : 'Unknown error');
       // Set empty data to prevent crashes
       setData({
-        stats: {},
+        stats: {
+          totalConversations: 0,
+          totalArtifacts: 0,
+          averageConversationLength: 0,
+          averageTrustProgression: 0,
+          mostEffectiveTracks: [],
+          commonPatterns: [],
+          artifactSuccessRate: 0
+        },
         recentLogs: {
           conversations: [],
           artifacts: []
