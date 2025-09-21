@@ -25,6 +25,7 @@ export default function TrustRecoveryProtocol() {
   const [trustLevel, setTrustLevel] = useState(50);
   const [challengedMessages, setChallengedMessages] = useState<Set<number>>(new Set());
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [lastUserMessage, setLastUserMessage] = useState<string>('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -36,6 +37,22 @@ export default function TrustRecoveryProtocol() {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // Auto-log any artifact to Supabase whenever one is created
+  useEffect(() => {
+    if (artifact && artifact.title && artifact.content && lastUserMessage) {
+      console.log('🎯 Artifact detected, auto-logging to Supabase:', { 
+        title: artifact.title, 
+        contentLength: artifact.content.length,
+        userMessage: lastUserMessage
+      });
+      
+      // Use the session ID from the current chat session, or generate a new one
+      const sessionId = currentSessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      logMicroToolToSupabase(artifact.title, artifact.content, lastUserMessage);
+    }
+  }, [artifact, lastUserMessage, currentSessionId]);
 
   // Initialize messages and focus input on page load
   useEffect(() => {
@@ -104,6 +121,7 @@ export default function TrustRecoveryProtocol() {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
+    setLastUserMessage(userMessage); // Track the user's message for artifact logging
     setInput('');
     setIsLoading(true);
 
@@ -221,10 +239,6 @@ export default function TrustRecoveryProtocol() {
           setTimeout(() => {
             setArtifact({ title, content: toolContent });
             console.log('Artifact state set!');
-            
-            // Log the micro-tool to Supabase
-            console.log('🎯 About to call logMicroToolToSupabase with:', { title, contentLength: toolContent.length });
-            logMicroToolToSupabase(title, toolContent, userMessage);
           }, 800);
         } else {
           console.log('Failed to parse artifact - missing title or tool content');
@@ -377,10 +391,6 @@ export default function TrustRecoveryProtocol() {
           // Set the artifact
           setTimeout(() => {
             setArtifact({ title, content: toolContent });
-            
-            // Log the micro-tool to Supabase
-            const challengeUserMessage = `I want to challenge your previous response: "${message.content}". Can you think about this differently or explain your reasoning more clearly?`;
-            logMicroToolToSupabase(title, toolContent, challengeUserMessage);
           }, 800);
         }
       }
@@ -399,7 +409,7 @@ export default function TrustRecoveryProtocol() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      {/* Header */}
+        {/* Header */}
       <header className="border-b border-slate-200/60 backdrop-blur-sm bg-white/80 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -469,8 +479,8 @@ export default function TrustRecoveryProtocol() {
               </h1>
               
               <p className="text-xl text-slate-600 leading-relaxed max-w-3xl">
-                Most AI tools want your blind trust. This one earns it by letting you help define what good technology looks like.
-              </p>
+            Most AI tools want your blind trust. This one earns it by letting you help define what good technology looks like.
+          </p>
             </div>
 
             {/* Conversation */}
@@ -539,7 +549,7 @@ export default function TrustRecoveryProtocol() {
                   </div>
                 </div>
               )}
-            </div>
+        </div>
 
             {/* Input */}
             <div className="mt-8">
@@ -693,7 +703,7 @@ export default function TrustRecoveryProtocol() {
                   </a>
                 </div>
               </div>
-            </div>
+          </div>
           </div>
         </div>
       </div>
