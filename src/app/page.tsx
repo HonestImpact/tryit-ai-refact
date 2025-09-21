@@ -20,7 +20,7 @@ export default function TrustRecoveryProtocol() {
   const [isLoading, setIsLoading] = useState(false);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
-  const [reasoning, setReasoning] = useState('');
+  const [reasoning] = useState('');
   const [skepticMode, setSkepticMode] = useState(false);
   const [trustLevel, setTrustLevel] = useState(50);
   const [challengedMessages, setChallengedMessages] = useState<Set<number>>(new Set());

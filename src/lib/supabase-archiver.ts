@@ -156,7 +156,7 @@ class SupabaseArchiver {
       const sanitizedArtifact = sanitizeContent(data.artifactContent);
       
       // Parse artifact content - handle both signal phrase format and old structured format
-      let title: string;
+      let title: string = 'Untitled Tool';
       let content: string;
       let reasoning = '';
       
@@ -166,7 +166,6 @@ class SupabaseArchiver {
         if (parts.length > 1) {
           const toolContent = parts[1].trim();
           const lines = toolContent.split('\n');
-          const firstLine = lines[0] || '';
           
           // Extract title from first meaningful line (skip code blocks and markers)
           let titleFound = false;
