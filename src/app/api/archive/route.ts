@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { archiver } from '@/lib/archiver';
+import { supabaseArchiver } from '@/lib/supabase-archiver';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,19 +10,19 @@ export async function GET(req: NextRequest) {
 
     switch (type) {
       case 'stats':
-        const stats = await archiver.getArchiveStats();
+        const stats = await supabaseArchiver.getConversationAnalytics();
         return NextResponse.json({ stats });
 
       case 'recent':
-        const recentLogs = await archiver.getRecentLogs(days);
+        const recentLogs = await supabaseArchiver.getRecentLogs(days);
         return NextResponse.json({ logs: recentLogs });
 
       case 'conversations':
-        const { conversations } = await archiver.getRecentLogs(days);
+        const { conversations } = await supabaseArchiver.getRecentLogs(days);
         return NextResponse.json({ conversations });
 
       case 'artifacts':
-        const { artifacts } = await archiver.getRecentLogs(days);
+        const { artifacts } = await supabaseArchiver.getRecentLogs(days);
         return NextResponse.json({ artifacts });
 
       default:
