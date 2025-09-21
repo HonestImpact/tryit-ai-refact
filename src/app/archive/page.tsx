@@ -41,6 +41,8 @@ function ArchiveDashboardContent() {
       const recentLogs = await recentResponse.json();
       
       console.log('Archive: Parsed data', { stats, recentLogs });
+      console.log('Archive: Stats structure:', JSON.stringify(stats, null, 2));
+      console.log('Archive: Recent logs structure:', JSON.stringify(recentLogs, null, 2));
 
       // Validate data structure
       if (!stats || !recentLogs) {
@@ -189,6 +191,9 @@ function ArchiveDashboardContent() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Archive Dashboard</h1>
               <p className="text-gray-600 mt-1">Conversation and micro-tool analytics</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Conversations: {data.recentLogs.conversations.length} | Artifacts: {data.recentLogs.artifacts.length}
+              </p>
             </div>
             <div className="flex items-center space-x-4">
               <select 
