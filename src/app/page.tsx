@@ -15,13 +15,7 @@ interface Artifact {
 }
 
 export default function TrustRecoveryProtocol() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: "Hi, I'm Noah. I don't know why you're here or what you expect. Most AI tools oversell and underdeliver. This one's different, but you'll have to see for yourself. Want to test it with something small?",
-      timestamp: 0 // Will be updated on client-side
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
@@ -37,27 +31,30 @@ export default function TrustRecoveryProtocol() {
 
   // Auto-scroll to bottom when messages change (but not on initial load)
   useEffect(() => {
-    // Only auto-scroll if we have more than the initial message
-    if (messages.length > 1) {
+    // Only auto-scroll if we have messages and it's not the initial load
+    if (messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
-  // Auto-focus input on page load and fix initial timestamp
+  // Initialize messages and focus input on page load
   useEffect(() => {
     // Ensure page starts at the top
     window.scrollTo(0, 0);
     
+    // Set initial message on client-side to prevent hydration mismatch
+    setMessages([
+      {
+        role: 'assistant',
+        content: "Hi, I'm Noah. I don't know why you're here or what you expect. Most AI tools oversell and underdeliver. This one's different, but you'll have to see for yourself. Want to test it with something small?",
+        timestamp: Date.now()
+      }
+    ]);
+    
+    // Focus the input field
     if (inputRef.current) {
       inputRef.current.focus();
     }
-    
-    // Fix the initial message timestamp to prevent hydration mismatch
-    setMessages(prev => prev.map((msg, index) => 
-      index === 0 && msg.timestamp === 0 
-        ? { ...msg, timestamp: Date.now() }
-        : msg
-    ));
   }, []);
 
   const handleSubmit = async (e?: React.FormEvent) => {
