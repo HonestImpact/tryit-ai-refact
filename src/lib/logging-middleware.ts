@@ -8,6 +8,7 @@ export interface LoggingContext {
   trustLevel?: number;
   skepticMode?: boolean;
   startTime?: number;
+  requestBody?: { messages?: Array<{ role: string; content: string }>; userInput?: string };
 }
 
 // Middleware to wrap API routes with logging
@@ -79,7 +80,7 @@ async function logChatInteraction(
 ): Promise<void> {
   try {
     // Use the body data stored in context, or try to read it if not available
-    let body = (context as { requestBody?: { messages: Array<{ role: string; content: string }> } }).requestBody;
+    let body = context.requestBody;
     if (!body) {
       try {
         body = await req.json();
@@ -93,9 +94,9 @@ async function logChatInteraction(
     const responseData = await responseClone.json();
     
     // Extract conversation data
-    const messages = body.messages || [];
-    const trustLevel = body.trustLevel || 50; // Default trust level
-    const skepticMode = body.skepticMode || false;
+    const messages = body?.messages || [];
+    const trustLevel = body?.trustLevel || 50; // Default trust level
+    const skepticMode = body?.skepticMode || false;
     
     // Count artifacts in the response
     const artifactsGenerated = (responseData.content || '').includes('TITLE:') ? 1 : 0;
@@ -150,7 +151,7 @@ async function logArtifactInteraction(
 ): Promise<void> {
   try {
     // Use the body data stored in context, or try to read it if not available
-    let body = (context as { requestBody?: { userInput: string } }).requestBody;
+    let body = context.requestBody;
     if (!body) {
       try {
         body = await req.json();
@@ -170,7 +171,7 @@ async function logArtifactInteraction(
       if (!process.env.VERCEL) {
         await archiver.logArtifact(
           context.sessionId,
-          body.userInput || '',
+          body?.userInput || '',
           responseData.content || '',
           generationTime
         );
@@ -181,7 +182,7 @@ async function logArtifactInteraction(
         console.log('Attempting to log artifact to Supabase...');
         await supabaseArchiver.logArtifact({
           sessionId: context.sessionId,
-          userInput: body.userInput || '',
+          userInput: body?.userInput || '',
           artifactContent: responseData.content || '',
           generationTime
         });

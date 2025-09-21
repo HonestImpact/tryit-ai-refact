@@ -1,9 +1,9 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { NextRequest, NextResponse } from 'next/server';
-import { withLogging } from '@/lib/logging-middleware';
+import { withLogging, LoggingContext } from '@/lib/logging-middleware';
 
-async function artifactHandler(req: NextRequest, context: { requestBody?: { userInput: string } }): Promise<NextResponse<{ content: string }>> {
+async function artifactHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<{ content: string }>> {
   try {
     const { userInput } = await req.json();
     
