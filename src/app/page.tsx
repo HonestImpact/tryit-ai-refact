@@ -185,7 +185,7 @@ export default function TrustRecoveryProtocol() {
           
           // Extract title from first meaningful line (skip code blocks and markers)
           const toolLines = toolPart.trim().split('\n');
-          let title = 'Custom Tool';
+          title = 'Custom Tool';
           
           // First, look specifically for bold headers (these are usually the real titles)
           for (const line of toolLines) {
