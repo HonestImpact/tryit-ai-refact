@@ -228,16 +228,14 @@ export default function TrustRecoveryProtocol() {
           
           toolContent = toolLines.join('\n').trim();
           
-          // Keep conversational content (everything that's not structured tool content)
-          const conversationalLines = lines.filter((line: string) => 
-            !line.includes('**') && 
-            !line.includes('Step') && 
-            !line.includes('•') &&
-            !line.trim().startsWith('- ') &&
-            !line.includes('Here\'s a micro-tool for you') &&
-            line.trim() !== '' &&
-            line.trim().length > 10 // Include any substantial text that's not tool structure
-          );
+          // Keep conversational content (intro text before the tool structure starts)
+          const firstBoldIndex = lines.findIndex(line => line.includes('**'));
+          const conversationalLines = lines.slice(0, firstBoldIndex >= 0 ? firstBoldIndex : lines.length)
+            .filter((line: string) => 
+              !line.includes('Here\'s a micro-tool for you') &&
+              line.trim() !== '' &&
+              line.trim().length > 5
+            );
           
           cleanContent = conversationalLines.join('\n').trim();
         }
@@ -267,6 +265,7 @@ export default function TrustRecoveryProtocol() {
             console.log('Artifact state set!');
             
             // Log the micro-tool to Supabase
+            console.log('🎯 About to call logMicroToolToSupabase with:', { title, contentLength: toolContent.length });
             logMicroToolToSupabase(title, toolContent, userMessage);
           }, 800);
         } else {
@@ -436,16 +435,14 @@ export default function TrustRecoveryProtocol() {
           
           toolContent = toolLines.join('\n').trim();
           
-          // Keep conversational content (everything that's not structured tool content)
-          const conversationalLines = lines.filter((line: string) => 
-            !line.includes('**') && 
-            !line.includes('Step') && 
-            !line.includes('•') &&
-            !line.trim().startsWith('- ') &&
-            !line.includes('Here\'s a micro-tool for you') &&
-            line.trim() !== '' &&
-            line.trim().length > 10 // Include any substantial text that's not tool structure
-          );
+          // Keep conversational content (intro text before the tool structure starts)
+          const firstBoldIndex = lines.findIndex(line => line.includes('**'));
+          const conversationalLines = lines.slice(0, firstBoldIndex >= 0 ? firstBoldIndex : lines.length)
+            .filter((line: string) => 
+              !line.includes('Here\'s a micro-tool for you') &&
+              line.trim() !== '' &&
+              line.trim().length > 5
+            );
           
           cleanContent = conversationalLines.join('\n').trim();
         }
