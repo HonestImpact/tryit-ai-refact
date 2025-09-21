@@ -350,25 +350,16 @@ export default function TrustRecoveryProtocol() {
           // Extract title - should be the first bold header after the signal phrase
           title = 'Challenge Tool'; // Default fallback
           
-          console.log('🔍 CHALLENGE TITLE EXTRACTION DEBUG:');
-          console.log('Tool part after signal phrase:', toolPart);
-          
           const toolLines = toolPart.trim().split('\n');
-          console.log('Tool lines:', toolLines);
-          
           for (const line of toolLines) {
             const cleanLine = line.trim();
-            console.log('Checking line:', cleanLine);
             
             // Look for the first bold header (Noah's title)
             if (cleanLine.startsWith('**') && cleanLine.endsWith('**')) {
               title = cleanLine.replace(/\*\*/g, '').trim();
-              console.log('✅ Found title:', title);
               break;
             }
           }
-          
-          console.log('Final extracted title:', title);
           
           // Tool content is everything after the signal phrase
           toolContent = toolPart.trim();

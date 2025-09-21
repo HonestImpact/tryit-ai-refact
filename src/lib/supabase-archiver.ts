@@ -142,8 +142,15 @@ class SupabaseArchiver {
 
   async logArtifact(data: ArtifactData, conversationId?: string): Promise<string> {
     try {
+      console.log('🔧 logArtifact called - Environment check:');
+      console.log('- supabaseAdmin exists:', !!supabaseAdmin);
+      console.log('- NEXT_PUBLIC_SUPABASE_URL:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+      console.log('- SUPABASE_SERVICE_ROLE_KEY:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+      console.log('- NODE_ENV:', process.env.NODE_ENV);
+      console.log('- VERCEL_ENV:', process.env.VERCEL_ENV);
+      
       if (!supabaseAdmin) {
-        console.log('Supabase admin client not available, skipping artifact logging');
+        console.log('❌ Supabase admin client not available, skipping artifact logging');
         return 'supabase-unavailable';
       }
       
