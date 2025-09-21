@@ -78,13 +78,15 @@ async function logChatInteraction(
   context: LoggingContext
 ): Promise<void> {
   try {
-    // Try to get the body, but don't fail if it's already consumed
-    let body;
-    try {
-      body = await req.json();
-    } catch (error) {
-      console.warn('Could not read request body for logging:', error);
-      body = { messages: [] };
+    // Use the body data stored in context, or try to read it if not available
+    let body = (context as any).requestBody;
+    if (!body) {
+      try {
+        body = await req.json();
+      } catch (error) {
+        console.warn('Could not read request body for logging:', error);
+        body = { messages: [] };
+      }
     }
     
     const responseClone = response.clone();
@@ -147,13 +149,15 @@ async function logArtifactInteraction(
   context: LoggingContext
 ): Promise<void> {
   try {
-    // Try to get the body, but don't fail if it's already consumed
-    let body;
-    try {
-      body = await req.json();
-    } catch (error) {
-      console.warn('Could not read request body for artifact logging:', error);
-      body = { userInput: '' };
+    // Use the body data stored in context, or try to read it if not available
+    let body = (context as any).requestBody;
+    if (!body) {
+      try {
+        body = await req.json();
+      } catch (error) {
+        console.warn('Could not read request body for artifact logging:', error);
+        body = { userInput: '' };
+      }
     }
     
     const responseClone = response.clone();

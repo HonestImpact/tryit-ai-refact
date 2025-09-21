@@ -3,9 +3,12 @@ import { generateText } from 'ai';
 import { NextRequest, NextResponse } from 'next/server';
 import { withLogging } from '@/lib/logging-middleware';
 
-async function chatHandler(req: NextRequest): Promise<NextResponse<{ content: string }>> {
+async function chatHandler(req: NextRequest, context: any): Promise<NextResponse<{ content: string }>> {
   try {
     const { messages } = await req.json();
+    
+    // Store the parsed body in context for logging
+    context.requestBody = { messages };
 
     const { text } = await generateText({
       model: anthropic('claude-sonnet-4-20250514'),
