@@ -24,16 +24,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<{ success: bo
     
     console.log('📝 Using session ID:', sessionId);
     
-    // Debug the supabaseArchiver state
-    console.log('🔧 artifact-log endpoint - supabaseArchiver check:');
-    console.log('- supabaseArchiver exists:', !!supabaseArchiver);
-    console.log('- NODE_ENV:', process.env.NODE_ENV);
-    console.log('- VERCEL_ENV:', process.env.VERCEL_ENV);
-    console.log('- NEXT_PUBLIC_SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-    
     try {
-      console.log('🔧 About to call supabaseArchiver.logArtifact...');
       
       // Log the existing artifact to Supabase
       const result = await supabaseArchiver.logArtifact({
