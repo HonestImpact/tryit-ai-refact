@@ -163,7 +163,9 @@ export default function TrustRecoveryProtocol() {
         data.content.includes('**Critical') ||
         data.content.includes('**Structure') ||
         data.content.includes('**Management') ||
-        boldHeaderCount >= 2
+        data.content.includes('**Micro-tool') ||
+        boldHeaderCount >= 2 ||
+        (boldHeaderCount >= 1 && data.content.includes('- ')) // Single bold header with bullet points
       );
       
       const hasArtifactMarkers = hasStructuredMarkers || hasNaturalToolFormat;
@@ -372,7 +374,9 @@ export default function TrustRecoveryProtocol() {
         data.content.includes('**Critical') ||
         data.content.includes('**Structure') ||
         data.content.includes('**Management') ||
-        boldHeaderCount >= 2
+        data.content.includes('**Micro-tool') ||
+        boldHeaderCount >= 2 ||
+        (boldHeaderCount >= 1 && data.content.includes('- ')) // Single bold header with bullet points
       );
       
       const hasArtifactMarkers = hasStructuredMarkers || hasNaturalToolFormat;
