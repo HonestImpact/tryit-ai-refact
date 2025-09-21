@@ -228,16 +228,9 @@ export default function TrustRecoveryProtocol() {
           
           toolContent = toolLines.join('\n').trim();
           
-          // Keep conversational content (intro text before the tool structure starts)
-          const firstBoldIndex = lines.findIndex(line => line.includes('**'));
-          const conversationalLines = lines.slice(0, firstBoldIndex >= 0 ? firstBoldIndex : lines.length)
-            .filter((line: string) => 
-              !line.includes('Here\'s a micro-tool for you') &&
-              line.trim() !== '' &&
-              line.trim().length > 5
-            );
-          
-          cleanContent = conversationalLines.join('\n').trim();
+          // Keep the full response in chat (user sees everything)
+          // Just remove any generic "Here's a micro-tool" phrases
+          cleanContent = data.content.replace(/Here's a micro-tool for you[:.]*\s*/gi, '').trim();
         }
 
         if (title && toolContent) {
@@ -252,7 +245,7 @@ export default function TrustRecoveryProtocol() {
             const newMessages = [...prev];
             newMessages[newMessages.length - 1] = {
               ...newMessages[newMessages.length - 1],
-              content: cleanContent || "I've created a micro-tool for you - check the toolbox on the right (or below on mobile)!"
+              content: cleanContent || data.content // Show full response if cleaning fails
             };
             return newMessages;
           });
@@ -435,16 +428,9 @@ export default function TrustRecoveryProtocol() {
           
           toolContent = toolLines.join('\n').trim();
           
-          // Keep conversational content (intro text before the tool structure starts)
-          const firstBoldIndex = lines.findIndex(line => line.includes('**'));
-          const conversationalLines = lines.slice(0, firstBoldIndex >= 0 ? firstBoldIndex : lines.length)
-            .filter((line: string) => 
-              !line.includes('Here\'s a micro-tool for you') &&
-              line.trim() !== '' &&
-              line.trim().length > 5
-            );
-          
-          cleanContent = conversationalLines.join('\n').trim();
+          // Keep the full response in chat (user sees everything)
+          // Just remove any generic "Here's a micro-tool" phrases
+          cleanContent = data.content.replace(/Here's a micro-tool for you[:.]*\s*/gi, '').trim();
         }
 
         if (title && toolContent) {
@@ -457,7 +443,7 @@ export default function TrustRecoveryProtocol() {
             const newMessages = [...prev];
             newMessages[newMessages.length - 1] = {
               ...newMessages[newMessages.length - 1],
-              content: cleanContent || "I've created a micro-tool for you - check the toolbox on the right (or below on mobile)!"
+              content: cleanContent || data.content // Show full response if cleaning fails
             };
             return newMessages;
           });
