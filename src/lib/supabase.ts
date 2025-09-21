@@ -5,12 +5,12 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Client for browser usage (only if env vars are available)
-export const supabase = supabaseUrl && supabaseAnonKey 
+export const supabase = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
-// Admin client for server-side operations with full access (only if env vars are available)
-export const supabaseAdmin = supabaseUrl && supabaseServiceKey
+// Admin client for server-side operations with full access (only if env vars are available)  
+export const supabaseAdmin = (supabaseUrl && supabaseServiceKey)
   ? createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
