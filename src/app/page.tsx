@@ -60,16 +60,19 @@ export default function TrustRecoveryProtocol() {
   const logMicroToolToSupabase = async (title: string, content: string, userInput: string) => {
     try {
       console.log('Logging micro-tool to Supabase:', { title, userInput });
-      const response = await fetch('/api/artifact', {
+      
+      // Create a custom endpoint for logging existing micro-tools
+      const response = await fetch('/api/artifact-log', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
           userInput,
-          response: content,
+          artifactContent: content,
           title,
-          toolContent: content
+          toolContent: content,
+          generationTime: 0 // Since it's already generated
         }),
       });
       
