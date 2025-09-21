@@ -56,6 +56,33 @@ export default function TrustRecoveryProtocol() {
     }
   }, []);
 
+  // Function to log micro-tool to Supabase
+  const logMicroToolToSupabase = async (title: string, content: string, userInput: string) => {
+    try {
+      console.log('Logging micro-tool to Supabase:', { title, userInput });
+      const response = await fetch('/api/artifact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          userInput,
+          response: content,
+          title,
+          toolContent: content
+        }),
+      });
+      
+      if (response.ok) {
+        console.log('Micro-tool logged to Supabase successfully');
+      } else {
+        console.error('Failed to log micro-tool to Supabase:', response.status);
+      }
+    } catch (error) {
+      console.error('Error logging micro-tool to Supabase:', error);
+    }
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -219,6 +246,9 @@ export default function TrustRecoveryProtocol() {
             setArtifact({ title, content: toolContent });
             setReasoning(reasoningContent);
             console.log('Artifact state set!');
+            
+            // Log the micro-tool to Supabase
+            logMicroToolToSupabase(title, toolContent, userMessage);
           }, 800);
         } else {
           console.log('Failed to parse artifact - missing title or tool content');
@@ -418,6 +448,10 @@ export default function TrustRecoveryProtocol() {
           setTimeout(() => {
             setArtifact({ title, content: toolContent });
             setReasoning(reasoningContent);
+            
+            // Log the micro-tool to Supabase
+            const challengeUserMessage = `I want to challenge your previous response: "${message.content}". Can you think about this differently or explain your reasoning more clearly?`;
+            logMicroToolToSupabase(title, toolContent, challengeUserMessage);
           }, 800);
         }
       }
