@@ -102,7 +102,7 @@ async function logChatInteraction(
     try {
       // Local file logging (existing)
       // Local logging (disabled on Vercel)
-      if (process.env.NODE_ENV !== 'production') {
+      if (!process.env.VERCEL) {
         await archiver.logConversation(
           context.sessionId,
           messages,
@@ -163,7 +163,7 @@ async function logArtifactInteraction(
     // Log artifact to both local files and Supabase
     try {
       // Local file logging (disabled on Vercel)
-      if (process.env.NODE_ENV !== 'production') {
+      if (!process.env.VERCEL) {
         await archiver.logArtifact(
           context.sessionId,
           body.userInput || '',
