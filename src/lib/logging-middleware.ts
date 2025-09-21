@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { archiver } from './archiver';
-import { supabaseArchiver } from './supabase-archiver';
+// import { supabaseArchiver } from './supabase-archiver';
 
 export interface LoggingContext {
   sessionId: string;
@@ -98,7 +98,7 @@ async function logChatInteraction(
       );
       
       // Supabase logging (new)
-      await supabaseArchiver.logConversation({
+      // await supabaseArchiver.logConversation({
         sessionId: context.sessionId,
         messages: messages.map((msg: { role: string; content: string }) => ({
           role: msg.role,
@@ -142,7 +142,7 @@ async function logArtifactInteraction(
       );
       
       // Supabase logging (new)
-      await supabaseArchiver.logArtifact({
+      // await supabaseArchiver.logArtifact({
         sessionId: context.sessionId,
         userInput: body.userInput || '',
         artifactContent: responseData.content || '',
