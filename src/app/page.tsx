@@ -106,6 +106,7 @@ export default function TrustRecoveryProtocol() {
 
       // Check if we should generate an artifact based on user message
       // Trigger when user mentions problems, asks for help, or corrects/clarifies
+      console.log('Checking if should generate artifact for:', userMessage);
       const shouldGenerateArtifact = userMessage.length > 15 && (
         // Original problem indicators
         userMessage.toLowerCase().includes('frustrat') ||
@@ -140,7 +141,9 @@ export default function TrustRecoveryProtocol() {
         userMessage.toLowerCase().includes('can you change it')
       );
 
+      console.log('Should generate artifact:', shouldGenerateArtifact);
       if (shouldGenerateArtifact) {
+        console.log('Calling generateArtifact with:', { userMessage, response: data.content });
         await generateArtifact(userMessage, data.content);
       }
 
@@ -157,6 +160,7 @@ export default function TrustRecoveryProtocol() {
   };
 
   const generateArtifact = async (userInput: string, response: string) => {
+    console.log('generateArtifact called with:', { userInput, response });
     setIsGeneratingArtifact(true);
     try {
       const artifactResponse = await fetch('/api/artifact', {
