@@ -156,36 +156,15 @@ export default function TrustRecoveryProtocol() {
       console.log('=== ARTIFACT DETECTION ===');
       console.log('Noah\'s full response:', data.content);
       
-      // Check for both structured format (TITLE:/TOOL:) and natural format (bold headers)
-      const hasStructuredMarkers = data.content.includes('TITLE:') && data.content.includes('TOOL:');
-      const boldHeaderCount = (data.content.match(/\*\*[^*]+\*\*/g) || []).length;
-      const hasNaturalToolFormat = data.content.includes('**') && (
-        data.content.includes('Step 1:') || 
-        data.content.includes('Step 2:') || 
-        data.content.includes('Step 3:') ||
-        data.content.includes('**Step') ||
-        data.content.includes('**How to') ||
-        data.content.includes('**Tool:') ||
-        data.content.includes('**Method:') ||
-        data.content.includes('**The ') ||
-        data.content.includes('**Phone') ||
-        data.content.includes('**Critical') ||
-        data.content.includes('**Structure') ||
-        data.content.includes('**Management') ||
-        data.content.includes('**Micro-tool') ||
-        boldHeaderCount >= 2 ||
-        (boldHeaderCount >= 1 && data.content.includes('- ')) // Single bold header with bullet points
-      );
+      // Check for both structured format (TITLE:/TOOL:) and natural format (bold headers or code blocks)
+      // Simple detection: look for Noah's tool signal phrase
+      const hasToolSignal = data.content.includes("Here's a tool for you to consider:");
       
-      const hasArtifactMarkers = hasStructuredMarkers || hasNaturalToolFormat;
+      const hasArtifactMarkers = hasToolSignal;
       
       console.log('=== ARTIFACT DETECTION DEBUG ===');
       console.log('Full response:', data.content);
-      console.log('Contains TITLE?:', data.content.includes('TITLE:'));
-      console.log('Contains TOOL?:', data.content.includes('TOOL:'));
-      console.log('Has structured markers:', hasStructuredMarkers);
-      console.log('Has natural tool format:', hasNaturalToolFormat);
-      console.log('Bold header count:', boldHeaderCount);
+      console.log('Has tool signal phrase:', hasToolSignal);
       console.log('Has artifact markers:', hasArtifactMarkers);
       console.log('==================================');
       if (hasArtifactMarkers) {
@@ -196,7 +175,31 @@ export default function TrustRecoveryProtocol() {
         let reasoningContent = '';
         let cleanContent = '';
 
-        if (hasStructuredMarkers) {
+        if (hasToolSignal) {
+          // Simple parsing: split on the signal phrase
+          const parts = data.content.split("Here's a tool for you to consider:");
+          const beforeTool = parts[0] || '';
+          const toolPart = parts[1] || '';
+          
+          // Extract title from the first line after the signal phrase
+          const toolLines = toolPart.trim().split('\n');
+          const firstLine = toolLines[0] || '';
+          
+          // Try to extract a meaningful title from the first line or use a default
+          if (firstLine.includes('//') && (firstLine.includes('Debugger') || firstLine.includes('Tool'))) {
+            title = firstLine.replace(/\/\/\s*/, '').trim();
+          } else if (firstLine.length > 10) {
+            title = firstLine.substring(0, 50).trim();
+          } else {
+            title = 'Custom Tool';
+          }
+          
+          // Tool content is everything after the signal phrase
+          toolContent = toolPart.trim();
+          
+          // Clean content is everything before the signal phrase
+          cleanContent = beforeTool.trim();
+        } else if (hasStructuredMarkers) {
           // Parse structured format (TITLE:/TOOL:/REASONING:)
           const lines = data.content.split('\n');
           const titleLine = lines.find((line: string) => line.startsWith('TITLE:'));
@@ -241,6 +244,27 @@ export default function TrustRecoveryProtocol() {
           
           // Keep the full response in chat (user sees everything)
           // Just remove any generic "Here's a micro-tool" phrases
+          cleanContent = data.content.replace(/Here's a micro-tool for you[:.]*\s*/gi, '').trim();
+        } else if (hasCodeBlock) {
+          // Parse code block format
+          const lines = data.content.split('\n');
+          
+          // Find title from comment in code block or preceding text
+          const codeBlockStart = lines.findIndex((line: string) => line.includes('```'));
+          const commentLine = lines.find((line: string) => line.includes('//') && (line.includes('Debugger') || line.includes('Tool') || line.includes('Debug')));
+          if (commentLine) {
+            title = commentLine.replace(/\/\/\s*/, '').trim();
+          } else {
+            // Look for title in the text before code block
+            const beforeCode = lines.slice(0, codeBlockStart >= 0 ? codeBlockStart : 0).join(' ');
+            const titleMatch = beforeCode.match(/(?:build|create|tool|debugger)[^.]*([A-Z][a-zA-Z\s-]+)/i);
+            title = titleMatch ? titleMatch[1].trim() : 'Code Tool';
+          }
+          
+          // Extract the entire response as tool content
+          toolContent = data.content;
+          
+          // Keep full response as conversational content
           cleanContent = data.content.replace(/Here's a micro-tool for you[:.]*\s*/gi, '').trim();
         }
 
@@ -367,28 +391,10 @@ export default function TrustRecoveryProtocol() {
         setTrustLevel(prev => Math.min(100, prev + 5));
       }
 
-      // Check if the challenge response contains artifact content
-      const hasStructuredMarkers = data.content.includes('TITLE:') && data.content.includes('TOOL:');
-      const boldHeaderCount = (data.content.match(/\*\*[^*]+\*\*/g) || []).length;
-      const hasNaturalToolFormat = data.content.includes('**') && (
-        data.content.includes('Step 1:') || 
-        data.content.includes('Step 2:') || 
-        data.content.includes('Step 3:') ||
-        data.content.includes('**Step') ||
-        data.content.includes('**How to') ||
-        data.content.includes('**Tool:') ||
-        data.content.includes('**Method:') ||
-        data.content.includes('**The ') ||
-        data.content.includes('**Phone') ||
-        data.content.includes('**Critical') ||
-        data.content.includes('**Structure') ||
-        data.content.includes('**Management') ||
-        data.content.includes('**Micro-tool') ||
-        boldHeaderCount >= 2 ||
-        (boldHeaderCount >= 1 && data.content.includes('- ')) // Single bold header with bullet points
-      );
+      // Check if the challenge response contains artifact content (same simple approach)
+      const hasToolSignal = data.content.includes("Here's a tool for you to consider:");
       
-      const hasArtifactMarkers = hasStructuredMarkers || hasNaturalToolFormat;
+      const hasArtifactMarkers = hasToolSignal;
       
       if (hasArtifactMarkers) {
         console.log('Parsing artifact from challenge response');
@@ -398,52 +404,30 @@ export default function TrustRecoveryProtocol() {
         let reasoningContent = '';
         let cleanContent = '';
 
-        if (hasStructuredMarkers) {
-          // Parse structured format (TITLE:/TOOL:/REASONING:)
-          const lines = data.content.split('\n');
-          const titleLine = lines.find((line: string) => line.startsWith('TITLE:'));
-          const toolStart = lines.findIndex((line: string) => line.startsWith('TOOL:'));
-          const reasoningStart = lines.findIndex((line: string) => line.startsWith('REASONING:'));
-
-          if (titleLine && toolStart !== -1) {
-            title = titleLine.replace('TITLE:', '').trim();
-            toolContent = lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : undefined).join('\n').trim();
-            reasoningContent = reasoningStart !== -1 ? lines.slice(reasoningStart + 1).join('\n').trim() : '';
-            cleanContent = lines.filter((line: string) => 
-              !line.startsWith('TITLE:') && 
-              !line.startsWith('TOOL:') && 
-              !line.startsWith('REASONING:') &&
-              line.trim() !== ''
-            ).join('\n').trim();
-          }
-        } else if (hasNaturalToolFormat) {
-          // Parse natural format (bold headers like **Step 1:**)
-          const lines = data.content.split('\n');
+        if (hasToolSignal) {
+          // Simple parsing: split on the signal phrase (same as handleSubmit)
+          const parts = data.content.split("Here's a tool for you to consider:");
+          const beforeTool = parts[0] || '';
+          const toolPart = parts[1] || '';
           
-          // Find the first bold header as the title
-          const titleLine = lines.find((line: string) => line.includes('**') && line.includes('**'));
-          if (titleLine) {
-            title = titleLine.replace(/\*\*/g, '').trim();
+          // Extract title from the first line after the signal phrase
+          const toolLines = toolPart.trim().split('\n');
+          const firstLine = toolLines[0] || '';
+          
+          // Try to extract a meaningful title from the first line or use a default
+          if (firstLine.includes('//') && (firstLine.includes('Debugger') || firstLine.includes('Tool'))) {
+            title = firstLine.replace(/\/\/\s*/, '').trim();
+          } else if (firstLine.length > 10) {
+            title = firstLine.substring(0, 50).trim();
           } else {
-            // Fallback: extract title from the beginning
-            const firstLine = lines[0] || '';
-            title = firstLine.replace(/^[^a-zA-Z]*/, '').substring(0, 50) + '...';
+            title = 'Challenge Tool';
           }
           
-          // Extract tool content (everything with bold headers and steps)
-          const toolLines = lines.filter((line: string) => 
-            line.includes('**') || 
-            line.includes('Step') || 
-            line.includes('•') ||
-            line.includes('- ') ||
-            (line.trim() !== '' && !line.includes('Ah,') && !line.includes('Let me') && !line.includes('I can tell'))
-          );
+          // Tool content is everything after the signal phrase
+          toolContent = toolPart.trim();
           
-          toolContent = toolLines.join('\n').trim();
-          
-          // Keep the full response in chat (user sees everything)
-          // Just remove any generic "Here's a micro-tool" phrases
-          cleanContent = data.content.replace(/Here's a micro-tool for you[:.]*\s*/gi, '').trim();
+          // Clean content is everything before the signal phrase
+          cleanContent = beforeTool.trim();
         }
 
         if (title && toolContent) {
