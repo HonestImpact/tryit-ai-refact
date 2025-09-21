@@ -168,12 +168,42 @@ class SupabaseArchiver {
           const lines = toolContent.split('\n');
           const firstLine = lines[0] || '';
           
-          // Extract title from first meaningful line
-          if (firstLine.includes('//') && (firstLine.includes('Tool') || firstLine.includes('Debugger'))) {
-            title = firstLine.replace(/\/\/\s*/, '').trim();
-          } else if (firstLine.length > 10) {
-            title = firstLine.substring(0, 50).trim();
-          } else {
+          // Extract title from first meaningful line (skip code blocks and markers)
+          let titleFound = false;
+          for (const line of lines) {
+            const cleanLine = line.trim();
+            
+            // Skip empty lines, code block markers, and generic phrases
+            if (!cleanLine || 
+                cleanLine.startsWith('```') || 
+                cleanLine.startsWith('//') ||
+                cleanLine.toLowerCase().includes('here\'s a tool') ||
+                cleanLine.length < 3) {
+              continue;
+            }
+            
+            // Look for bold headers (markdown format)
+            if (cleanLine.startsWith('**') && cleanLine.endsWith('**')) {
+              title = cleanLine.replace(/\*\*/g, '').trim();
+              titleFound = true;
+              break;
+            }
+            
+            // Look for descriptive first line (but not code)
+            if (cleanLine.length > 10 && 
+                !cleanLine.includes('function') && 
+                !cleanLine.includes('const ') &&
+                !cleanLine.includes('let ') &&
+                !cleanLine.includes('var ') &&
+                !cleanLine.includes('{') &&
+                !cleanLine.includes('}')) {
+              title = cleanLine.substring(0, 50).trim();
+              titleFound = true;
+              break;
+            }
+          }
+          
+          if (!titleFound) {
             title = 'Custom Tool';
           }
           

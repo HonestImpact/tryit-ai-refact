@@ -38,21 +38,6 @@ export default function TrustRecoveryProtocol() {
     }
   }, [messages]);
 
-  // Auto-log any artifact to Supabase whenever one is created
-  useEffect(() => {
-    if (artifact && artifact.title && artifact.content && lastUserMessage) {
-      console.log('🎯 Artifact detected, auto-logging to Supabase:', { 
-        title: artifact.title, 
-        contentLength: artifact.content.length,
-        userMessage: lastUserMessage
-      });
-      
-      // Use the session ID from the current chat session, or generate a new one
-      const sessionId = currentSessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      logMicroToolToSupabase(artifact.title, artifact.content, lastUserMessage);
-    }
-  }, [artifact, lastUserMessage, currentSessionId]);
 
   // Initialize messages and focus input on page load
   useEffect(() => {
@@ -239,6 +224,14 @@ export default function TrustRecoveryProtocol() {
           setTimeout(() => {
             setArtifact({ title, content: toolContent });
             console.log('Artifact state set!');
+            
+            // Log the micro-tool to Supabase immediately after creation
+            console.log('🎯 Artifact created, logging to Supabase:', { 
+              title, 
+              contentLength: toolContent.length,
+              userMessage: lastUserMessage
+            });
+            logMicroToolToSupabase(title, toolContent, lastUserMessage);
           }, 800);
         } else {
           console.log('Failed to parse artifact - missing title or tool content');
@@ -391,6 +384,14 @@ export default function TrustRecoveryProtocol() {
           // Set the artifact
           setTimeout(() => {
             setArtifact({ title, content: toolContent });
+            
+            // Log the micro-tool to Supabase immediately after creation
+            console.log('🎯 Challenge artifact created, logging to Supabase:', { 
+              title, 
+              contentLength: toolContent.length,
+              userMessage: lastUserMessage
+            });
+            logMicroToolToSupabase(title, toolContent, lastUserMessage);
           }, 800);
         }
       }
