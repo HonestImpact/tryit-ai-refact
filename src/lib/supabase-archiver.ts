@@ -145,22 +145,60 @@ class SupabaseArchiver {
         console.log('Supabase admin client not available, skipping artifact logging');
         return 'supabase-unavailable';
       }
+      
+      console.log('🔧 logArtifact called with:', { 
+        sessionId: data.sessionId, 
+        contentLength: data.artifactContent.length,
+        hasSignalPhrase: data.artifactContent.includes("Here's a tool for you to consider:")
+      });
+      
       const sanitizedInput = sanitizeContent(data.userInput);
       const sanitizedArtifact = sanitizeContent(data.artifactContent);
       
-      // Parse artifact content to extract title and reasoning
-      const lines = sanitizedArtifact.split('\n');
-      const titleLine = lines.find(line => line.startsWith('TITLE:'));
-      const toolStart = lines.findIndex(line => line.startsWith('TOOL:'));
-      const reasoningStart = lines.findIndex(line => line.startsWith('REASONING:'));
+      // Parse artifact content - handle both signal phrase format and old structured format
+      let title: string;
+      let content: string;
+      let reasoning = '';
       
-      const title = titleLine ? titleLine.replace('TITLE:', '').trim() : 'Untitled Tool';
-      const content = toolStart !== -1 ? 
-        lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : lines.length).join('\n').trim() : 
-        sanitizedArtifact;
-      const reasoning = reasoningStart !== -1 ? 
-        lines.slice(reasoningStart + 1).join('\n').trim() : '';
+      if (sanitizedArtifact.includes("Here's a tool for you to consider:")) {
+        // New signal phrase format
+        const parts = sanitizedArtifact.split("Here's a tool for you to consider:");
+        if (parts.length > 1) {
+          const toolContent = parts[1].trim();
+          const lines = toolContent.split('\n');
+          const firstLine = lines[0] || '';
+          
+          // Extract title from first meaningful line
+          if (firstLine.includes('//') && (firstLine.includes('Tool') || firstLine.includes('Debugger'))) {
+            title = firstLine.replace(/\/\/\s*/, '').trim();
+          } else if (firstLine.length > 10) {
+            title = firstLine.substring(0, 50).trim();
+          } else {
+            title = 'Custom Tool';
+          }
+          
+          content = toolContent;
+        } else {
+          title = 'Untitled Tool';
+          content = sanitizedArtifact;
+        }
+      } else {
+        // Old structured format (TITLE:/TOOL:/REASONING:)
+        const lines = sanitizedArtifact.split('\n');
+        const titleLine = lines.find(line => line.startsWith('TITLE:'));
+        const toolStart = lines.findIndex(line => line.startsWith('TOOL:'));
+        const reasoningStart = lines.findIndex(line => line.startsWith('REASONING:'));
+        
+        title = titleLine ? titleLine.replace('TITLE:', '').trim() : 'Untitled Tool';
+        content = toolStart !== -1 ? 
+          lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : lines.length).join('\n').trim() : 
+          sanitizedArtifact;
+        reasoning = reasoningStart !== -1 ? 
+          lines.slice(reasoningStart + 1).join('\n').trim() : '';
+      }
 
+      console.log('🔧 Parsed artifact:', { title, contentLength: content.length, reasoning });
+      
       const toolType = identifyArtifactType(content);
 
       // If no conversation ID provided, try to find the most recent conversation for this session
