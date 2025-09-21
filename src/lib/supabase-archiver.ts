@@ -216,6 +216,11 @@ class SupabaseArchiver {
 
   async getConversationAnalytics(days: number = 7): Promise<unknown> {
     try {
+      if (!supabaseAdmin) {
+        console.log('Supabase admin client not available, returning empty analytics');
+        return {};
+      }
+
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - days);
 
@@ -239,6 +244,11 @@ class SupabaseArchiver {
 
   async getRecentLogs(days: number = 7): Promise<{ conversations: unknown[]; artifacts: unknown[] }> {
     try {
+      if (!supabaseAdmin) {
+        console.log('Supabase admin client not available, returning empty logs');
+        return { conversations: [], artifacts: [] };
+      }
+
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - days);
 
@@ -282,6 +292,11 @@ class SupabaseArchiver {
 
   async getTrackEffectiveness(): Promise<unknown> {
     try {
+      if (!supabaseAdmin) {
+        console.log('Supabase admin client not available, returning empty track effectiveness');
+        return [];
+      }
+
       const { data, error } = await supabaseAdmin
         .from('track_effectiveness')
         .select('*')
@@ -301,6 +316,11 @@ class SupabaseArchiver {
 
   async getMicroToolEffectiveness(): Promise<unknown> {
     try {
+      if (!supabaseAdmin) {
+        console.log('Supabase admin client not available, returning empty micro-tool effectiveness');
+        return [];
+      }
+
       const { data, error } = await supabaseAdmin
         .from('micro_tool_effectiveness')
         .select('*')
