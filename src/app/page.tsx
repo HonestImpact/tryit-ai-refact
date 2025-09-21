@@ -166,6 +166,8 @@ export default function TrustRecoveryProtocol() {
         boldHeaderCount >= 2
       );
       
+      const hasArtifactMarkers = hasStructuredMarkers || hasNaturalToolFormat;
+      
       console.log('=== ARTIFACT DETECTION DEBUG ===');
       console.log('Full response:', data.content);
       console.log('Contains TITLE?:', data.content.includes('TITLE:'));
@@ -175,8 +177,6 @@ export default function TrustRecoveryProtocol() {
       console.log('Bold header count:', boldHeaderCount);
       console.log('Has artifact markers:', hasArtifactMarkers);
       console.log('==================================');
-      
-      const hasArtifactMarkers = hasStructuredMarkers || hasNaturalToolFormat;
       if (hasArtifactMarkers) {
         console.log('Parsing artifact from Noah\'s response');
         
