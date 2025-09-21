@@ -110,6 +110,7 @@ export default function TrustRecoveryProtocol() {
       
       // Check for both structured format (TITLE:/TOOL:) and natural format (bold headers)
       const hasStructuredMarkers = data.content.includes('TITLE:') && data.content.includes('TOOL:');
+      const boldHeaderCount = (data.content.match(/\*\*[^*]+\*\*/g) || []).length;
       const hasNaturalToolFormat = data.content.includes('**') && (
         data.content.includes('Step 1:') || 
         data.content.includes('Step 2:') || 
@@ -117,7 +118,13 @@ export default function TrustRecoveryProtocol() {
         data.content.includes('**Step') ||
         data.content.includes('**How to') ||
         data.content.includes('**Tool:') ||
-        data.content.includes('**Method:')
+        data.content.includes('**Method:') ||
+        data.content.includes('**The ') ||
+        data.content.includes('**Phone') ||
+        data.content.includes('**Critical') ||
+        data.content.includes('**Structure') ||
+        data.content.includes('**Management') ||
+        boldHeaderCount >= 2
       );
       
       console.log('Contains TITLE?:', data.content.includes('TITLE:'));
@@ -358,6 +365,7 @@ export default function TrustRecoveryProtocol() {
 
       // Check if the challenge response contains artifact content
       const hasStructuredMarkers = data.content.includes('TITLE:') && data.content.includes('TOOL:');
+      const boldHeaderCount = (data.content.match(/\*\*[^*]+\*\*/g) || []).length;
       const hasNaturalToolFormat = data.content.includes('**') && (
         data.content.includes('Step 1:') || 
         data.content.includes('Step 2:') || 
@@ -365,7 +373,13 @@ export default function TrustRecoveryProtocol() {
         data.content.includes('**Step') ||
         data.content.includes('**How to') ||
         data.content.includes('**Tool:') ||
-        data.content.includes('**Method:')
+        data.content.includes('**Method:') ||
+        data.content.includes('**The ') ||
+        data.content.includes('**Phone') ||
+        data.content.includes('**Critical') ||
+        data.content.includes('**Structure') ||
+        data.content.includes('**Management') ||
+        boldHeaderCount >= 2
       );
       
       const hasArtifactMarkers = hasStructuredMarkers || hasNaturalToolFormat;

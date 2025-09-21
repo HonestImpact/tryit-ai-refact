@@ -36,6 +36,11 @@ class SupabaseArchiver {
 
   async logConversation(data: ConversationData): Promise<string> {
     try {
+      if (!supabaseAdmin) {
+        console.log('Supabase admin client not available, skipping conversation logging');
+        return 'supabase-unavailable';
+      }
+
       console.log(`📝 Logging conversation to Supabase (${this.environment})`);
       console.log('📝 Conversation data:', { 
         sessionId: data.sessionId, 
@@ -136,6 +141,10 @@ class SupabaseArchiver {
 
   async logArtifact(data: ArtifactData, conversationId?: string): Promise<string> {
     try {
+      if (!supabaseAdmin) {
+        console.log('Supabase admin client not available, skipping artifact logging');
+        return 'supabase-unavailable';
+      }
       const sanitizedInput = sanitizeContent(data.userInput);
       const sanitizedArtifact = sanitizeContent(data.artifactContent);
       
