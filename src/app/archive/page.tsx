@@ -488,36 +488,36 @@ function ArchiveDashboardContent() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
-                    {(selectedConversation as SupabaseConversation).track_type || (selectedConversation as SupabaseConversation).track || 'Unknown'} Track Conversation
+                    {(selectedConversation as unknown as SupabaseConversation).track_type || (selectedConversation as unknown as SupabaseConversation).track || 'Unknown'} Track Conversation
                   </h2>
-                  <p className="text-gray-600">{formatDate((selectedConversation as SupabaseConversation).created_at || (selectedConversation as SupabaseConversation).timestamp?.toString() || new Date().toISOString())}</p>
-                  <p className="text-sm text-gray-500">Session: {(selectedConversation as SupabaseConversation).session_id || (selectedConversation as ConversationLog).sessionId}</p>
+                  <p className="text-gray-600">{formatDate((selectedConversation as unknown as SupabaseConversation).created_at || (selectedConversation as unknown as SupabaseConversation).timestamp?.toString() || new Date().toISOString())}</p>
+                  <p className="text-sm text-gray-500">Session: {(selectedConversation as unknown as SupabaseConversation).session_id || (selectedConversation as ConversationLog).sessionId}</p>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEffectivenessColor((selectedConversation as SupabaseConversation).user_engagement || (selectedConversation as SupabaseConversation).effectiveness?.userEngagement || 'medium')}`}>
-                    {(selectedConversation as SupabaseConversation).user_engagement || (selectedConversation as SupabaseConversation).effectiveness?.userEngagement || 'medium'} engagement
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEffectivenessColor((selectedConversation as unknown as SupabaseConversation).user_engagement || (selectedConversation as unknown as SupabaseConversation).effectiveness?.userEngagement || 'medium')}`}>
+                    {(selectedConversation as unknown as SupabaseConversation).user_engagement || (selectedConversation as unknown as SupabaseConversation).effectiveness?.userEngagement || 'medium'} engagement
                   </span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getTrustColor((selectedConversation as SupabaseConversation).trust_level || (selectedConversation as ConversationLog).trustLevel || 50)}`}>
-                    {(selectedConversation as SupabaseConversation).trust_level || (selectedConversation as ConversationLog).trustLevel || 50}% trust
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getTrustColor((selectedConversation as unknown as SupabaseConversation).trust_level || (selectedConversation as ConversationLog).trustLevel || 50)}`}>
+                    {(selectedConversation as unknown as SupabaseConversation).trust_level || (selectedConversation as ConversationLog).trustLevel || 50}% trust
                   </span>
                 </div>
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as SupabaseConversation).conversation_length || (selectedConversation as ConversationLog).conversationLength || 0}</p>
+                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as unknown as SupabaseConversation).conversation_length || (selectedConversation as ConversationLog).conversationLength || 0}</p>
                   <p className="text-sm text-gray-600">Messages</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as SupabaseConversation).user_challenges || (selectedConversation as ConversationLog).userChallenges || 0}</p>
+                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as unknown as SupabaseConversation).user_challenges || (selectedConversation as ConversationLog).userChallenges || 0}</p>
                   <p className="text-sm text-gray-600">Challenges</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as SupabaseConversation).noah_uncertainty || (selectedConversation as ConversationLog).noahUncertainty || 0}</p>
+                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as unknown as SupabaseConversation).noah_uncertainty || (selectedConversation as ConversationLog).noahUncertainty || 0}</p>
                   <p className="text-sm text-gray-600">Uncertainty</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as SupabaseConversation).artifacts_generated || (selectedConversation as ConversationLog).artifactsGenerated || 0}</p>
+                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as unknown as SupabaseConversation).artifacts_generated || (selectedConversation as ConversationLog).artifactsGenerated || 0}</p>
                   <p className="text-sm text-gray-600">Tools</p>
                 </div>
               </div>
@@ -527,11 +527,11 @@ function ArchiveDashboardContent() {
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
               <div className="bg-gray-50 px-6 py-4 border-b">
                 <h3 className="text-lg font-semibold text-gray-900">Full Conversation</h3>
-                <p className="text-sm text-gray-600">Pattern: {(selectedConversation as SupabaseConversation).conversation_pattern || (selectedConversation as ConversationLog).conversationPattern || 'Unknown'}</p>
+                <p className="text-sm text-gray-600">Pattern: {(selectedConversation as unknown as SupabaseConversation).conversation_pattern || (selectedConversation as ConversationLog).conversationPattern || 'Unknown'}</p>
               </div>
               
               <div className="p-6 space-y-6">
-                {((selectedConversation as SupabaseConversation).messages || []).map((message: { role: string; content: string; timestamp?: number }, index: number) => (
+                {((selectedConversation as unknown as SupabaseConversation).messages || []).map((message: { role: string; content: string; timestamp?: number }, index: number) => (
                   <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-3xl ${message.role === 'user' ? 'ml-12' : 'mr-12'}`}>
                       <div className={`px-4 py-3 rounded-lg ${
