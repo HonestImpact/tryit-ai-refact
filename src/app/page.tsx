@@ -104,47 +104,50 @@ export default function TrustRecoveryProtocol() {
         setTrustLevel(prev => Math.min(100, prev + 5));
       }
 
-      // Check if we should generate an artifact based on user message
-      // Trigger when user mentions problems, asks for help, or corrects/clarifies
-      console.log('Checking if should generate artifact for:', userMessage);
-      const shouldGenerateArtifact = userMessage.length > 15 && (
-        // Original problem indicators
-        userMessage.toLowerCase().includes('frustrat') ||
-        userMessage.toLowerCase().includes('annoying') ||
-        userMessage.toLowerCase().includes('annoy') ||
-        userMessage.toLowerCase().includes('problem') ||
-        userMessage.toLowerCase().includes('difficult') ||
-        userMessage.toLowerCase().includes('hate') ||
-        userMessage.toLowerCase().includes('ugh') ||
-        userMessage.toLowerCase().includes('wish') ||
-        userMessage.toLowerCase().includes('struggle') ||
-        // Help requests
-        userMessage.toLowerCase().includes('help me') ||
-        userMessage.toLowerCase().includes('need help') ||
-        userMessage.toLowerCase().includes('can you help') ||
-        userMessage.toLowerCase().includes('build me') ||
-        userMessage.toLowerCase().includes('create a tool') ||
-        userMessage.toLowerCase().includes('make me a') ||
-        userMessage.toLowerCase().includes('i need a tool') ||
-        // Corrections and clarifications
-        userMessage.toLowerCase().includes('that\'s not right') ||
-        userMessage.toLowerCase().includes('that\'s not what i meant') ||
-        userMessage.toLowerCase().includes('i meant') ||
-        userMessage.toLowerCase().includes('actually') ||
-        userMessage.toLowerCase().includes('no, i need') ||
-        userMessage.toLowerCase().includes('what i really need') ||
-        userMessage.toLowerCase().includes('let me clarify') ||
-        userMessage.toLowerCase().includes('i was thinking') ||
-        userMessage.toLowerCase().includes('something more like') ||
-        userMessage.toLowerCase().includes('instead of that') ||
-        userMessage.toLowerCase().includes('can you make it') ||
-        userMessage.toLowerCase().includes('can you change it')
-      );
+      // Check if Noah's response contains artifact content (TITLE: and TOOL: markers)
+      console.log('Checking if Noah\'s response contains artifact:', data.content);
+      const hasArtifactMarkers = data.content.includes('TITLE:') && data.content.includes('TOOL:');
+      
+      console.log('Has artifact markers:', hasArtifactMarkers);
+      if (hasArtifactMarkers) {
+        console.log('Parsing artifact from Noah\'s response');
+        // Parse the artifact directly from Noah's response
+        const lines = data.content.split('\n');
+        const titleLine = lines.find((line: string) => line.startsWith('TITLE:'));
+        const toolStart = lines.findIndex((line: string) => line.startsWith('TOOL:'));
+        const reasoningStart = lines.findIndex((line: string) => line.startsWith('REASONING:'));
 
-      console.log('Should generate artifact:', shouldGenerateArtifact);
-      if (shouldGenerateArtifact) {
-        console.log('Calling generateArtifact with:', { userMessage, response: data.content });
-        await generateArtifact(userMessage, data.content);
+        if (titleLine && toolStart !== -1) {
+          const title = titleLine.replace('TITLE:', '').trim();
+          const toolContent = lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : undefined).join('\n').trim();
+          const reasoningContent = reasoningStart !== -1 ? lines.slice(reasoningStart + 1).join('\n').trim() : '';
+
+          console.log('Parsed artifact from response:', { title, toolContent, reasoningContent });
+
+          // Remove the artifact content from Noah's message and keep only the conversational part
+          const cleanContent = lines.filter((line: string) => 
+            !line.startsWith('TITLE:') && 
+            !line.startsWith('TOOL:') && 
+            !line.startsWith('REASONING:') &&
+            line.trim() !== ''
+          ).join('\n').trim();
+
+          // Update the last message with clean content
+          setMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1] = {
+              ...newMessages[newMessages.length - 1],
+              content: cleanContent || "Here's a micro-tool for you:"
+            };
+            return newMessages;
+          });
+
+          // Set the artifact
+          setTimeout(() => {
+            setArtifact({ title, content: toolContent });
+            setReasoning(reasoningContent);
+          }, 800);
+        }
       }
 
     } catch (error) {
@@ -282,45 +285,45 @@ export default function TrustRecoveryProtocol() {
         setTrustLevel(prev => Math.min(100, prev + 5));
       }
 
-      // Check if the challenge response should generate a micro-tool
-      // Look for the original user message that might have triggered the need for a tool
-      const originalUserMessage = messages[messageIndex - 1]?.content || '';
-      const shouldGenerateArtifact = originalUserMessage.length > 15 && (
-        // Original problem indicators
-        originalUserMessage.toLowerCase().includes('frustrat') ||
-        originalUserMessage.toLowerCase().includes('annoying') ||
-        originalUserMessage.toLowerCase().includes('annoy') ||
-        originalUserMessage.toLowerCase().includes('problem') ||
-        originalUserMessage.toLowerCase().includes('difficult') ||
-        originalUserMessage.toLowerCase().includes('hate') ||
-        originalUserMessage.toLowerCase().includes('ugh') ||
-        originalUserMessage.toLowerCase().includes('wish') ||
-        originalUserMessage.toLowerCase().includes('struggle') ||
-        // Help requests
-        originalUserMessage.toLowerCase().includes('help me') ||
-        originalUserMessage.toLowerCase().includes('need help') ||
-        originalUserMessage.toLowerCase().includes('can you help') ||
-        originalUserMessage.toLowerCase().includes('build me') ||
-        originalUserMessage.toLowerCase().includes('create a tool') ||
-        originalUserMessage.toLowerCase().includes('make me a') ||
-        originalUserMessage.toLowerCase().includes('i need a tool') ||
-        // Corrections and clarifications
-        originalUserMessage.toLowerCase().includes('that\'s not right') ||
-        originalUserMessage.toLowerCase().includes('that\'s not what i meant') ||
-        originalUserMessage.toLowerCase().includes('i meant') ||
-        originalUserMessage.toLowerCase().includes('actually') ||
-        originalUserMessage.toLowerCase().includes('no, i need') ||
-        originalUserMessage.toLowerCase().includes('what i really need') ||
-        originalUserMessage.toLowerCase().includes('let me clarify') ||
-        originalUserMessage.toLowerCase().includes('i was thinking') ||
-        originalUserMessage.toLowerCase().includes('something more like') ||
-        originalUserMessage.toLowerCase().includes('instead of that') ||
-        originalUserMessage.toLowerCase().includes('can you make it') ||
-        originalUserMessage.toLowerCase().includes('can you change it')
-      );
+      // Check if the challenge response contains artifact content
+      const hasArtifactMarkers = data.content.includes('TITLE:') && data.content.includes('TOOL:');
+      
+      if (hasArtifactMarkers) {
+        // Parse the artifact directly from the challenge response
+        const lines = data.content.split('\n');
+        const titleLine = lines.find((line: string) => line.startsWith('TITLE:'));
+        const toolStart = lines.findIndex((line: string) => line.startsWith('TOOL:'));
+        const reasoningStart = lines.findIndex((line: string) => line.startsWith('REASONING:'));
 
-      if (shouldGenerateArtifact) {
-        await generateArtifact(originalUserMessage, data.content);
+        if (titleLine && toolStart !== -1) {
+          const title = titleLine.replace('TITLE:', '').trim();
+          const toolContent = lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : undefined).join('\n').trim();
+          const reasoningContent = reasoningStart !== -1 ? lines.slice(reasoningStart + 1).join('\n').trim() : '';
+
+          // Remove the artifact content from the challenge response
+          const cleanContent = lines.filter((line: string) => 
+            !line.startsWith('TITLE:') && 
+            !line.startsWith('TOOL:') && 
+            !line.startsWith('REASONING:') &&
+            line.trim() !== ''
+          ).join('\n').trim();
+
+          // Update the last message with clean content
+          setMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1] = {
+              ...newMessages[newMessages.length - 1],
+              content: cleanContent || "Here's a micro-tool for you:"
+            };
+            return newMessages;
+          });
+
+          // Set the artifact
+          setTimeout(() => {
+            setArtifact({ title, content: toolContent });
+            setReasoning(reasoningContent);
+          }, 800);
+        }
       }
 
     } catch (error) {
