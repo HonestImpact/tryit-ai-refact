@@ -206,7 +206,11 @@ export default function TrustRecoveryProtocol() {
   };
 
   const downloadArtifact = () => {
-    if (!artifact) return;
+    console.log('Download clicked, artifact:', artifact); // Debug log
+    if (!artifact) {
+      console.log('No artifact to download');
+      return;
+    }
     
     const content = `${artifact.title}\n\n${artifact.content}`;
     const blob = new Blob([content], { type: 'text/plain' });
@@ -218,6 +222,7 @@ export default function TrustRecoveryProtocol() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    console.log('Download completed');
   };
 
   const toggleSkepticMode = () => {
