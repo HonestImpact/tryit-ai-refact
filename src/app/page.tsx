@@ -226,10 +226,12 @@ export default function TrustRecoveryProtocol() {
             !line.includes('Step') && 
             !line.includes('•') &&
             !line.includes('- ') &&
-            (line.includes('Ah,') || line.includes('Let me') || line.includes('I can tell') || line.includes('The trick'))
+            !line.includes('Here\'s a micro-tool for you') &&
+            line.trim() !== '' &&
+            (line.includes('Ah,') || line.includes('Let me') || line.includes('I can tell') || line.includes('The trick') || line.includes('Want to') || line.includes('This'))
           );
           
-          cleanContent = conversationalLines.join('\n').trim() || "Here's a micro-tool for you:";
+          cleanContent = conversationalLines.join('\n').trim();
         }
 
         if (title && toolContent) {
@@ -432,10 +434,12 @@ export default function TrustRecoveryProtocol() {
             !line.includes('Step') && 
             !line.includes('•') &&
             !line.includes('- ') &&
-            (line.includes('Ah,') || line.includes('Let me') || line.includes('I can tell') || line.includes('The trick'))
+            !line.includes('Here\'s a micro-tool for you') &&
+            line.trim() !== '' &&
+            (line.includes('Ah,') || line.includes('Let me') || line.includes('I can tell') || line.includes('The trick') || line.includes('Want to') || line.includes('This'))
           );
           
-          cleanContent = conversationalLines.join('\n').trim() || "Here's a micro-tool for you:";
+          cleanContent = conversationalLines.join('\n').trim();
         }
 
         if (title && toolContent) {
