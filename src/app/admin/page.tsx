@@ -62,8 +62,14 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
       
+      if (!supabase) {
+        setError('Supabase client not available. Please check environment variables.');
+        setLoading(false);
+        return;
+      }
+      
       // Fetch conversation analytics
-      let convQuery = supabase
+      let convQuery = supabase!
         .from('conversation_analytics')
         .select('*')
         .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
@@ -78,7 +84,7 @@ export default function AdminDashboard() {
       if (convError) throw convError;
 
       // Fetch track effectiveness
-      let trackQuery = supabase.from('track_effectiveness').select('*');
+      let trackQuery = supabase!.from('track_effectiveness').select('*');
       if (environment !== 'all') {
         trackQuery = trackQuery.eq('environment', environment);
       }
@@ -88,7 +94,7 @@ export default function AdminDashboard() {
       if (trackError) throw trackError;
 
       // Fetch tool effectiveness
-      let toolQuery = supabase.from('micro_tool_effectiveness').select('*');
+      let toolQuery = supabase!.from('micro_tool_effectiveness').select('*');
       if (environment !== 'all') {
         toolQuery = toolQuery.eq('environment', environment);
       }

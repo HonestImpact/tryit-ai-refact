@@ -240,53 +240,6 @@ export default function TrustRecoveryProtocol() {
     setIsLoading(false);
   };
 
-  const generateArtifact = async (userInput: string, response: string) => {
-    console.log('generateArtifact called with:', { userInput, response });
-    setIsGeneratingArtifact(true);
-    try {
-      const artifactResponse = await fetch('/api/artifact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userInput, response }),
-      });
-
-      if (!artifactResponse.ok) {
-        throw new Error('Failed to generate artifact');
-      }
-
-      const data = await artifactResponse.json();
-      console.log('Artifact API response:', data.content); // Debug log
-      
-      const lines = data.content.split('\n');
-      const titleLine = lines.find((line: string) => line.startsWith('TITLE:'));
-      const toolStart = lines.findIndex((line: string) => line.startsWith('TOOL:'));
-      const reasoningStart = lines.findIndex((line: string) => line.startsWith('REASONING:'));
-
-      if (titleLine && toolStart !== -1) {
-        const title = titleLine.replace('TITLE:', '').trim();
-        const toolContent = lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : undefined).join('\n').trim();
-        const reasoningContent = reasoningStart !== -1 ? lines.slice(reasoningStart + 1).join('\n').trim() : '';
-
-        console.log('Parsed artifact:', { title, toolContent, reasoningContent }); // Debug log
-
-        setTimeout(() => {
-          setArtifact({ title, content: toolContent });
-          setReasoning(reasoningContent);
-          setIsGeneratingArtifact(false);
-        }, 800);
-      } else {
-        console.log('Failed to parse artifact - missing TITLE or TOOL markers');
-        console.log('Available lines:', lines);
-        setIsGeneratingArtifact(false);
-      }
-    } catch (error) {
-      console.error('Error generating artifact:', error);
-      setIsGeneratingArtifact(false);
-    }
-  };
-
   const downloadArtifact = () => {
     console.log('Download clicked, artifact:', artifact); // Debug log
     if (!artifact) {
