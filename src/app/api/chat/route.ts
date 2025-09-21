@@ -10,10 +10,10 @@ interface Message {
 
 async function chatHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<{ content: string }>> {
   try {
-    const { messages } = await req.json();
+    const { messages, trustLevel, skepticMode } = await req.json();
     
     // Store the parsed body in context for logging
-    context.requestBody = { messages };
+    context.requestBody = { messages, trustLevel, skepticMode };
 
     const { text } = await generateText({
       model: anthropic('claude-sonnet-4-20250514'),

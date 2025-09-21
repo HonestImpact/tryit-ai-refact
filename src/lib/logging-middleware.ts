@@ -8,7 +8,12 @@ export interface LoggingContext {
   trustLevel?: number;
   skepticMode?: boolean;
   startTime?: number;
-  requestBody?: { messages?: Array<{ role: string; content: string }>; userInput?: string };
+  requestBody?: { 
+    messages?: Array<{ role: string; content: string }>; 
+    userInput?: string;
+    trustLevel?: number;
+    skepticMode?: boolean;
+  };
 }
 
 // Middleware to wrap API routes with logging
