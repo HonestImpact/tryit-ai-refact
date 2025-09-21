@@ -187,33 +187,53 @@ export default function TrustRecoveryProtocol() {
           const toolLines = toolPart.trim().split('\n');
           let title = 'Custom Tool';
           
+          // First, look specifically for bold headers (these are usually the real titles)
           for (const line of toolLines) {
             const cleanLine = line.trim();
-            
-            // Skip empty lines, code block markers, and generic phrases
-            if (!cleanLine || 
-                cleanLine.startsWith('```') || 
-                cleanLine.startsWith('//') ||
-                cleanLine.length < 3) {
-              continue;
-            }
-            
-            // Look for bold headers (markdown format)
             if (cleanLine.startsWith('**') && cleanLine.endsWith('**')) {
               title = cleanLine.replace(/\*\*/g, '').trim();
               break;
             }
-            
-            // Look for descriptive first line (but not code)
-            if (cleanLine.length > 10 && 
-                !cleanLine.includes('function') && 
-                !cleanLine.includes('const ') &&
-                !cleanLine.includes('let ') &&
-                !cleanLine.includes('var ') &&
-                !cleanLine.includes('{') &&
-                !cleanLine.includes('}')) {
-              title = cleanLine.substring(0, 50).trim();
-              break;
+          }
+          
+          // If no bold header found, look for comment-style titles
+          if (title === 'Custom Tool') {
+            for (const line of toolLines) {
+              const cleanLine = line.trim();
+              if (cleanLine.startsWith('//') && (cleanLine.includes('Tool') || cleanLine.includes('Debugger') || cleanLine.includes('Manager'))) {
+                title = cleanLine.replace(/\/\/\s*/, '').trim();
+                break;
+              }
+            }
+          }
+          
+          // Last resort: use first meaningful line that looks like a title (not code)
+          if (title === 'Custom Tool') {
+            for (const line of toolLines) {
+              const cleanLine = line.trim();
+              
+              // Skip obvious non-title lines
+              if (!cleanLine || 
+                  cleanLine.startsWith('```') || 
+                  cleanLine.startsWith('//') ||
+                  cleanLine.includes('function') || 
+                  cleanLine.includes('const ') ||
+                  cleanLine.includes('let ') ||
+                  cleanLine.includes('var ') ||
+                  cleanLine.includes('{') ||
+                  cleanLine.includes('}') ||
+                  cleanLine.includes('(') ||
+                  cleanLine.includes(')') ||
+                  cleanLine.includes('=') ||
+                  cleanLine.length < 3) {
+                continue;
+              }
+              
+              // Use this line but limit length to avoid taking entire sentences
+              if (cleanLine.length > 5) {
+                title = cleanLine.substring(0, 40).trim();
+                break;
+              }
             }
           }
           
