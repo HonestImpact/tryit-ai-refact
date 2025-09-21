@@ -382,7 +382,7 @@ function ArchiveDashboardContent() {
               return (
               <div key={conv.id || conv.session_id} className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
                    onClick={() => {
-                     setSelectedConversation(conversation);
+                     setSelectedConversation(conversation as ConversationLog);
                      setActiveTab('conversation-detail');
                    }}>
                 <div className="flex items-start justify-between mb-4">
