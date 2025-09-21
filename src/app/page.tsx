@@ -61,25 +61,31 @@ export default function TrustRecoveryProtocol() {
     try {
       console.log('Logging micro-tool to Supabase:', { title, userInput });
       
+      // Get or generate session ID (same logic as in the middleware)
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
       // Create a custom endpoint for logging existing micro-tools
       const response = await fetch('/api/artifact-log', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-session-id': sessionId, // Pass session ID in header
         },
         body: JSON.stringify({ 
           userInput,
           artifactContent: content,
           title,
           toolContent: content,
-          generationTime: 0 // Since it's already generated
+          generationTime: 0, // Since it's already generated
+          sessionId // Also pass in body for backup
         }),
       });
       
       if (response.ok) {
         console.log('Micro-tool logged to Supabase successfully');
       } else {
-        console.error('Failed to log micro-tool to Supabase:', response.status);
+        const errorText = await response.text();
+        console.error('Failed to log micro-tool to Supabase:', response.status, errorText);
       }
     } catch (error) {
       console.error('Error logging micro-tool to Supabase:', error);
@@ -238,7 +244,7 @@ export default function TrustRecoveryProtocol() {
             const newMessages = [...prev];
             newMessages[newMessages.length - 1] = {
               ...newMessages[newMessages.length - 1],
-              content: cleanContent
+              content: cleanContent || "I've created a micro-tool for you - check the toolbox on the right (or below on mobile)!"
             };
             return newMessages;
           });
@@ -442,7 +448,7 @@ export default function TrustRecoveryProtocol() {
             const newMessages = [...prev];
             newMessages[newMessages.length - 1] = {
               ...newMessages[newMessages.length - 1],
-              content: cleanContent
+              content: cleanContent || "I've created a micro-tool for you - check the toolbox on the right (or below on mobile)!"
             };
             return newMessages;
           });
