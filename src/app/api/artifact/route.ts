@@ -5,7 +5,7 @@ import { withLogging, LoggingContext } from '@/lib/logging-middleware';
 
 async function artifactHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<{ content: string }>> {
   try {
-    const { userInput } = await req.json();
+    const { userInput, response } = await req.json();
     
     // Store the parsed body in context for logging
     context.requestBody = { userInput };
@@ -13,6 +13,8 @@ async function artifactHandler(req: NextRequest, context: LoggingContext): Promi
     const { text } = await generateText({
       model: anthropic('claude-sonnet-4-20250514'),
       prompt: `Based on this user frustration: "${userInput}"
+
+${response ? `And Noah's response: "${response}"` : ''}
 
 Create a practical micro-tool that addresses their specific situation. Format as:
 
