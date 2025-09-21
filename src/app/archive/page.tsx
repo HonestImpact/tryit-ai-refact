@@ -11,7 +11,7 @@ interface DashboardData {
   };
 }
 
-export default function ArchiveDashboard() {
+function ArchiveDashboardContent() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +22,7 @@ export default function ArchiveDashboard() {
 
   const fetchData = useCallback(async () => {
     try {
+      console.log('Archive: Starting fetchData');
       setLoading(true);
       setError(null);
       
@@ -29,6 +30,8 @@ export default function ArchiveDashboard() {
         fetch('/api/archive?type=stats'),
         fetch(`/api/archive?type=recent&days=${days}`)
       ]);
+      
+      console.log('Archive: API responses received', { statsResponse: statsResponse.status, recentResponse: recentResponse.status });
 
       if (!statsResponse.ok || !recentResponse.ok) {
         throw new Error(`Failed to fetch archive data: ${statsResponse.status} ${recentResponse.status}`);
@@ -36,6 +39,8 @@ export default function ArchiveDashboard() {
 
       const stats = await statsResponse.json();
       const recentLogs = await recentResponse.json();
+      
+      console.log('Archive: Parsed data', { stats, recentLogs });
 
       // Validate data structure
       if (!stats || !recentLogs) {
@@ -558,4 +563,23 @@ export default function ArchiveDashboard() {
       </div>
     </div>
   );
+}
+
+export default function ArchiveDashboard() {
+  try {
+    return <ArchiveDashboardContent />;
+  } catch (error) {
+    console.error('Archive Dashboard Error:', error);
+    return (
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-red-800 mb-2">Archive Dashboard Error</h2>
+            <p className="text-red-600">An unexpected error occurred while loading the archive.</p>
+            <p className="text-sm text-red-500 mt-2">Error: {error instanceof Error ? error.message : 'Unknown error'}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 }
