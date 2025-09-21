@@ -15,11 +15,15 @@ export function withLogging<T = unknown>(
   handler: (req: NextRequest, context: LoggingContext) => Promise<NextResponse<T>>
 ) {
   return async (req: NextRequest): Promise<NextResponse<T>> => {
+    console.log('🔍 withLogging middleware called for:', req.url);
+    
     const sessionId = req.headers.get('x-session-id') || 
                      req.cookies.get('session-id')?.value || 
                      `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     const startTime = Date.now();
+    
+    console.log('🔍 Logging context created:', { sessionId, url: req.url });
     
     // We'll pass the original request to logging functions
     const context: LoggingContext = {

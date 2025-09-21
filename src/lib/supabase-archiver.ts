@@ -36,6 +36,14 @@ class SupabaseArchiver {
 
   async logConversation(data: ConversationData): Promise<string> {
     try {
+      console.log(`📝 Logging conversation to Supabase (${this.environment})`);
+      console.log('📝 Conversation data:', { 
+        sessionId: data.sessionId, 
+        messageCount: data.messages.length,
+        trustLevel: data.trustLevel,
+        skepticMode: data.skepticMode 
+      });
+      
       // Sanitize and analyze messages
       const sanitizedMessages = data.messages.map(msg => {
         const sanitizedContent = sanitizeContent(msg.content);
