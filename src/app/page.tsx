@@ -622,20 +622,6 @@ export default function TrustRecoveryProtocol() {
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-6">
-              {/* Artifact Generation */}
-              {isGeneratingArtifact && (
-                <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm animate-fade-in-up">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-8 h-8 bg-gradient-to-br from-green-100 to-green-200 rounded-lg flex items-center justify-center">
-                      <div className="w-4 h-4 border-2 border-green-300 border-t-green-600 rounded-full animate-spin"></div>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-900">Creating Tool</h3>
-                      <p className="text-sm text-slate-600">Building something useful...</p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Artifact Display */}
               {artifact && (
