@@ -491,7 +491,7 @@ export default function TrustRecoveryProtocol() {
                     <div className="flex justify-end">
                       <div className="max-w-2xl">
                         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 rounded-2xl rounded-br-md shadow-lg">
-                          <p className="text-sm leading-relaxed">{message.content}</p>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                         </div>
                         <div className="text-xs text-slate-500 mt-2 text-right">
                           {new Date(message.timestamp!).toLocaleTimeString()}
@@ -507,7 +507,7 @@ export default function TrustRecoveryProtocol() {
                               <span className="text-sm font-semibold text-slate-600">N</span>
                             </div>
                             <div className="flex-1">
-                              <p className="text-slate-800 leading-relaxed">{message.content}</p>
+                              <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">{message.content}</p>
                               <div className="flex items-center justify-between mt-3">
                                 <div className="text-xs text-slate-500">
                                   {new Date(message.timestamp!).toLocaleTimeString()}
