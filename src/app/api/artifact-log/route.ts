@@ -33,6 +33,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<{ success: bo
     console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     
     try {
+      console.log('🔧 About to call supabaseArchiver.logArtifact...');
+      
       // Log the existing artifact to Supabase
       const result = await supabaseArchiver.logArtifact({
         sessionId,
@@ -45,14 +47,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<{ success: bo
       console.log('✅ Successfully logged existing micro-tool to Supabase, artifact ID:', result);
     } catch (artifactError) {
       console.error('❌ Failed to log artifact to Supabase:', artifactError);
-      console.error('❌ Error details:', JSON.stringify(artifactError, null, 2));
+      console.error('❌ Error message:', artifactError instanceof Error ? artifactError.message : 'Unknown error');
+      console.error('❌ Error stack:', artifactError instanceof Error ? artifactError.stack : 'No stack trace');
+      console.error('❌ Error name:', artifactError instanceof Error ? artifactError.name : 'Unknown error type');
       
       // Return the actual error instead of always succeeding
       return NextResponse.json(
         { 
           success: false, 
-          error: `Artifact logging failed: ${artifactError instanceof Error ? artifactError.message : 'Unknown error'}`,
-          details: artifactError
+          error: `Artifact logging failed: ${artifactError instanceof Error ? artifactError.message : String(artifactError)}`,
+          errorType: artifactError instanceof Error ? artifactError.name : typeof artifactError,
+          stack: artifactError instanceof Error ? artifactError.stack : undefined
         },
         { status: 500 }
       );
