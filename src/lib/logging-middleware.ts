@@ -32,10 +32,12 @@ export function withLogging<T = unknown>(
     };
 
     try {
+      // Clone the request to avoid body consumption issues
+      const reqClone = req.clone();
       const response = await handler(req, context);
       
       // Log the interaction after successful response
-      await logInteraction(req, response, context);
+      await logInteraction(reqClone, response, context);
       
       return response;
     } catch (error) {
@@ -43,7 +45,8 @@ export function withLogging<T = unknown>(
       
       // Still try to log the error case
       try {
-        await logError(req, error as Error, context);
+        const reqClone = req.clone();
+        await logError(reqClone, error as Error, context);
       } catch (logError) {
         console.error('Failed to log error:', logError);
       }
@@ -93,13 +96,16 @@ async function logChatInteraction(
     // Log the conversation to both local files and Supabase
     try {
       // Local file logging (existing)
-      await archiver.logConversation(
-        context.sessionId,
-        messages,
-        trustLevel,
-        skepticMode,
-        artifactsGenerated
-      );
+      // Local logging (disabled on Vercel)
+      if (process.env.NODE_ENV !== 'production') {
+        await archiver.logConversation(
+          context.sessionId,
+          messages,
+          trustLevel,
+          skepticMode,
+          artifactsGenerated
+        );
+      }
       
       // Supabase logging (new)
       try {
@@ -143,13 +149,15 @@ async function logArtifactInteraction(
     
     // Log artifact to both local files and Supabase
     try {
-      // Local file logging (existing)
-      await archiver.logArtifact(
-        context.sessionId,
-        body.userInput || '',
-        responseData.content || '',
-        generationTime
-      );
+      // Local file logging (disabled on Vercel)
+      if (process.env.NODE_ENV !== 'production') {
+        await archiver.logArtifact(
+          context.sessionId,
+          body.userInput || '',
+          responseData.content || '',
+          generationTime
+        );
+      }
       
       // Supabase logging (new)
       try {
