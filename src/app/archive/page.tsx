@@ -23,24 +23,46 @@ export default function ArchiveDashboard() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
+      
       const [statsResponse, recentResponse] = await Promise.all([
         fetch('/api/archive?type=stats'),
         fetch(`/api/archive?type=recent&days=${days}`)
       ]);
 
       if (!statsResponse.ok || !recentResponse.ok) {
-        throw new Error('Failed to fetch archive data');
+        throw new Error(`Failed to fetch archive data: ${statsResponse.status} ${recentResponse.status}`);
       }
 
       const stats = await statsResponse.json();
       const recentLogs = await recentResponse.json();
 
-      setData({
-        stats: stats.stats,
-        recentLogs: recentLogs.logs
-      });
+      // Validate data structure
+      if (!stats || !recentLogs) {
+        throw new Error('Invalid data structure received from API');
+      }
+
+      // Ensure we have the expected structure
+      const safeData = {
+        stats: stats.stats || {},
+        recentLogs: {
+          conversations: recentLogs.logs?.conversations || [],
+          artifacts: recentLogs.logs?.artifacts || []
+        }
+      };
+
+      setData(safeData);
     } catch (err) {
+      console.error('Archive fetch error:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
+      // Set empty data to prevent crashes
+      setData({
+        stats: {},
+        recentLogs: {
+          conversations: [],
+          artifacts: []
+        }
+      });
     } finally {
       setLoading(false);
     }
@@ -108,6 +130,26 @@ export default function ArchiveDashboard() {
               className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
             >
               Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Safety check for data structure
+  if (!data || !data.stats || !data.recentLogs) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-yellow-800 mb-2">No Archive Data Available</h2>
+            <p className="text-yellow-600">The archive is empty or data is still loading.</p>
+            <button 
+              onClick={fetchData}
+              className="mt-4 px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+            >
+              Refresh
             </button>
           </div>
         </div>
