@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { archiver } from './archiver';
-// import { supabaseArchiver } from './supabase-archiver';
+import { supabaseArchiver } from './supabase-archiver';
 
 export interface LoggingContext {
   sessionId: string;
@@ -97,18 +97,18 @@ async function logChatInteraction(
         artifactsGenerated
       );
       
-      // Supabase logging (new) - temporarily disabled
-      // await supabaseArchiver.logConversation({
-      //   sessionId: context.sessionId,
-      //   messages: messages.map((msg: { role: string; content: string }) => ({
-      //     role: msg.role,
-      //     content: msg.content,
-      //     timestamp: Date.now()
-      //   })),
-      //   trustLevel,
-      //   skepticMode,
-      //   artifactsGenerated
-      // });
+      // Supabase logging (new)
+      await supabaseArchiver.logConversation({
+        sessionId: context.sessionId,
+        messages: messages.map((msg: { role: string; content: string }) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: Date.now()
+        })),
+        trustLevel,
+        skepticMode,
+        artifactsGenerated
+      });
       
       console.log(`📝 Logged conversation for session ${context.sessionId} to both local and Supabase`);
     } catch (error) {
@@ -141,13 +141,13 @@ async function logArtifactInteraction(
         generationTime
       );
       
-      // Supabase logging (new) - temporarily disabled
-      // await supabaseArchiver.logArtifact({
-      //   sessionId: context.sessionId,
-      //   userInput: body.userInput || '',
-      //   artifactContent: responseData.content || '',
-      //   generationTime
-      // });
+      // Supabase logging (new)
+      await supabaseArchiver.logArtifact({
+        sessionId: context.sessionId,
+        userInput: body.userInput || '',
+        artifactContent: responseData.content || '',
+        generationTime
+      });
       
       console.log(`🔧 Logged artifact for session ${context.sessionId} to both local and Supabase`);
     } catch (error) {
