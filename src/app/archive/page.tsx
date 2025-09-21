@@ -390,7 +390,7 @@ function ArchiveDashboardContent() {
                     <h3 className="text-lg font-semibold text-gray-900">
                       {conv.track_type || conv.track || 'Unknown'} Track
                     </h3>
-                    <p className="text-sm text-gray-600">{formatDate(conv.created_at || conv.timestamp)}</p>
+                    <p className="text-sm text-gray-600">{formatDate(conv.created_at || conv.timestamp?.toString() || new Date().toISOString())}</p>
                   </div>
                   <div className="flex items-center space-x-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEffectivenessColor(conv.user_engagement || conv.effectiveness?.userEngagement || 'medium')}`}>
