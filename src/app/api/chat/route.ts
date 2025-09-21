@@ -3,11 +3,6 @@ import { generateText } from 'ai';
 import { NextRequest, NextResponse } from 'next/server';
 import { withLogging, LoggingContext } from '@/lib/logging-middleware';
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
 async function chatHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<{ content: string }>> {
   try {
     const { messages, trustLevel, skepticMode } = await req.json();

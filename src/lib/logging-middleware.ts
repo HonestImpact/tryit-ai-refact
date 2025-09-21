@@ -113,7 +113,11 @@ async function logChatInteraction(
       if (!process.env.VERCEL) {
         await archiver.logConversation(
           context.sessionId,
-          messages,
+          messages.map(msg => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+            timestamp: Date.now()
+          })),
           trustLevel,
           skepticMode,
           artifactsGenerated
