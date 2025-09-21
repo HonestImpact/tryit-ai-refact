@@ -129,51 +129,96 @@ export default function TrustRecoveryProtocol() {
       console.log('Has artifact markers:', hasArtifactMarkers);
       if (hasArtifactMarkers) {
         console.log('Parsing artifact from Noah\'s response');
-        // Parse the artifact directly from Noah's response
-        const lines = data.content.split('\n');
-        const titleLine = lines.find((line: string) => line.startsWith('TITLE:'));
-        const toolStart = lines.findIndex((line: string) => line.startsWith('TOOL:'));
-        const reasoningStart = lines.findIndex((line: string) => line.startsWith('REASONING:'));
-
-        console.log('Parsing lines:', lines);
-        console.log('Title line found:', titleLine);
-        console.log('Tool start index:', toolStart);
-        console.log('Reasoning start index:', reasoningStart);
         
-        if (titleLine && toolStart !== -1) {
-          const title = titleLine.replace('TITLE:', '').trim();
-          const toolContent = lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : undefined).join('\n').trim();
-          const reasoningContent = reasoningStart !== -1 ? lines.slice(reasoningStart + 1).join('\n').trim() : '';
+        let title = '';
+        let toolContent = '';
+        let reasoningContent = '';
+        let cleanContent = '';
 
+        if (hasStructuredMarkers) {
+          // Parse structured format (TITLE:/TOOL:/REASONING:)
+          const lines = data.content.split('\n');
+          const titleLine = lines.find((line: string) => line.startsWith('TITLE:'));
+          const toolStart = lines.findIndex((line: string) => line.startsWith('TOOL:'));
+          const reasoningStart = lines.findIndex((line: string) => line.startsWith('REASONING:'));
+
+          if (titleLine && toolStart !== -1) {
+            title = titleLine.replace('TITLE:', '').trim();
+            toolContent = lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : undefined).join('\n').trim();
+            reasoningContent = reasoningStart !== -1 ? lines.slice(reasoningStart + 1).join('\n').trim() : '';
+            cleanContent = lines.filter((line: string) => 
+              !line.startsWith('TITLE:') && 
+              !line.startsWith('TOOL:') && 
+              !line.startsWith('REASONING:') &&
+              line.trim() !== ''
+            ).join('\n').trim();
+          }
+        } else if (hasNaturalToolFormat) {
+          // Parse natural format (bold headers like **Step 1:**)
+          const lines = data.content.split('\n');
+          
+          // Find the first bold header as the title
+          const titleLine = lines.find((line: string) => line.includes('**') && line.includes('**'));
+          if (titleLine) {
+            title = titleLine.replace(/\*\*/g, '').trim();
+          } else {
+            // Fallback: extract title from the beginning
+            const firstLine = lines[0] || '';
+            title = firstLine.replace(/^[^a-zA-Z]*/, '').substring(0, 50) + '...';
+          }
+          
+          // Extract tool content (everything with bold headers and steps)
+          const toolLines = lines.filter((line: string) => 
+            line.includes('**') || 
+            line.includes('Step') || 
+            line.includes('•') ||
+            line.includes('- ') ||
+            (line.trim() !== '' && !line.includes('Ah,') && !line.includes('Let me') && !line.includes('I can tell'))
+          );
+          
+          toolContent = toolLines.join('\n').trim();
+          
+          // Keep conversational content (everything before the tool)
+          const conversationalLines = lines.filter((line: string) => 
+            !line.includes('**') && 
+            !line.includes('Step') && 
+            !line.includes('•') &&
+            !line.includes('- ') &&
+            (line.includes('Ah,') || line.includes('Let me') || line.includes('I can tell') || line.includes('The trick'))
+          );
+          
+          cleanContent = conversationalLines.join('\n').trim() || "Here's a micro-tool for you:";
+        }
+
+        if (title && toolContent) {
           console.log('=== PARSED ARTIFACT ===');
           console.log('Title:', title);
           console.log('Tool content:', toolContent);
           console.log('Reasoning content:', reasoningContent);
-
-          // Remove the artifact content from Noah's message and keep only the conversational part
-          const cleanContent = lines.filter((line: string) => 
-            !line.startsWith('TITLE:') && 
-            !line.startsWith('TOOL:') && 
-            !line.startsWith('REASONING:') &&
-            line.trim() !== ''
-          ).join('\n').trim();
+          console.log('Clean content:', cleanContent);
 
           // Update the last message with clean content
           setMessages(prev => {
             const newMessages = [...prev];
             newMessages[newMessages.length - 1] = {
               ...newMessages[newMessages.length - 1],
-              content: cleanContent || "Here's a micro-tool for you:"
+              content: cleanContent
             };
             return newMessages;
           });
 
           // Set the artifact
+          console.log('Setting artifact state with:', { title, content: toolContent });
           setTimeout(() => {
             setArtifact({ title, content: toolContent });
             setReasoning(reasoningContent);
+            console.log('Artifact state set!');
           }, 800);
+        } else {
+          console.log('Failed to parse artifact - missing title or tool content');
         }
+      } else {
+        console.log('No artifact markers found in response');
       }
 
     } catch (error) {
@@ -312,34 +357,93 @@ export default function TrustRecoveryProtocol() {
       }
 
       // Check if the challenge response contains artifact content
-      const hasArtifactMarkers = data.content.includes('TITLE:') && data.content.includes('TOOL:');
+      const hasStructuredMarkers = data.content.includes('TITLE:') && data.content.includes('TOOL:');
+      const hasNaturalToolFormat = data.content.includes('**') && (
+        data.content.includes('Step 1:') || 
+        data.content.includes('Step 2:') || 
+        data.content.includes('Step 3:') ||
+        data.content.includes('**Step') ||
+        data.content.includes('**How to') ||
+        data.content.includes('**Tool:') ||
+        data.content.includes('**Method:')
+      );
+      
+      const hasArtifactMarkers = hasStructuredMarkers || hasNaturalToolFormat;
       
       if (hasArtifactMarkers) {
-        // Parse the artifact directly from the challenge response
-        const lines = data.content.split('\n');
-        const titleLine = lines.find((line: string) => line.startsWith('TITLE:'));
-        const toolStart = lines.findIndex((line: string) => line.startsWith('TOOL:'));
-        const reasoningStart = lines.findIndex((line: string) => line.startsWith('REASONING:'));
+        console.log('Parsing artifact from challenge response');
+        
+        let title = '';
+        let toolContent = '';
+        let reasoningContent = '';
+        let cleanContent = '';
 
-        if (titleLine && toolStart !== -1) {
-          const title = titleLine.replace('TITLE:', '').trim();
-          const toolContent = lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : undefined).join('\n').trim();
-          const reasoningContent = reasoningStart !== -1 ? lines.slice(reasoningStart + 1).join('\n').trim() : '';
+        if (hasStructuredMarkers) {
+          // Parse structured format (TITLE:/TOOL:/REASONING:)
+          const lines = data.content.split('\n');
+          const titleLine = lines.find((line: string) => line.startsWith('TITLE:'));
+          const toolStart = lines.findIndex((line: string) => line.startsWith('TOOL:'));
+          const reasoningStart = lines.findIndex((line: string) => line.startsWith('REASONING:'));
 
-          // Remove the artifact content from the challenge response
-          const cleanContent = lines.filter((line: string) => 
-            !line.startsWith('TITLE:') && 
-            !line.startsWith('TOOL:') && 
-            !line.startsWith('REASONING:') &&
-            line.trim() !== ''
-          ).join('\n').trim();
+          if (titleLine && toolStart !== -1) {
+            title = titleLine.replace('TITLE:', '').trim();
+            toolContent = lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : undefined).join('\n').trim();
+            reasoningContent = reasoningStart !== -1 ? lines.slice(reasoningStart + 1).join('\n').trim() : '';
+            cleanContent = lines.filter((line: string) => 
+              !line.startsWith('TITLE:') && 
+              !line.startsWith('TOOL:') && 
+              !line.startsWith('REASONING:') &&
+              line.trim() !== ''
+            ).join('\n').trim();
+          }
+        } else if (hasNaturalToolFormat) {
+          // Parse natural format (bold headers like **Step 1:**)
+          const lines = data.content.split('\n');
+          
+          // Find the first bold header as the title
+          const titleLine = lines.find((line: string) => line.includes('**') && line.includes('**'));
+          if (titleLine) {
+            title = titleLine.replace(/\*\*/g, '').trim();
+          } else {
+            // Fallback: extract title from the beginning
+            const firstLine = lines[0] || '';
+            title = firstLine.replace(/^[^a-zA-Z]*/, '').substring(0, 50) + '...';
+          }
+          
+          // Extract tool content (everything with bold headers and steps)
+          const toolLines = lines.filter((line: string) => 
+            line.includes('**') || 
+            line.includes('Step') || 
+            line.includes('•') ||
+            line.includes('- ') ||
+            (line.trim() !== '' && !line.includes('Ah,') && !line.includes('Let me') && !line.includes('I can tell'))
+          );
+          
+          toolContent = toolLines.join('\n').trim();
+          
+          // Keep conversational content (everything before the tool)
+          const conversationalLines = lines.filter((line: string) => 
+            !line.includes('**') && 
+            !line.includes('Step') && 
+            !line.includes('•') &&
+            !line.includes('- ') &&
+            (line.includes('Ah,') || line.includes('Let me') || line.includes('I can tell') || line.includes('The trick'))
+          );
+          
+          cleanContent = conversationalLines.join('\n').trim() || "Here's a micro-tool for you:";
+        }
+
+        if (title && toolContent) {
+          console.log('=== PARSED CHALLENGE ARTIFACT ===');
+          console.log('Title:', title);
+          console.log('Tool content:', toolContent);
 
           // Update the last message with clean content
           setMessages(prev => {
             const newMessages = [...prev];
             newMessages[newMessages.length - 1] = {
               ...newMessages[newMessages.length - 1],
-              content: cleanContent || "Here's a micro-tool for you:"
+              content: cleanContent
             };
             return newMessages;
           });
