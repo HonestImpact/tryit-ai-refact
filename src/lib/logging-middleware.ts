@@ -98,17 +98,23 @@ async function logChatInteraction(
       );
       
       // Supabase logging (new)
-      await supabaseArchiver.logConversation({
-        sessionId: context.sessionId,
-        messages: messages.map((msg: { role: string; content: string }) => ({
-          role: msg.role,
-          content: msg.content,
-          timestamp: Date.now()
-        })),
-        trustLevel,
-        skepticMode,
-        artifactsGenerated
-      });
+      try {
+        console.log('Attempting to log conversation to Supabase...');
+        await supabaseArchiver.logConversation({
+          sessionId: context.sessionId,
+          messages: messages.map((msg: { role: string; content: string }) => ({
+            role: msg.role,
+            content: msg.content,
+            timestamp: Date.now()
+          })),
+          trustLevel,
+          skepticMode,
+          artifactsGenerated
+        });
+        console.log('Successfully logged conversation to Supabase');
+      } catch (error) {
+        console.error('Failed to log conversation to Supabase:', error);
+      }
       
       console.log(`📝 Logged conversation for session ${context.sessionId} to both local and Supabase`);
     } catch (error) {
@@ -142,12 +148,18 @@ async function logArtifactInteraction(
       );
       
       // Supabase logging (new)
-      await supabaseArchiver.logArtifact({
-        sessionId: context.sessionId,
-        userInput: body.userInput || '',
-        artifactContent: responseData.content || '',
-        generationTime
-      });
+      try {
+        console.log('Attempting to log artifact to Supabase...');
+        await supabaseArchiver.logArtifact({
+          sessionId: context.sessionId,
+          userInput: body.userInput || '',
+          artifactContent: responseData.content || '',
+          generationTime
+        });
+        console.log('Successfully logged artifact to Supabase');
+      } catch (error) {
+        console.error('Failed to log artifact to Supabase:', error);
+      }
       
       console.log(`🔧 Logged artifact for session ${context.sessionId} to both local and Supabase`);
     } catch (error) {
