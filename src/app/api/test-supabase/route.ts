@@ -27,8 +27,9 @@ export async function GET(req: NextRequest) {
       .from('conversations')
       .insert({
         environment: 'test',
-        track_type: 'test',
-        status: 'active'
+        track_type: 'skeptical',
+        session_id: 'test_session_' + Date.now(),
+        user_engagement: 'medium'
       })
       .select();
     
