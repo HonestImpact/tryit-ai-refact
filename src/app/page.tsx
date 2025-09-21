@@ -204,7 +204,6 @@ export default function TrustRecoveryProtocol() {
           console.log('=== PARSED ARTIFACT ===');
           console.log('Title:', title);
           console.log('Tool content:', toolContent);
-          console.log('Reasoning content:', reasoningContent);
           console.log('Clean content:', cleanContent);
 
           // Update the last message with clean content
@@ -221,7 +220,6 @@ export default function TrustRecoveryProtocol() {
           console.log('Setting artifact state with:', { title, content: toolContent });
           setTimeout(() => {
             setArtifact({ title, content: toolContent });
-            setReasoning(reasoningContent);
             console.log('Artifact state set!');
             
             // Log the micro-tool to Supabase
@@ -379,7 +377,6 @@ export default function TrustRecoveryProtocol() {
           // Set the artifact
           setTimeout(() => {
             setArtifact({ title, content: toolContent });
-            setReasoning(reasoningContent);
             
             // Log the micro-tool to Supabase
             const challengeUserMessage = `I want to challenge your previous response: "${message.content}". Can you think about this differently or explain your reasoning more clearly?`;
