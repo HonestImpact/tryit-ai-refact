@@ -30,7 +30,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<{ success: bo
         sessionId,
         userInput,
         artifactContent,
-        generationTime
+        generationTime,
+        title
       });
       
       console.log('✅ Successfully logged existing micro-tool to Supabase, artifact ID:', result);

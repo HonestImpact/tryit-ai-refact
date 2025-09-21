@@ -25,6 +25,7 @@ export interface ArtifactData {
   userInput: string;
   artifactContent: string;
   generationTime: number;
+  title?: string;
 }
 
 class SupabaseArchiver {
@@ -155,8 +156,8 @@ class SupabaseArchiver {
       const sanitizedInput = sanitizeContent(data.userInput);
       const sanitizedArtifact = sanitizeContent(data.artifactContent);
       
-      // Parse artifact content - handle both signal phrase format and old structured format
-      let title: string = 'Untitled Tool';
+      // Use the title from the frontend if provided, otherwise parse it
+      let title: string = data.title || 'Untitled Tool';
       let content: string;
       let reasoning = '';
       
@@ -165,50 +166,22 @@ class SupabaseArchiver {
         const parts = sanitizedArtifact.split("Here's a tool for you to consider:");
         if (parts.length > 1) {
           const toolContent = parts[1].trim();
-          const lines = toolContent.split('\n');
+          content = toolContent;
           
-          // Extract title from first meaningful line (skip code blocks and markers)
-          let titleFound = false;
-          for (const line of lines) {
-            const cleanLine = line.trim();
-            
-            // Skip empty lines, code block markers, and generic phrases
-            if (!cleanLine || 
-                cleanLine.startsWith('```') || 
-                cleanLine.startsWith('//') ||
-                cleanLine.toLowerCase().includes('here\'s a tool') ||
-                cleanLine.length < 3) {
-              continue;
-            }
+          // Only try to extract title if none was provided
+          if (!data.title) {
+            const lines = toolContent.split('\n');
             
             // Look for bold headers (markdown format)
-            if (cleanLine.startsWith('**') && cleanLine.endsWith('**')) {
-              title = cleanLine.replace(/\*\*/g, '').trim();
-              titleFound = true;
-              break;
-            }
-            
-            // Look for descriptive first line (but not code)
-            if (cleanLine.length > 10 && 
-                !cleanLine.includes('function') && 
-                !cleanLine.includes('const ') &&
-                !cleanLine.includes('let ') &&
-                !cleanLine.includes('var ') &&
-                !cleanLine.includes('{') &&
-                !cleanLine.includes('}')) {
-              title = cleanLine.substring(0, 50).trim();
-              titleFound = true;
-              break;
+            for (const line of lines) {
+              const cleanLine = line.trim();
+              if (cleanLine.startsWith('**') && cleanLine.endsWith('**')) {
+                title = cleanLine.replace(/\*\*/g, '').trim();
+                break;
+              }
             }
           }
-          
-          if (!titleFound) {
-            title = 'Custom Tool';
-          }
-          
-          content = toolContent;
         } else {
-          title = 'Untitled Tool';
           content = sanitizedArtifact;
         }
       } else {
@@ -218,7 +191,9 @@ class SupabaseArchiver {
         const toolStart = lines.findIndex(line => line.startsWith('TOOL:'));
         const reasoningStart = lines.findIndex(line => line.startsWith('REASONING:'));
         
-        title = titleLine ? titleLine.replace('TITLE:', '').trim() : 'Untitled Tool';
+        if (!data.title) {
+          title = titleLine ? titleLine.replace('TITLE:', '').trim() : 'Untitled Tool';
+        }
         content = toolStart !== -1 ? 
           lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : lines.length).join('\n').trim() : 
           sanitizedArtifact;
