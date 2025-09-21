@@ -546,14 +546,14 @@ function ArchiveDashboardContent() {
                         <span className="mx-2">•</span>
                         <span>{formatDate(message.timestamp?.toString() || new Date().toISOString())}</span>
                         <span className="mx-2">•</span>
-                        <span>{message.wordCount} words</span>
-                        {message.containsChallenge && (
+                        <span>{message.content.split(' ').length} words</span>
+                        {message.content.toLowerCase().includes('challenge') && (
                           <>
                             <span className="mx-2">•</span>
                             <span className="text-orange-600 font-medium">Challenge</span>
                           </>
                         )}
-                        {message.containsUncertainty && (
+                        {(message.content.toLowerCase().includes('uncertain') || message.content.toLowerCase().includes('not sure') || message.content.toLowerCase().includes('maybe')) && (
                           <>
                             <span className="mx-2">•</span>
                             <span className="text-yellow-600 font-medium">Uncertainty</span>
@@ -561,11 +561,13 @@ function ArchiveDashboardContent() {
                         )}
                         <span className="mx-2">•</span>
                         <span className={`font-medium ${
-                          message.sentiment === 'positive' ? 'text-green-600' :
-                          message.sentiment === 'negative' ? 'text-red-600' :
+                          message.content.toLowerCase().includes('great') || message.content.toLowerCase().includes('good') || message.content.toLowerCase().includes('thanks') ? 'text-green-600' :
+                          message.content.toLowerCase().includes('bad') || message.content.toLowerCase().includes('wrong') || message.content.toLowerCase().includes('error') ? 'text-red-600' :
                           'text-gray-600'
                         }`}>
-                          {message.sentiment}
+                          {message.content.toLowerCase().includes('great') || message.content.toLowerCase().includes('good') || message.content.toLowerCase().includes('thanks') ? 'positive' :
+                           message.content.toLowerCase().includes('bad') || message.content.toLowerCase().includes('wrong') || message.content.toLowerCase().includes('error') ? 'negative' :
+                           'neutral'}
                         </span>
                       </div>
                     </div>
