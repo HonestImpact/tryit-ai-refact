@@ -183,17 +183,38 @@ export default function TrustRecoveryProtocol() {
           const beforeTool = parts[0] || '';
           const toolPart = parts[1] || '';
           
-          // Extract title from the first line after the signal phrase
+          // Extract title from first meaningful line (skip code blocks and markers)
           const toolLines = toolPart.trim().split('\n');
-          const firstLine = toolLines[0] || '';
+          let title = 'Custom Tool';
           
-          // Try to extract a meaningful title from the first line or use a default
-          if (firstLine.includes('//') && (firstLine.includes('Debugger') || firstLine.includes('Tool'))) {
-            title = firstLine.replace(/\/\/\s*/, '').trim();
-          } else if (firstLine.length > 10) {
-            title = firstLine.substring(0, 50).trim();
-          } else {
-            title = 'Custom Tool';
+          for (const line of toolLines) {
+            const cleanLine = line.trim();
+            
+            // Skip empty lines, code block markers, and generic phrases
+            if (!cleanLine || 
+                cleanLine.startsWith('```') || 
+                cleanLine.startsWith('//') ||
+                cleanLine.length < 3) {
+              continue;
+            }
+            
+            // Look for bold headers (markdown format)
+            if (cleanLine.startsWith('**') && cleanLine.endsWith('**')) {
+              title = cleanLine.replace(/\*\*/g, '').trim();
+              break;
+            }
+            
+            // Look for descriptive first line (but not code)
+            if (cleanLine.length > 10 && 
+                !cleanLine.includes('function') && 
+                !cleanLine.includes('const ') &&
+                !cleanLine.includes('let ') &&
+                !cleanLine.includes('var ') &&
+                !cleanLine.includes('{') &&
+                !cleanLine.includes('}')) {
+              title = cleanLine.substring(0, 50).trim();
+              break;
+            }
           }
           
           // Tool content is everything after the signal phrase
