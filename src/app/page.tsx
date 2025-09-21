@@ -105,9 +105,11 @@ export default function TrustRecoveryProtocol() {
       }
 
       // Check if Noah's response contains artifact content (TITLE: and TOOL: markers)
-      console.log('Checking if Noah\'s response contains artifact:', data.content);
+      console.log('=== ARTIFACT DETECTION ===');
+      console.log('Noah\'s full response:', data.content);
+      console.log('Contains TITLE?:', data.content.includes('TITLE:'));
+      console.log('Contains TOOL?:', data.content.includes('TOOL:'));
       const hasArtifactMarkers = data.content.includes('TITLE:') && data.content.includes('TOOL:');
-      
       console.log('Has artifact markers:', hasArtifactMarkers);
       if (hasArtifactMarkers) {
         console.log('Parsing artifact from Noah\'s response');
@@ -117,12 +119,20 @@ export default function TrustRecoveryProtocol() {
         const toolStart = lines.findIndex((line: string) => line.startsWith('TOOL:'));
         const reasoningStart = lines.findIndex((line: string) => line.startsWith('REASONING:'));
 
+        console.log('Parsing lines:', lines);
+        console.log('Title line found:', titleLine);
+        console.log('Tool start index:', toolStart);
+        console.log('Reasoning start index:', reasoningStart);
+        
         if (titleLine && toolStart !== -1) {
           const title = titleLine.replace('TITLE:', '').trim();
           const toolContent = lines.slice(toolStart + 1, reasoningStart !== -1 ? reasoningStart : undefined).join('\n').trim();
           const reasoningContent = reasoningStart !== -1 ? lines.slice(reasoningStart + 1).join('\n').trim() : '';
 
-          console.log('Parsed artifact from response:', { title, toolContent, reasoningContent });
+          console.log('=== PARSED ARTIFACT ===');
+          console.log('Title:', title);
+          console.log('Tool content:', toolContent);
+          console.log('Reasoning content:', reasoningContent);
 
           // Remove the artifact content from Noah's message and keep only the conversational part
           const cleanContent = lines.filter((line: string) => 
