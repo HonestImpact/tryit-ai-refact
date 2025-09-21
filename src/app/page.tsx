@@ -183,55 +183,29 @@ export default function TrustRecoveryProtocol() {
           const beforeTool = parts[0] || '';
           const toolPart = parts[1] || '';
           
-          // Extract title from first meaningful line (skip code blocks and markers)
-          const toolLines = toolPart.trim().split('\n');
-          title = 'Custom Tool';
+          // Extract title from Noah's natural language - look for descriptive headers
+          title = 'Custom Tool'; // Default fallback
           
-          // First, look specifically for bold headers (these are usually the real titles)
+          // Look for patterns like "**The [Something] Filter**" or "**[Descriptive Name]**"
+          const toolLines = toolPart.trim().split('\n');
           for (const line of toolLines) {
             const cleanLine = line.trim();
+            
+            // Look for bold headers that sound like tool names
             if (cleanLine.startsWith('**') && cleanLine.endsWith('**')) {
-              title = cleanLine.replace(/\*\*/g, '').trim();
-              break;
-            }
-          }
-          
-          // If no bold header found, look for comment-style titles
-          if (title === 'Custom Tool') {
-            for (const line of toolLines) {
-              const cleanLine = line.trim();
-              if (cleanLine.startsWith('//') && (cleanLine.includes('Tool') || cleanLine.includes('Debugger') || cleanLine.includes('Manager'))) {
-                title = cleanLine.replace(/\/\/\s*/, '').trim();
+              const potentialTitle = cleanLine.replace(/\*\*/g, '').trim();
+              // If it looks like a tool name (contains words like Filter, Tool, Guide, etc. or is descriptive)
+              if (potentialTitle.length > 5 && potentialTitle.length < 50) {
+                title = potentialTitle;
                 break;
               }
             }
-          }
-          
-          // Last resort: use first meaningful line that looks like a title (not code)
-          if (title === 'Custom Tool') {
-            for (const line of toolLines) {
-              const cleanLine = line.trim();
-              
-              // Skip obvious non-title lines
-              if (!cleanLine || 
-                  cleanLine.startsWith('```') || 
-                  cleanLine.startsWith('//') ||
-                  cleanLine.includes('function') || 
-                  cleanLine.includes('const ') ||
-                  cleanLine.includes('let ') ||
-                  cleanLine.includes('var ') ||
-                  cleanLine.includes('{') ||
-                  cleanLine.includes('}') ||
-                  cleanLine.includes('(') ||
-                  cleanLine.includes(')') ||
-                  cleanLine.includes('=') ||
-                  cleanLine.length < 3) {
-                continue;
-              }
-              
-              // Use this line but limit length to avoid taking entire sentences
-              if (cleanLine.length > 5) {
-                title = cleanLine.substring(0, 40).trim();
+            
+            // Also look for lines that start with descriptive text before colons
+            if (cleanLine.includes(':') && cleanLine.length < 50 && cleanLine.length > 10) {
+              const beforeColon = cleanLine.split(':')[0].trim();
+              if (beforeColon.length > 5 && !beforeColon.includes('```') && !beforeColon.includes('function')) {
+                title = beforeColon;
                 break;
               }
             }
@@ -387,17 +361,32 @@ export default function TrustRecoveryProtocol() {
           const beforeTool = parts[0] || '';
           const toolPart = parts[1] || '';
           
-          // Extract title from the first line after the signal phrase
-          const toolLines = toolPart.trim().split('\n');
-          const firstLine = toolLines[0] || '';
+          // Extract title from Noah's natural language - look for descriptive headers
+          title = 'Challenge Tool'; // Default fallback
           
-          // Try to extract a meaningful title from the first line or use a default
-          if (firstLine.includes('//') && (firstLine.includes('Debugger') || firstLine.includes('Tool'))) {
-            title = firstLine.replace(/\/\/\s*/, '').trim();
-          } else if (firstLine.length > 10) {
-            title = firstLine.substring(0, 50).trim();
-          } else {
-            title = 'Challenge Tool';
+          // Look for patterns like "**The [Something] Filter**" or "**[Descriptive Name]**"
+          const toolLines = toolPart.trim().split('\n');
+          for (const line of toolLines) {
+            const cleanLine = line.trim();
+            
+            // Look for bold headers that sound like tool names
+            if (cleanLine.startsWith('**') && cleanLine.endsWith('**')) {
+              const potentialTitle = cleanLine.replace(/\*\*/g, '').trim();
+              // If it looks like a tool name (contains words like Filter, Tool, Guide, etc. or is descriptive)
+              if (potentialTitle.length > 5 && potentialTitle.length < 50) {
+                title = potentialTitle;
+                break;
+              }
+            }
+            
+            // Also look for lines that start with descriptive text before colons
+            if (cleanLine.includes(':') && cleanLine.length < 50 && cleanLine.length > 10) {
+              const beforeColon = cleanLine.split(':')[0].trim();
+              if (beforeColon.length > 5 && !beforeColon.includes('```') && !beforeColon.includes('function')) {
+                title = beforeColon;
+                break;
+              }
+            }
           }
           
           // Tool content is everything after the signal phrase
