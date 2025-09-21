@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const { data: insertData, error: insertError } = await supabaseAdmin
       .from('conversations')
       .insert({
-        environment: 'test',
+        environment: 'production', // Use valid environment value
         track_type: 'skeptical',
         session_id: 'test_session_' + Date.now(),
         user_engagement: 'medium'
