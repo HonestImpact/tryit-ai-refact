@@ -67,6 +67,8 @@ export default function TrustRecoveryProtocol() {
       
       // Use the session ID from the current chat session, or generate a new one
       const sessionId = currentSessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      console.log('💡 Using session ID for artifact logging:', sessionId);
+      console.log('💡 Current stored session ID:', currentSessionId);
       
       // Create a custom endpoint for logging existing micro-tools
       const response = await fetch('/api/artifact-log', {

@@ -179,7 +179,34 @@ class SupabaseArchiver {
       }
 
       if (!convId) {
-        throw new Error('No conversation found for artifact logging');
+        console.log('No existing conversation found, creating one for artifact logging');
+        
+        // Create a minimal conversation for this artifact
+        const { data: newConv, error: convError } = await supabaseAdmin
+          .from('conversations')
+          .insert({
+            session_id: data.sessionId,
+            environment: this.environment,
+            track_type: 'unknown',
+            user_engagement: 'high', // They created a tool
+            trust_level: 75,
+            conversation_length: 1,
+            user_challenges: 0,
+            noah_uncertainty: 0,
+            artifacts_generated: 1,
+            conversation_pattern: 'tool_request',
+            trust_progression: [75],
+            tool_adoption: ['immediate']
+          })
+          .select('id')
+          .single();
+        
+        if (convError) {
+          throw new Error(`Failed to create conversation for artifact: ${convError.message}`);
+        }
+        
+        convId = newConv.id;
+        console.log('Created new conversation for artifact:', convId);
       }
 
       // Insert micro-tool
