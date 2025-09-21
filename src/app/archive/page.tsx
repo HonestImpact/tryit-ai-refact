@@ -544,7 +544,7 @@ function ArchiveDashboardContent() {
                       <div className={`mt-2 text-xs text-gray-500 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
                         <span className="font-medium">{message.role === 'user' ? 'User' : 'Noah'}</span>
                         <span className="mx-2">•</span>
-                        <span>{formatDate(message.timestamp)}</span>
+                        <span>{formatDate(message.timestamp?.toString() || new Date().toISOString())}</span>
                         <span className="mx-2">•</span>
                         <span>{message.wordCount} words</span>
                         {message.containsChallenge && (
