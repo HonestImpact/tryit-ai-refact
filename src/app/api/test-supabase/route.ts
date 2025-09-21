@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     console.log('Testing Supabase connection...');
     
     // Test basic connection
-    const { data, error } = await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from('conversations')
       .select('count')
       .limit(1);

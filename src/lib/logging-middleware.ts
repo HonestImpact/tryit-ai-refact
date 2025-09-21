@@ -32,12 +32,10 @@ export function withLogging<T = unknown>(
     };
 
     try {
-      // Clone the request to avoid body consumption issues
-      const reqClone = req.clone();
       const response = await handler(req, context);
       
       // Log the interaction after successful response
-      await logInteraction(reqClone, response, context);
+      await logInteraction(req, response, context);
       
       return response;
     } catch (error) {
@@ -45,8 +43,7 @@ export function withLogging<T = unknown>(
       
       // Still try to log the error case
       try {
-        const reqClone = req.clone();
-        await logError(reqClone, error as Error, context);
+        await logError(req, error as Error, context);
       } catch (logError) {
         console.error('Failed to log error:', logError);
       }
@@ -81,7 +78,15 @@ async function logChatInteraction(
   context: LoggingContext
 ): Promise<void> {
   try {
-    const body = await req.json();
+    // Try to get the body, but don't fail if it's already consumed
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.warn('Could not read request body for logging:', error);
+      body = { messages: [] };
+    }
+    
     const responseClone = response.clone();
     const responseData = await responseClone.json();
     
@@ -142,7 +147,15 @@ async function logArtifactInteraction(
   context: LoggingContext
 ): Promise<void> {
   try {
-    const body = await req.json();
+    // Try to get the body, but don't fail if it's already consumed
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.warn('Could not read request body for artifact logging:', error);
+      body = { userInput: '' };
+    }
+    
     const responseClone = response.clone();
     const responseData = await responseClone.json();
     const generationTime = context.startTime ? Date.now() - context.startTime : 0;

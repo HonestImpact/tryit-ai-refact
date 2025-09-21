@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   return NextResponse.json({ 
     message: 'Chat API test endpoint working',
     timestamp: new Date().toISOString()
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       received: body,
       timestamp: new Date().toISOString()
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ 
       error: 'Failed to parse request body',
       timestamp: new Date().toISOString()
