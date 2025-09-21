@@ -222,17 +222,19 @@ export default function TrustRecoveryProtocol() {
 
           // Set the artifact
           console.log('Setting artifact state with:', { title, content: toolContent });
+          
+          // Log to Supabase immediately (no delay)
+          console.log('🎯 Artifact created, logging to Supabase:', { 
+            title, 
+            contentLength: toolContent.length,
+            userMessage: lastUserMessage
+          });
+          logMicroToolToSupabase(title, toolContent, lastUserMessage);
+          
+          // Set UI state with slight delay for smooth animation
           setTimeout(() => {
             setArtifact({ title, content: toolContent });
             console.log('Artifact state set!');
-            
-            // Log the micro-tool to Supabase immediately after creation
-            console.log('🎯 Artifact created, logging to Supabase:', { 
-              title, 
-              contentLength: toolContent.length,
-              userMessage: lastUserMessage
-            });
-            logMicroToolToSupabase(title, toolContent, lastUserMessage);
           }, 800);
         } else {
           console.log('Failed to parse artifact - missing title or tool content');
@@ -383,17 +385,17 @@ export default function TrustRecoveryProtocol() {
             return newMessages;
           });
 
-          // Set the artifact
+          // Log to Supabase immediately (no delay)
+          console.log('🎯 Challenge artifact created, logging to Supabase:', { 
+            title, 
+            contentLength: toolContent.length,
+            userMessage: lastUserMessage
+          });
+          logMicroToolToSupabase(title, toolContent, lastUserMessage);
+          
+          // Set UI state with slight delay for smooth animation
           setTimeout(() => {
             setArtifact({ title, content: toolContent });
-            
-            // Log the micro-tool to Supabase immediately after creation
-            console.log('🎯 Challenge artifact created, logging to Supabase:', { 
-              title, 
-              contentLength: toolContent.length,
-              userMessage: lastUserMessage
-            });
-            logMicroToolToSupabase(title, toolContent, lastUserMessage);
           }, 800);
         }
       }
