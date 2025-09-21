@@ -354,8 +354,9 @@ function ArchiveDashboardContent() {
         {/* Conversations Tab */}
         {activeTab === 'conversations' && (
           <div className="space-y-6">
-            {data.recentLogs.conversations.map((conversation) => (
-              <div key={conversation.id} className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
+            {console.log('Conversations data:', data.recentLogs.conversations)}
+            {data.recentLogs.conversations.map((conversation: any) => (
+              <div key={conversation.id || conversation.session_id} className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
                    onClick={() => {
                      setSelectedConversation(conversation);
                      setActiveTab('conversation-detail');
@@ -363,43 +364,43 @@ function ArchiveDashboardContent() {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {conversation.track} Track
+                      {conversation.track_type || conversation.track || 'Unknown'} Track
                     </h3>
-                    <p className="text-sm text-gray-600">{formatDate(conversation.timestamp)}</p>
+                    <p className="text-sm text-gray-600">{formatDate(conversation.created_at || conversation.timestamp)}</p>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEffectivenessColor(conversation.effectiveness.userEngagement)}`}>
-                      {conversation.effectiveness.userEngagement} engagement
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEffectivenessColor(conversation.user_engagement || conversation.effectiveness?.userEngagement || 'medium')}`}>
+                      {conversation.user_engagement || conversation.effectiveness?.userEngagement || 'medium'} engagement
                     </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTrustColor(conversation.trustLevel)}`}>
-                      {conversation.trustLevel}% trust
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTrustColor(conversation.trust_level || conversation.trustLevel || 50)}`}>
+                      {conversation.trust_level || conversation.trustLevel || 50}% trust
                     </span>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div className="text-center">
-                    <p className="text-2xl font-semibold text-gray-900">{conversation.conversationLength}</p>
+                    <p className="text-2xl font-semibold text-gray-900">{conversation.conversation_length || conversation.conversationLength || 0}</p>
                     <p className="text-sm text-gray-600">Messages</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-semibold text-gray-900">{conversation.userChallenges}</p>
+                    <p className="text-2xl font-semibold text-gray-900">{conversation.user_challenges || conversation.userChallenges || 0}</p>
                     <p className="text-sm text-gray-600">Challenges</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-semibold text-gray-900">{conversation.noahUncertainty}</p>
+                    <p className="text-2xl font-semibold text-gray-900">{conversation.noah_uncertainty || conversation.noahUncertainty || 0}</p>
                     <p className="text-sm text-gray-600">Uncertainty</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-semibold text-gray-900">{conversation.artifactsGenerated}</p>
+                    <p className="text-2xl font-semibold text-gray-900">{conversation.artifacts_generated || conversation.artifactsGenerated || 0}</p>
                     <p className="text-sm text-gray-600">Tools</p>
                   </div>
                 </div>
 
                 <div className="text-sm text-gray-600">
-                  <p><strong>Pattern:</strong> {conversation.conversationPattern}</p>
-                  <p><strong>Trust Progression:</strong> {conversation.effectiveness.trustProgression}</p>
-                  <p><strong>Tool Adoption:</strong> {conversation.effectiveness.toolAdoption}</p>
+                  <p><strong>Pattern:</strong> {conversation.conversation_pattern || conversation.conversationPattern || 'Unknown'}</p>
+                  <p><strong>Trust Progression:</strong> {conversation.effectiveness?.trustProgression || 'N/A'}</p>
+                  <p><strong>Tool Adoption:</strong> {conversation.effectiveness?.toolAdoption || 'N/A'}</p>
                 </div>
                 
                 <div className="mt-4 pt-4 border-t border-gray-200">
