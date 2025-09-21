@@ -220,6 +220,49 @@ class SupabaseArchiver {
     }
   }
 
+  async getRecentLogs(days: number = 7): Promise<{ conversations: unknown[]; artifacts: unknown[] }> {
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+
+      // Get recent conversations
+      const { data: conversations, error: convError } = await supabaseAdmin
+        .from('conversations')
+        .select(`
+          *,
+          messages (*),
+          micro_tools (*)
+        `)
+        .gte('created_at', cutoffDate.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (convError) {
+        console.error('Error fetching conversations:', convError);
+        throw convError;
+      }
+
+      // Get recent artifacts
+      const { data: artifacts, error: artError } = await supabaseAdmin
+        .from('micro_tools')
+        .select('*')
+        .gte('created_at', cutoffDate.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (artError) {
+        console.error('Error fetching artifacts:', artError);
+        throw artError;
+      }
+
+      return {
+        conversations: conversations || [],
+        artifacts: artifacts || []
+      };
+    } catch (error) {
+      console.error('Failed to get recent logs:', error);
+      throw error;
+    }
+  }
+
   async getTrackEffectiveness(): Promise<unknown> {
     try {
       const { data, error } = await supabaseAdmin
