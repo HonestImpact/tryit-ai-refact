@@ -3,6 +3,32 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ConversationLog, ArtifactLog, ArchiveStats } from '@/lib/archiver';
 
+interface SupabaseConversation {
+  id?: string;
+  session_id?: string;
+  track_type?: string;
+  track?: string;
+  created_at?: string;
+  timestamp?: number;
+  user_engagement?: string;
+  effectiveness?: { userEngagement?: string; trustProgression?: string; toolAdoption?: string };
+  trust_level?: number;
+  trustLevel?: number;
+  conversation_length?: number;
+  conversationLength?: number;
+  user_challenges?: number;
+  userChallenges?: number;
+  noah_uncertainty?: number;
+  noahUncertainty?: number;
+  artifacts_generated?: number;
+  artifactsGenerated?: number;
+  conversation_pattern?: string;
+  conversationPattern?: string;
+  trust_progression?: string;
+  tool_adoption?: string;
+  messages?: Array<{ role: string; content: string; timestamp?: number }>;
+}
+
 interface DashboardData {
   stats: ArchiveStats;
   recentLogs: {
@@ -462,36 +488,36 @@ function ArchiveDashboardContent() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
-                    {(selectedConversation as any).track_type || (selectedConversation as any).track || 'Unknown'} Track Conversation
+                    {(selectedConversation as SupabaseConversation).track_type || (selectedConversation as SupabaseConversation).track || 'Unknown'} Track Conversation
                   </h2>
-                  <p className="text-gray-600">{formatDate((selectedConversation as any).created_at || (selectedConversation as any).timestamp?.toString() || new Date().toISOString())}</p>
-                  <p className="text-sm text-gray-500">Session: {(selectedConversation as any).session_id || (selectedConversation as any).sessionId}</p>
+                  <p className="text-gray-600">{formatDate((selectedConversation as SupabaseConversation).created_at || (selectedConversation as SupabaseConversation).timestamp?.toString() || new Date().toISOString())}</p>
+                  <p className="text-sm text-gray-500">Session: {(selectedConversation as SupabaseConversation).session_id || (selectedConversation as ConversationLog).sessionId}</p>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEffectivenessColor((selectedConversation as any).user_engagement || (selectedConversation as any).effectiveness?.userEngagement || 'medium')}`}>
-                    {(selectedConversation as any).user_engagement || (selectedConversation as any).effectiveness?.userEngagement || 'medium'} engagement
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEffectivenessColor((selectedConversation as SupabaseConversation).user_engagement || (selectedConversation as SupabaseConversation).effectiveness?.userEngagement || 'medium')}`}>
+                    {(selectedConversation as SupabaseConversation).user_engagement || (selectedConversation as SupabaseConversation).effectiveness?.userEngagement || 'medium'} engagement
                   </span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getTrustColor((selectedConversation as any).trust_level || (selectedConversation as any).trustLevel || 50)}`}>
-                    {(selectedConversation as any).trust_level || (selectedConversation as any).trustLevel || 50}% trust
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getTrustColor((selectedConversation as SupabaseConversation).trust_level || (selectedConversation as ConversationLog).trustLevel || 50)}`}>
+                    {(selectedConversation as SupabaseConversation).trust_level || (selectedConversation as ConversationLog).trustLevel || 50}% trust
                   </span>
                 </div>
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as any).conversation_length || (selectedConversation as any).conversationLength || 0}</p>
+                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as SupabaseConversation).conversation_length || (selectedConversation as ConversationLog).conversationLength || 0}</p>
                   <p className="text-sm text-gray-600">Messages</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as any).user_challenges || (selectedConversation as any).userChallenges || 0}</p>
+                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as SupabaseConversation).user_challenges || (selectedConversation as ConversationLog).userChallenges || 0}</p>
                   <p className="text-sm text-gray-600">Challenges</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as any).noah_uncertainty || (selectedConversation as any).noahUncertainty || 0}</p>
+                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as SupabaseConversation).noah_uncertainty || (selectedConversation as ConversationLog).noahUncertainty || 0}</p>
                   <p className="text-sm text-gray-600">Uncertainty</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as any).artifacts_generated || (selectedConversation as any).artifactsGenerated || 0}</p>
+                  <p className="text-3xl font-bold text-gray-900">{(selectedConversation as SupabaseConversation).artifacts_generated || (selectedConversation as ConversationLog).artifactsGenerated || 0}</p>
                   <p className="text-sm text-gray-600">Tools</p>
                 </div>
               </div>
@@ -501,11 +527,11 @@ function ArchiveDashboardContent() {
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
               <div className="bg-gray-50 px-6 py-4 border-b">
                 <h3 className="text-lg font-semibold text-gray-900">Full Conversation</h3>
-                <p className="text-sm text-gray-600">Pattern: {(selectedConversation as any).conversation_pattern || (selectedConversation as any).conversationPattern || 'Unknown'}</p>
+                <p className="text-sm text-gray-600">Pattern: {(selectedConversation as SupabaseConversation).conversation_pattern || (selectedConversation as ConversationLog).conversationPattern || 'Unknown'}</p>
               </div>
               
               <div className="p-6 space-y-6">
-                {((selectedConversation as any).messages || []).map((message: any, index: number) => (
+                {((selectedConversation as SupabaseConversation).messages || []).map((message: { role: string; content: string; timestamp?: number }, index: number) => (
                   <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-3xl ${message.role === 'user' ? 'ml-12' : 'mr-12'}`}>
                       <div className={`px-4 py-3 rounded-lg ${
