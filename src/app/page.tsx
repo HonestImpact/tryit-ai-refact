@@ -172,7 +172,6 @@ export default function TrustRecoveryProtocol() {
         
         let title = '';
         let toolContent = '';
-        let reasoningContent = '';
         let cleanContent = '';
 
         if (hasToolSignal) {
@@ -401,7 +400,6 @@ export default function TrustRecoveryProtocol() {
         
         let title = '';
         let toolContent = '';
-        let reasoningContent = '';
         let cleanContent = '';
 
         if (hasToolSignal) {
