@@ -59,7 +59,10 @@ export default function TrustRecoveryProtocol() {
   // Function to log micro-tool to Supabase
   const logMicroToolToSupabase = async (title: string, content: string, userInput: string) => {
     try {
-      console.log('Logging micro-tool to Supabase:', { title, userInput });
+      console.log('🚀 ATTEMPTING TO LOG MICRO-TOOL TO SUPABASE');
+      console.log('Title:', title);
+      console.log('Content length:', content.length);
+      console.log('User input:', userInput);
       
       // Get or generate session ID (same logic as in the middleware)
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -81,12 +84,13 @@ export default function TrustRecoveryProtocol() {
         }),
       });
       
-      if (response.ok) {
-        console.log('Micro-tool logged to Supabase successfully');
-      } else {
-        const errorText = await response.text();
-        console.error('Failed to log micro-tool to Supabase:', response.status, errorText);
-      }
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Micro-tool logged to Supabase successfully:', result);
+        } else {
+          const errorText = await response.text();
+          console.error('❌ Failed to log micro-tool to Supabase:', response.status, errorText);
+        }
     } catch (error) {
       console.error('Error logging micro-tool to Supabase:', error);
     }
@@ -162,13 +166,17 @@ export default function TrustRecoveryProtocol() {
         boldHeaderCount >= 2
       );
       
+      console.log('=== ARTIFACT DETECTION DEBUG ===');
+      console.log('Full response:', data.content);
       console.log('Contains TITLE?:', data.content.includes('TITLE:'));
       console.log('Contains TOOL?:', data.content.includes('TOOL:'));
       console.log('Has structured markers:', hasStructuredMarkers);
       console.log('Has natural tool format:', hasNaturalToolFormat);
+      console.log('Bold header count:', boldHeaderCount);
+      console.log('Has artifact markers:', hasArtifactMarkers);
+      console.log('==================================');
       
       const hasArtifactMarkers = hasStructuredMarkers || hasNaturalToolFormat;
-      console.log('Has artifact markers:', hasArtifactMarkers);
       if (hasArtifactMarkers) {
         console.log('Parsing artifact from Noah\'s response');
         
@@ -220,7 +228,7 @@ export default function TrustRecoveryProtocol() {
           
           toolContent = toolLines.join('\n').trim();
           
-          // Keep conversational content (everything before the tool)
+          // Keep conversational content (everything that's not structured tool content)
           const conversationalLines = lines.filter((line: string) => 
             !line.includes('**') && 
             !line.includes('Step') && 
@@ -228,7 +236,7 @@ export default function TrustRecoveryProtocol() {
             !line.trim().startsWith('- ') &&
             !line.includes('Here\'s a micro-tool for you') &&
             line.trim() !== '' &&
-            (line.includes('Ah,') || line.includes('Let me') || line.includes('I can tell') || line.includes('The trick') || line.includes('Want to') || line.includes('This') || line.includes('So ') || line.includes('Perfect') || line.includes('Great') || line.includes('Okay') || line.includes('Sure') || line.includes('Absolutely') || line.includes('dealing with') || line.includes('framework') || line.includes('gives you'))
+            line.trim().length > 10 // Include any substantial text that's not tool structure
           );
           
           cleanContent = conversationalLines.join('\n').trim();
@@ -428,7 +436,7 @@ export default function TrustRecoveryProtocol() {
           
           toolContent = toolLines.join('\n').trim();
           
-          // Keep conversational content (everything before the tool)
+          // Keep conversational content (everything that's not structured tool content)
           const conversationalLines = lines.filter((line: string) => 
             !line.includes('**') && 
             !line.includes('Step') && 
@@ -436,7 +444,7 @@ export default function TrustRecoveryProtocol() {
             !line.trim().startsWith('- ') &&
             !line.includes('Here\'s a micro-tool for you') &&
             line.trim() !== '' &&
-            (line.includes('Ah,') || line.includes('Let me') || line.includes('I can tell') || line.includes('The trick') || line.includes('Want to') || line.includes('This') || line.includes('So ') || line.includes('Perfect') || line.includes('Great') || line.includes('Okay') || line.includes('Sure') || line.includes('Absolutely') || line.includes('dealing with') || line.includes('framework') || line.includes('gives you'))
+            line.trim().length > 10 // Include any substantial text that's not tool structure
           );
           
           cleanContent = conversationalLines.join('\n').trim();
