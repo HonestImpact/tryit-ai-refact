@@ -354,8 +354,9 @@ function ArchiveDashboardContent() {
         {/* Conversations Tab */}
         {activeTab === 'conversations' && (
           <div className="space-y-6">
-            {console.log('Conversations data:', data.recentLogs.conversations)}
             {data.recentLogs.conversations.map((conversation: unknown) => {
+              // Debug log the conversation data
+              console.log('Conversation data:', conversation);
               const conv = conversation as {
                 id?: string;
                 session_id?: string;
