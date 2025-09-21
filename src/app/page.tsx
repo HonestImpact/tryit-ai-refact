@@ -24,6 +24,7 @@ export default function TrustRecoveryProtocol() {
   const [skepticMode, setSkepticMode] = useState(false);
   const [trustLevel, setTrustLevel] = useState(50);
   const [challengedMessages, setChallengedMessages] = useState<Set<number>>(new Set());
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -64,8 +65,8 @@ export default function TrustRecoveryProtocol() {
       console.log('Content length:', content.length);
       console.log('User input:', userInput);
       
-      // Get or generate session ID (same logic as in the middleware)
-      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Use the session ID from the current chat session, or generate a new one
+      const sessionId = currentSessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       // Create a custom endpoint for logging existing micro-tools
       const response = await fetch('/api/artifact-log', {
@@ -124,6 +125,12 @@ export default function TrustRecoveryProtocol() {
           skepticMode: skepticMode
         }),
       });
+
+      // Capture session ID from response headers for artifact logging
+      const sessionIdFromResponse = response.headers.get('x-session-id');
+      if (sessionIdFromResponse && !currentSessionId) {
+        setCurrentSessionId(sessionIdFromResponse);
+      }
 
       if (!response.ok) {
         throw new Error('Failed to get response');

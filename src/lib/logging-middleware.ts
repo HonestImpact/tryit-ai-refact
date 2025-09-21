@@ -40,6 +40,9 @@ export function withLogging<T = unknown>(
     try {
       const response = await handler(req, context);
       
+      // Add session ID to response headers for client access
+      response.headers.set('x-session-id', sessionId);
+      
       // Log the interaction after successful response
       await logInteraction(req, response, context);
       

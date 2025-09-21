@@ -26,17 +26,27 @@ export async function POST(req: NextRequest): Promise<NextResponse<{ success: bo
     
     try {
       // Log the existing artifact to Supabase
-      await supabaseArchiver.logArtifact({
+      const result = await supabaseArchiver.logArtifact({
         sessionId,
         userInput,
         artifactContent,
         generationTime
       });
       
-      console.log('✅ Successfully logged existing micro-tool to Supabase');
+      console.log('✅ Successfully logged existing micro-tool to Supabase, artifact ID:', result);
     } catch (artifactError) {
-      console.error('❌ Failed to log artifact, but continuing:', artifactError);
-      // For now, let's continue even if artifact logging fails
+      console.error('❌ Failed to log artifact to Supabase:', artifactError);
+      console.error('❌ Error details:', JSON.stringify(artifactError, null, 2));
+      
+      // Return the actual error instead of always succeeding
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Artifact logging failed: ${artifactError instanceof Error ? artifactError.message : 'Unknown error'}`,
+          details: artifactError
+        },
+        { status: 500 }
+      );
     }
     
     return NextResponse.json({ 
