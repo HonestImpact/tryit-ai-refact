@@ -104,12 +104,28 @@ export default function TrustRecoveryProtocol() {
         setTrustLevel(prev => Math.min(100, prev + 5));
       }
 
-      // Check if Noah's response contains artifact content (TITLE: and TOOL: markers)
+      // Check if Noah's response contains artifact content
       console.log('=== ARTIFACT DETECTION ===');
       console.log('Noah\'s full response:', data.content);
+      
+      // Check for both structured format (TITLE:/TOOL:) and natural format (bold headers)
+      const hasStructuredMarkers = data.content.includes('TITLE:') && data.content.includes('TOOL:');
+      const hasNaturalToolFormat = data.content.includes('**') && (
+        data.content.includes('Step 1:') || 
+        data.content.includes('Step 2:') || 
+        data.content.includes('Step 3:') ||
+        data.content.includes('**Step') ||
+        data.content.includes('**How to') ||
+        data.content.includes('**Tool:') ||
+        data.content.includes('**Method:')
+      );
+      
       console.log('Contains TITLE?:', data.content.includes('TITLE:'));
       console.log('Contains TOOL?:', data.content.includes('TOOL:'));
-      const hasArtifactMarkers = data.content.includes('TITLE:') && data.content.includes('TOOL:');
+      console.log('Has structured markers:', hasStructuredMarkers);
+      console.log('Has natural tool format:', hasNaturalToolFormat);
+      
+      const hasArtifactMarkers = hasStructuredMarkers || hasNaturalToolFormat;
       console.log('Has artifact markers:', hasArtifactMarkers);
       if (hasArtifactMarkers) {
         console.log('Parsing artifact from Noah\'s response');

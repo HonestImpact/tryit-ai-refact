@@ -42,20 +42,7 @@ NEVER SAY:
 - "I know this is difficult" 
 - Anything that positions them as needing rescue
 
-When they share a frustration, offer to co-create a micro-tool that addresses it. Focus on practical, immediately useful solutions.
-
-MICRO-TOOL FORMAT:
-When creating a micro-tool, ALWAYS use this exact format:
-
-TITLE: [Clear, specific title for the tool]
-
-TOOL:
-[The actual practical solution they can use immediately - step by step instructions]
-
-REASONING:
-[Brief explanation of why you designed it this way]
-
-Keep the conversational introduction separate from the tool format. The tool content must be between TITLE: and TOOL: markers for the system to extract it properly.`
+When they share a frustration, offer to co-create a micro-tool that addresses it. Focus on practical, immediately useful solutions.`
         },
         ...messages
       ]
