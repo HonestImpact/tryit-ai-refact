@@ -79,7 +79,7 @@ async function logChatInteraction(
 ): Promise<void> {
   try {
     // Use the body data stored in context, or try to read it if not available
-    let body = (context as { requestBody?: { messages: any[] } }).requestBody;
+    let body = (context as { requestBody?: { messages: Array<{ role: string; content: string }> } }).requestBody;
     if (!body) {
       try {
         body = await req.json();
