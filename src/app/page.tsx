@@ -225,10 +225,10 @@ export default function TrustRecoveryProtocol() {
             !line.includes('**') && 
             !line.includes('Step') && 
             !line.includes('•') &&
-            !line.includes('- ') &&
+            !line.trim().startsWith('- ') &&
             !line.includes('Here\'s a micro-tool for you') &&
             line.trim() !== '' &&
-            (line.includes('Ah,') || line.includes('Let me') || line.includes('I can tell') || line.includes('The trick') || line.includes('Want to') || line.includes('This'))
+            (line.includes('Ah,') || line.includes('Let me') || line.includes('I can tell') || line.includes('The trick') || line.includes('Want to') || line.includes('This') || line.includes('So ') || line.includes('Perfect') || line.includes('Great') || line.includes('Okay') || line.includes('Sure') || line.includes('Absolutely') || line.includes('dealing with') || line.includes('framework') || line.includes('gives you'))
           );
           
           cleanContent = conversationalLines.join('\n').trim();
@@ -433,10 +433,10 @@ export default function TrustRecoveryProtocol() {
             !line.includes('**') && 
             !line.includes('Step') && 
             !line.includes('•') &&
-            !line.includes('- ') &&
+            !line.trim().startsWith('- ') &&
             !line.includes('Here\'s a micro-tool for you') &&
             line.trim() !== '' &&
-            (line.includes('Ah,') || line.includes('Let me') || line.includes('I can tell') || line.includes('The trick') || line.includes('Want to') || line.includes('This'))
+            (line.includes('Ah,') || line.includes('Let me') || line.includes('I can tell') || line.includes('The trick') || line.includes('Want to') || line.includes('This') || line.includes('So ') || line.includes('Perfect') || line.includes('Great') || line.includes('Okay') || line.includes('Sure') || line.includes('Absolutely') || line.includes('dealing with') || line.includes('framework') || line.includes('gives you'))
           );
           
           cleanContent = conversationalLines.join('\n').trim();
