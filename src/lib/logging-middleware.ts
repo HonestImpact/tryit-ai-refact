@@ -130,7 +130,7 @@ async function logChatInteraction(
         await supabaseArchiver.logConversation({
           sessionId: context.sessionId,
           messages: messages.map((msg: { role: string; content: string }) => ({
-            role: msg.role,
+            role: msg.role as 'user' | 'assistant',
             content: msg.content,
             timestamp: Date.now()
           })),
