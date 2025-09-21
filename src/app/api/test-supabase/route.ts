@@ -5,6 +5,14 @@ export async function GET() {
   try {
     console.log('Testing Supabase connection...');
     
+    if (!supabaseAdmin) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Supabase admin client not available',
+        details: 'Environment variables may be missing'
+      }, { status: 500 });
+    }
+    
     // Test basic connection
     const { error } = await supabaseAdmin
       .from('conversations')
@@ -23,7 +31,7 @@ export async function GET() {
     console.log('Supabase connection successful');
     
     // Test insert
-    const { data: insertData, error: insertError } = await supabaseAdmin
+    const { data: insertData, error: insertError } = await supabaseAdmin!
       .from('conversations')
       .insert({
         environment: 'production', // Use valid environment value

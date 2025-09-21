@@ -21,7 +21,6 @@ export default function TrustRecoveryProtocol() {
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const [reasoning, setReasoning] = useState('');
-  const [isGeneratingArtifact, setIsGeneratingArtifact] = useState(false);
   const [skepticMode, setSkepticMode] = useState(false);
   const [trustLevel, setTrustLevel] = useState(50);
   const [challengedMessages, setChallengedMessages] = useState<Set<number>>(new Set());
