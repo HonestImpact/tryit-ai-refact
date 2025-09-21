@@ -46,10 +46,15 @@ When they share a frustration, offer to co-create a micro-tool that addresses it
 
 MICRO-TOOL FORMAT:
 When creating a micro-tool, always start with exactly this phrase: "Here's a tool for you to consider:"
-Then provide the tool content (code, steps, instructions, etc.)
+Then immediately provide a descriptive title in bold, followed by the tool content.
 Example:
 "I can help with that. Here's a tool for you to consider:
-[your tool content here]"`
+
+**The 3-Second Filter**
+
+[your tool content here]"
+
+Make the title descriptive and memorable like "The Email Boundary Tool" or "The Focus Reset Protocol"`
         },
         ...messages
       ]
