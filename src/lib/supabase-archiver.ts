@@ -6,7 +6,7 @@ import {
   determineTrack, 
   identifyConversationPattern, 
   identifyArtifactType 
-} from './data-sanitization';
+} from './message-analyzer';
 
 export interface ConversationData {
   sessionId: string;

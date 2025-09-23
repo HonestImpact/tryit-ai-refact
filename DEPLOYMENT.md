@@ -1,10 +1,10 @@
-# TryIt-AI Kit Deployment Guide
+# TryIt-AI (Refact) Kit (Refact) Deployment Guide
 
 ## 🚀 Vercel Deployment with Supabase Integration
 
 ### Prerequisites
 - GitHub repository with your code
-- Supabase project: "TryIt-AI Kit DB"
+- Supabase project: "TryIt-AI (Refact) Kit (Refact) DB"
 - Vercel account
 
 ### Step 1: Set up Supabase Database
@@ -152,4 +152,4 @@ Track these key indicators:
 - **Challenge Frequency** - Are skeptics actively questioning?
 - **Environment Performance** - How do staging vs production compare?
 
-Your TryIt-AI Kit is now ready to capture and analyze the conversation gold that builds trust with AI skeptics! 🎉
+Your TryIt-AI (Refact) Kit (Refact) is now ready to capture and analyze the conversation gold that builds trust with AI skeptics! 🎉
