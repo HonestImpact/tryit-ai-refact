@@ -1,49 +1,40 @@
-# Freedom Expander MVP – Repair Progress Log
+# Refactor Progress (tryit-ai-refact)
 
-This document is updated at each milestone so you can track what changed and what is next.
+## Phase 1 – Consolidate types/analyzer (DONE)
+- Added: src/lib/types.ts
+- Added: src/lib/message-analyzer.ts
+- Refactored: src/lib/archiver.ts and src/lib/supabase-archiver.ts to use analyzer
+- Kept: src/lib/data-sanitization.ts re-exporting analyzer
 
-## Phase 1 – Consolidate types and analyzer (IN PROGRESS)
+## Phase 2 – Archiver interface + provider + middleware refactor (DONE)
+- Added: src/lib/archiver-interface.ts (single contract)
+- Added: src/lib/archiver-provider.ts (env-based selection; optional dual logging with ARCHIVER_DUAL_LOG=true)
+- Updated: src/lib/logging-middleware.ts uses getArchiver() for a single logging pathway
+- Behavior preserved: 
+  - Local dev defaults to filesystem archiver
+  - Hosted/production uses Supabase if env is configured
+  - Dual logging only when ARCHIVER_DUAL_LOG=true
 
-Completed
-- Added canonical shared types
-  - src/lib/types.ts (TrackType, SanitizedMessage, ConversationLog, ArtifactLog, ArchiveStats)
-- Added unified analyzer utilities
-  - src/lib/message-analyzer.ts (sanitizeContent, analyzeMessage, determineTrack, identifyConversationPattern, identifyArtifactType)
-- Refactored FS archiver to use shared modules
-  - Updated: src/lib/archiver.ts (imports analyzer + types; removed duplicate logic)
-- Refactored Supabase archiver imports
-  - Updated: src/lib/supabase-archiver.ts (uses message-analyzer)
-- Backwards compatibility
-  - Updated: src/lib/data-sanitization.ts now re-exports from message-analyzer
+### Verify locally
+- Start dev server and POST /api/chat and /api/artifact; ensure logs/ files are written once (no duplicate entries).
+- To test Supabase path, set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY and (optionally) ARCHIVER_DUAL_LOG=true.
 
-Next
-- Quick scan for any remaining direct use of data-sanitization (should be covered by re-export).
-- Move to Phase 2.
+## Phase 3 – Tests and cleanup (IN PROGRESS)
 
-## Phase 2 – Archiver interface + provider + middleware refactor (PLANNED)
+[Checkpoint A - added tests scaffold]
+- package.json: added scripts: test, test:watch, typecheck
+- tests/unit/message-analyzer.test.ts added
+- How to run locally:
+  - npm install -D vitest @types/node
+  - npm test
 
-Plan
-- Create src/lib/archiver-interface.ts with a single contract:
-  - logConversation, logArtifact, getRecentLogs, getConversationAnalytics, getTrackEffectiveness, getMicroToolEffectiveness
-- Create src/lib/archiver-provider.ts to choose backend by environment
-  - Default: Filesystem locally; Supabase on hosted; optional dual logging via ARCHIVER_DUAL_LOG=true
-- Update src/lib/logging-middleware.ts to use the provider (one callsite, no double logging logic)
+[Checkpoint B - filesystem archiver test + remove legacy files]
+- Added: tests/unit/archiver-fs.test.ts (writes to a temp logs-test dir)
+- Removed: src/app/chat/page.tsx.old01/.old02/.old03/.old04
 
-## Verification
-You can inspect changes via git:
+[Checkpoint C - CI workflow]
+- Added: .github/workflows/ci.yml (Node 20; npm install; typecheck; test)
+- Verify on GitHub: Actions tab after push
 
-```
- git status
- git diff
-```
-
-Open these files for the latest changes:
-- src/lib/types.ts
-- src/lib/message-analyzer.ts
-- src/lib/archiver.ts
-- src/lib/supabase-archiver.ts
-- src/lib/data-sanitization.ts
-
-## Notes
-- No behavioral changes intended in Phase 1; Consolidation only.
-- If any schema/env mismatches surface during Phase 2, work will pause and notes will be added here.
+[Cleanup]
+- Removed src2/ — single source of truth is now src/

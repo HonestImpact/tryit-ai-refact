@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { archiver } from './archiver';
-import { supabaseArchiver } from './supabase-archiver';
+import { getArchiver } from './archiver-provider';
 
 export interface LoggingContext {
   sessionId: string;
@@ -87,70 +86,40 @@ async function logChatInteraction(
   context: LoggingContext
 ): Promise<void> {
   try {
-    // Use the body data stored in context, or try to read it if not available
     let body = context.requestBody;
     if (!body) {
       try {
         body = await req.json();
       } catch (error) {
         console.warn('Could not read request body for logging:', error);
-        body = { messages: [] };
+        body = { messages: [] } as any;
       }
     }
-    
+
     const responseClone = response.clone();
     const responseData = await responseClone.json();
-    
-    // Extract conversation data
-    const messages = body?.messages || [];
-    const trustLevel = body?.trustLevel || 50; // Default trust level
-    const skepticMode = body?.skepticMode || false;
-    
-    // Count artifacts in the response
-    const artifactsGenerated = (responseData.content || '').includes('TITLE:') ? 1 : 0;
-    
-    // Log the conversation to both local files and Supabase
-    try {
-      // Local file logging (existing)
-      // Local logging (disabled on Vercel)
-      if (!process.env.VERCEL) {
-        await archiver.logConversation(
-          context.sessionId,
-          messages.map(msg => ({
-            role: msg.role as 'user' | 'assistant',
-            content: msg.content,
-            timestamp: Date.now()
-          })),
-          trustLevel,
-          skepticMode,
-          artifactsGenerated
-        );
-      }
-      
-      // Supabase logging (new)
-      try {
-        console.log('Attempting to log conversation to Supabase...');
-        await supabaseArchiver.logConversation({
-          sessionId: context.sessionId,
-          messages: messages.map((msg: { role: string; content: string }) => ({
-            role: msg.role as 'user' | 'assistant',
-            content: msg.content,
-            timestamp: Date.now()
-          })),
-          trustLevel,
-          skepticMode,
-          artifactsGenerated
-        });
-        console.log('Successfully logged conversation to Supabase');
-      } catch (error) {
-        console.error('Failed to log conversation to Supabase:', error);
-      }
-      
-      console.log(`📝 Logged conversation for session ${context.sessionId} to both local and Supabase`);
-    } catch (error) {
-      console.error('Error logging conversation:', error);
-      // Continue execution even if logging fails
-    }
+
+    const messages = (body as any)?.messages || [];
+    const trustLevel = (body as any)?.trustLevel || 50;
+    const skepticMode = (body as any)?.skepticMode || false;
+
+    const artifactsGenerated = (responseData.content || '').includes('TITLE:') ||
+      (responseData.content || '').includes("Here's a tool for you to consider:")
+      ? 1
+      : 0;
+
+    const arch = getArchiver();
+    await arch.logConversation({
+      sessionId: context.sessionId,
+      messages: messages.map((msg: { role: string; content: string }) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        timestamp: Date.now()
+      })),
+      trustLevel,
+      skepticMode,
+      artifactsGenerated
+    });
   } catch (error) {
     console.error('Failed to log chat interaction:', error);
   }
@@ -162,52 +131,27 @@ async function logArtifactInteraction(
   context: LoggingContext
 ): Promise<void> {
   try {
-    // Use the body data stored in context, or try to read it if not available
     let body = context.requestBody;
     if (!body) {
       try {
         body = await req.json();
       } catch (error) {
         console.warn('Could not read request body for artifact logging:', error);
-        body = { userInput: '' };
+        body = { userInput: '' } as any;
       }
     }
-    
+
     const responseClone = response.clone();
     const responseData = await responseClone.json();
     const generationTime = context.startTime ? Date.now() - context.startTime : 0;
-    
-    // Log artifact to both local files and Supabase
-    try {
-      // Local file logging (disabled on Vercel)
-      if (!process.env.VERCEL) {
-        await archiver.logArtifact(
-          context.sessionId,
-          body?.userInput || '',
-          responseData.content || '',
-          generationTime
-        );
-      }
-      
-      // Supabase logging (new)
-      try {
-        console.log('Attempting to log artifact to Supabase...');
-        await supabaseArchiver.logArtifact({
-          sessionId: context.sessionId,
-          userInput: body?.userInput || '',
-          artifactContent: responseData.content || '',
-          generationTime
-        });
-        console.log('Successfully logged artifact to Supabase');
-      } catch (error) {
-        console.error('Failed to log artifact to Supabase:', error);
-      }
-      
-      console.log(`🔧 Logged artifact for session ${context.sessionId} to both local and Supabase`);
-    } catch (error) {
-      console.error('Error logging artifact:', error);
-      // Continue execution even if logging fails
-    }
+
+    const arch = getArchiver();
+    await arch.logArtifact({
+      sessionId: context.sessionId,
+      userInput: (body as any)?.userInput || '',
+      artifactContent: responseData.content || '',
+      generationTime
+    });
   } catch (error) {
     console.error('Failed to log artifact interaction:', error);
   }

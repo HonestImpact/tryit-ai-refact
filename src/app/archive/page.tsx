@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ConversationLog, ArtifactLog, ArchiveStats } from '@/lib/archiver';
+import { ConversationLog, ArtifactLog, ArchiveStats } from '@/lib/types';
 
 interface SupabaseConversation {
   id?: string;
@@ -340,7 +340,7 @@ function ArchiveDashboardContent() {
             <div className="bg-white p-6 rounded-lg shadow-sm border">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Most Effective Tracks</h3>
               <div className="space-y-3">
-                {(data.stats.mostEffectiveTracks || []).map((track, index) => (
+                {(data.stats.mostEffectiveTracks || []).map((track: { track: string; effectiveness: number }, index: number) => (
                   <div key={track.track} className="flex items-center justify-between">
                     <div className="flex items-center">
                       <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium mr-3">
@@ -352,7 +352,7 @@ function ArchiveDashboardContent() {
                       <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
                         <div 
                           className="bg-blue-600 h-2 rounded-full" 
-                          style={{ width: `${(track.effectiveness / Math.max(...(data.stats.mostEffectiveTracks || []).map(t => t.effectiveness), 1)) * 100}%` }}
+                          style={{ width: `${(track.effectiveness / Math.max(...(data.stats.mostEffectiveTracks || []).map((t: { effectiveness: number }) => t.effectiveness), 1)) * 100}%` }}
                         ></div>
                       </div>
                       <span className="text-sm text-gray-600">{track.effectiveness}</span>
@@ -366,7 +366,7 @@ function ArchiveDashboardContent() {
             <div className="bg-white p-6 rounded-lg shadow-sm border">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Common Conversation Patterns</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(data.stats.commonPatterns || []).map((pattern) => (
+                {(data.stats.commonPatterns || []).map((pattern: { pattern: string; frequency: number }) => (
                   <div key={pattern.pattern} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <span className="font-medium text-gray-900 capitalize">{pattern.pattern}</span>
                     <span className="text-sm text-gray-600">{pattern.frequency} occurrences</span>

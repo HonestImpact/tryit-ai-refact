@@ -8,10 +8,8 @@ export function sanitizeContent(content: string): string {
     .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
     // SSN-like
     .replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN]')
-    // Phone numbers
-    .replace(/\b\d{3}-\d{3}-\d{4}\b/g, '[PHONE]')
-    .replace(/\b\(\d{3}\)\s*\d{3}-\d{4}\b/g, '[PHONE]')
-    .replace(/\b\d{3}\.\d{3}\.\d{4}\b/g, '[PHONE]')
+    // Phone numbers (covers 555-123-4567, (555) 123-4567, 555.123.4567, 555 123 4567, +1 555-123-4567)
+    .replace(/(?:\+?1[-.\s]?)?(?:\(\d{3}\)|\d{3})[-.\s]?\d{3}[-.\s]?\d{4}\b/g, '[PHONE]')
     // URLs/domains
     .replace(/\bhttps?:\/\/[^\s]+\b/g, '[URL]')
     .replace(/\b[A-Za-z0-9._%+-]+\.[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[DOMAIN]')
