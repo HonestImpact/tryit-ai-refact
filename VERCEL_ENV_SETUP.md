@@ -9,16 +9,20 @@ To fix the 500 errors in your Vercel staging deployment, you need to set these e
 ```bash
 # Anthropic API (Required for chat functionality)
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+```
 
-# Claude Model Configuration
-MODEL_ID=claude-3-5-sonnet-20241022
+### 🔧 **Optional Variables**
 
+```bash
 # Supabase Configuration (Optional - will fallback to filesystem if missing)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-# Environment Detection
-NEXT_PUBLIC_VERCEL_ENV=production
+# Claude Model Override (Optional - defaults are already set in code)
+# MODEL_ID=claude-3-5-sonnet-20241022  # Only set if you want to override defaults
+
+# Environment Detection (Optional - Vercel sets this automatically)
+# NEXT_PUBLIC_VERCEL_ENV=production
 ```
 
 ### 🚀 **How to Set in Vercel**
@@ -43,7 +47,7 @@ If you're still getting 500 errors:
 
 1. **Check Vercel Function Logs**: Go to your deployment → Functions tab → Click on failed function to see error details
 2. **Verify API Key**: Make sure your `ANTHROPIC_API_KEY` is valid and has proper permissions
-3. **Check Model ID**: Ensure the `MODEL_ID` is a valid Claude model identifier
+3. **Check API Key Format**: Ensure the key starts with `sk-ant-` and is the full key
 
 ### 📝 **Notes**
 
