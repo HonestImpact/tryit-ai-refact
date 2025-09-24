@@ -92,16 +92,17 @@ async function logChatInteraction(
         body = await req.json();
       } catch (error) {
         console.warn('Could not read request body for logging:', error);
-        body = { messages: [] } as any;
+        body = { messages: [] };
       }
     }
 
     const responseClone = response.clone();
     const responseData = await responseClone.json();
 
-    const messages = (body as any)?.messages || [];
-    const trustLevel = (body as any)?.trustLevel || 50;
-    const skepticMode = (body as any)?.skepticMode || false;
+    const bodyData = body as { messages?: Array<{ role: string; content: string }>; trustLevel?: number; skepticMode?: boolean };
+    const messages = bodyData.messages || [];
+    const trustLevel = bodyData.trustLevel || 50;
+    const skepticMode = bodyData.skepticMode || false;
 
     const artifactsGenerated = (responseData.content || '').includes('TITLE:') ||
       (responseData.content || '').includes("Here's a tool for you to consider:")
@@ -137,7 +138,7 @@ async function logArtifactInteraction(
         body = await req.json();
       } catch (error) {
         console.warn('Could not read request body for artifact logging:', error);
-        body = { userInput: '' } as any;
+        body = { userInput: '' };
       }
     }
 
@@ -148,7 +149,7 @@ async function logArtifactInteraction(
     const arch = getArchiver();
     await arch.logArtifact({
       sessionId: context.sessionId,
-      userInput: (body as any)?.userInput || '',
+      userInput: (body as { userInput?: string })?.userInput || '',
       artifactContent: responseData.content || '',
       generationTime
     });

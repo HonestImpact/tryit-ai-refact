@@ -42,3 +42,6 @@ next-env.d.ts
 
 # archive logs (contains conversation data)
 /logs
+
+# pnpm
+# Don't ignore pnpm-lock.yaml - it should be committed

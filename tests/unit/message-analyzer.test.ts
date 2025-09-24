@@ -5,7 +5,7 @@ import {
   determineTrack,
   identifyConversationPattern,
   identifyArtifactType,
-} from '../../src/lib/message-analyzer';
+} from '@/lib/message-analyzer';
 
 describe('message-analyzer', () => {
   it('sanitizes emails, phones, urls, and ids', () => {

@@ -38,3 +38,14 @@
 
 [Cleanup]
 - Removed src2/ — single source of truth is now src/
+
+Dev toggles
+- LOCAL_FAKE_LLM
+  - true: /api/chat and /api/artifact return deterministic JSON (test-response / test-artifact-response) and still log via middleware.
+  - false or unset: routes call the real model.
+- MODEL_ID
+  - Overrides the default model (claude-sonnet-4-20250514) used when LOCAL_FAKE_LLM is false.
+
+Usage
+- Local dev/CI: set LOCAL_FAKE_LLM=true in .env.local; restart dev (npm run dev).
+- Staging/Prod: leave LOCAL_FAKE_LLM unset/false; optionally set MODEL_ID; ensure model credentials are configured.

@@ -1,0 +1,25 @@
+# TryIt-AI Kit - Cursor Development Rules
+
+## CRITICAL: Architecture Preservation
+- NEVER modify the archiver interface/provider system in src/lib/archiver-*.ts without explicit instruction
+- ALWAYS use the archiver provider pattern - do not create direct Supabase calls
+- PRESERVE the unified logging pathway established in logging-middleware.ts
+- DO NOT create .old01, .old02, or backup files - use git for version control
+
+## Development Approach
+- Break down large components instead of creating monolithic files
+- Add tests for new functionality using the established Vitest patterns
+- Use the existing TypeScript interfaces in src/lib/types.ts
+- Follow the message-analyzer pattern for any new analysis functions
+
+## When Making Changes
+- Always explain what you're changing and why before making changes
+- Ask for confirmation before major refactoring
+- Preserve existing functionality while improving structure
+- Use incremental changes that can be tested independently
+
+## Code Organization
+- Keep API routes focused and single-purpose
+- Use the established error handling patterns
+- Maintain consistent TypeScript usage throughout
+- Extract reusable logic into src/lib/ utilities

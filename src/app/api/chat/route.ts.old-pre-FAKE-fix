@@ -1,3 +1,5 @@
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
 import { NextRequest, NextResponse } from 'next/server';
 import { withLogging, LoggingContext } from '@/lib/logging-middleware';
 
@@ -8,23 +10,8 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
     // Store the parsed body in context for logging
     context.requestBody = { messages, trustLevel, skepticMode };
 
-    // Check if we should use fake responses for testing
-    if (process.env.LOCAL_FAKE_LLM === 'true') {
-      return NextResponse.json({ content: 'test-response' });
-    }
-
-    // Import AI SDK only when needed to avoid unused import warnings
-    const { anthropic } = await import('@ai-sdk/anthropic');
-    const { generateText } = await import('ai');
-
-    // Call the actual Anthropic API
-    const result = await generateText({
-      model: anthropic(process.env.MODEL_ID || 'claude-3-5-sonnet-20241022'),
-      messages: messages,
-      system: "You are Noah, an AI assistant for TryIt-AI Kit...", // Your system prompt here
-    });
-
-    return NextResponse.json({ content: result.text });
+    // Short-circuit LLM call for local verification
+    return NextResponse.json({ content: 'test-response' });
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json(
