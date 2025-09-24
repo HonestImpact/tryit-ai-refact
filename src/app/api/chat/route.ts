@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withLogging, LoggingContext } from '@/lib/logging-middleware';
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
 
 async function chatHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<{ content: string }>> {
   try {
@@ -12,10 +14,6 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
     if (process.env.LOCAL_FAKE_LLM === 'true') {
       return NextResponse.json({ content: 'test-response' });
     }
-
-    // Import AI SDK only when needed to avoid unused import warnings
-    const { anthropic } = await import('@ai-sdk/anthropic');
-    const { generateText } = await import('ai');
 
     // Call the actual Anthropic API
     const result = await generateText({

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withLogging, LoggingContext } from '@/lib/logging-middleware';
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
 
 async function artifactHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<{ content: string }>> {
   try {
@@ -16,10 +18,6 @@ async function artifactHandler(req: NextRequest, context: LoggingContext): Promi
     context.requestBody = { userInput };
 
     const modelId = process.env.MODEL_ID || 'claude-sonnet-4-20250514';
-
-    // Import AI SDK only when needed to avoid unused import warnings
-    const { anthropic } = await import('@ai-sdk/anthropic');
-    const { generateText } = await import('ai');
 
     const { text } = await generateText({
       model: anthropic(modelId),
