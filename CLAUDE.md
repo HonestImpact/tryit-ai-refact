@@ -100,9 +100,18 @@ src/
 
 Create `.env.local` with:
 ```
+# Required for production
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# AI Model Configuration
+MODEL_ID=claude-sonnet-4-20250514
+
+# Optional - Supabase (falls back to filesystem if not provided)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# Development/Testing
+LOCAL_FAKE_LLM=true  # Set to false for real API calls
 ```
 
 ### Code Quality Requirements

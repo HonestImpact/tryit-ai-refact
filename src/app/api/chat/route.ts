@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withLogging, LoggingContext } from '@/lib/logging-middleware';
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
+import { AI_CONFIG } from '@/lib/ai-config';
 
 async function chatHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<{ content: string }>> {
   try {
@@ -17,9 +18,9 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
 
     // Call the actual Anthropic API
     const result = await generateText({
-      model: anthropic(process.env.MODEL_ID || 'claude-3-5-sonnet-20241022'),
+      model: anthropic(AI_CONFIG.getModel()),
       messages: messages,
-      system: "You are Noah, an AI assistant for TryIt-AI Kit...", // Your system prompt here
+      system: AI_CONFIG.CHAT_SYSTEM_PROMPT,
     });
 
     return NextResponse.json({ content: result.text });
