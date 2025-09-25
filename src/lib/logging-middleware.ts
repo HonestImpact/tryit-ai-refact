@@ -100,21 +100,32 @@ async function logChatInteraction(
     const responseData = await responseClone.json();
 
     const bodyData = body as { messages?: Array<{ role: string; content: string }>; trustLevel?: number; skepticMode?: boolean };
-    const messages = bodyData.messages || [];
+    const requestMessages = bodyData.messages || [];
     const trustLevel = bodyData.trustLevel || 50;
     const skepticMode = bodyData.skepticMode || false;
 
     // Check for artifacts in the new response format
     const artifactsGenerated = responseData.artifact ? 1 : 0;
 
-    const arch = getArchiver();
-    await arch.logConversation({
-      sessionId: context.sessionId,
-      messages: messages.map((msg: { role: string; content: string }) => ({
+    // Create complete conversation including Noah's response
+    const completeConversation = [
+      ...requestMessages.map((msg: { role: string; content: string }) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
         timestamp: Date.now()
       })),
+      // Add Noah's response to the conversation
+      {
+        role: 'assistant' as const,
+        content: responseData.content || '',
+        timestamp: Date.now()
+      }
+    ];
+
+    const arch = getArchiver();
+    await arch.logConversation({
+      sessionId: context.sessionId,
+      messages: completeConversation,
       trustLevel,
       skepticMode,
       artifactsGenerated
