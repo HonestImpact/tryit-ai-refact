@@ -24,6 +24,7 @@ export function getArchiver(): Archiver {
 
   const supabaseOk = hasSupabaseEnv();
 
+
   if (dual && supabaseOk) {
     return new DualArchiver(fsArchiver as unknown as Archiver, supabaseArchiver as unknown as Archiver);
   }

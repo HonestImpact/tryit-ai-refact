@@ -81,7 +81,12 @@ This isn't about productivity optimization - it's about conscious choice-making.
 What aspects of your current approach are you most interested in examining?`;
       }
       
-      const parsed = ArtifactService.parseArtifact(fakeResponse);
+      // Use handleArtifactWorkflow for consistent logging
+      const parsed = await ArtifactService.handleArtifactWorkflow(
+        fakeResponse,
+        lastUserMessage,
+        context.sessionId
+      );
       
       return NextResponse.json({
         content: fakeResponse, // Always show full response in chat for natural flow
