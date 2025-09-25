@@ -14,6 +14,30 @@ interface ChatResponse {
   };
 }
 
+// Helper function to determine if request should use multi-agent system
+function shouldUseMultiAgent(lastMessage: string, allMessages: any[]): boolean {
+  const content = lastMessage.toLowerCase();
+  
+  // Use multi-agent for complex requests that might benefit from coordination
+  const complexityIndicators = [
+    'build', 'create', 'implement', 'design', 'make',
+    'step by step', 'multiple', 'several', 'various',
+    'complex', 'sophisticated', 'advanced', 'comprehensive',
+    'creative', 'brainstorm', 'innovative', 'technical'
+  ];
+  
+  const hasComplexityWords = complexityIndicators.some(indicator => 
+    content.includes(indicator)
+  );
+  
+  // Also check if it's a long request or has multiple questions
+  const isLong = content.length > 150;
+  const hasMultipleQuestions = (content.match(/\?/g) || []).length > 1;
+  const isMultiTurn = allMessages.length > 4; // Long conversations
+  
+  return hasComplexityWords || isLong || hasMultipleQuestions || isMultiTurn;
+}
+
 async function chatHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<ChatResponse>> {
   try {
     const { messages, trustLevel, skepticMode } = await req.json();
@@ -24,14 +48,18 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
     // Get the last user message for artifact context
     const lastUserMessage = messages[messages.length - 1]?.content || '';
 
-    // TRY MULTI-AGENT SYSTEM FIRST (with graceful fallback)
-    try {
-      const { getMultiAgentSystem } = await import('@/lib/agents/system-config');
-      const multiAgentSystem = await getMultiAgentSystem();
-      const systemStatus = multiAgentSystem.getSystemStatus();
-      
-      // If multi-agent system is healthy, use it
-      if (systemStatus.status === 'initialized' && systemStatus.isHealthy) {
+    // ROUTE LOGIC: Use single-agent Noah for simple conversations, multi-agent for complex requests
+    const isComplexRequest = shouldUseMultiAgent(lastUserMessage, messages);
+    
+    // TRY MULTI-AGENT SYSTEM FOR COMPLEX REQUESTS ONLY
+    if (isComplexRequest) {
+      try {
+        const { getMultiAgentSystem } = await import('@/lib/agents/system-config');
+        const multiAgentSystem = await getMultiAgentSystem();
+        const systemStatus = multiAgentSystem.getSystemStatus();
+        
+        // If multi-agent system is healthy, use it for complex requests
+        if (systemStatus.status === 'initialized' && systemStatus.isHealthy) {
         const conversationHistory = messages.slice(0, -1).map((msg: { role: string; content: string }) => ({
           role: msg.role as 'user' | 'assistant',
           content: msg.content,
@@ -73,14 +101,15 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
 
         return NextResponse.json(response);
       }
-    } catch (multiAgentError) {
-      console.warn('Multi-agent system failed, falling back to single agent:', multiAgentError);
-      // Log this as a system health issue for monitoring
-      console.error('SYSTEM DEGRADATION: Multi-agent system unavailable', {
-        error: multiAgentError,
-        sessionId: context.sessionId,
-        fallbackActivated: true
-      });
+      } catch (multiAgentError) {
+        console.warn('Multi-agent system failed, falling back to single agent:', multiAgentError);
+        // Log this as a system health issue for monitoring
+        console.error('SYSTEM DEGRADATION: Multi-agent system unavailable', {
+          error: multiAgentError,
+          sessionId: context.sessionId,
+          fallbackActivated: true
+        });
+      }
     }
 
     // FALLBACK: Use original single-agent system
