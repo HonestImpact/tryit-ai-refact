@@ -104,10 +104,8 @@ async function logChatInteraction(
     const trustLevel = bodyData.trustLevel || 50;
     const skepticMode = bodyData.skepticMode || false;
 
-    const artifactsGenerated = (responseData.content || '').includes('TITLE:') ||
-      (responseData.content || '').includes("Here's a tool for you to consider:")
-      ? 1
-      : 0;
+    // Check for artifacts in the new response format
+    const artifactsGenerated = responseData.artifact ? 1 : 0;
 
     const arch = getArchiver();
     await arch.logConversation({

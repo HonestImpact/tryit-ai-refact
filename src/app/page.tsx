@@ -25,7 +25,6 @@ export default function TrustRecoveryProtocol() {
   const [trustLevel, setTrustLevel] = useState(50);
   const [challengedMessages, setChallengedMessages] = useState<Set<number>>(new Set());
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [lastUserMessage, setLastUserMessage] = useState<string>('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -59,54 +58,13 @@ export default function TrustRecoveryProtocol() {
     }
   }, []);
 
-  // Function to log micro-tool to Supabase
-  const logMicroToolToSupabase = async (title: string, content: string, userInput: string) => {
-    try {
-      console.log('🚀 ATTEMPTING TO LOG MICRO-TOOL TO SUPABASE');
-      console.log('Title:', title);
-      console.log('Content length:', content.length);
-      console.log('User input:', userInput);
-      
-      // Use the session ID from the current chat session, or generate a new one
-      const sessionId = currentSessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      console.log('💡 Using session ID for artifact logging:', sessionId);
-      console.log('💡 Current stored session ID:', currentSessionId);
-      
-      // Create a custom endpoint for logging existing micro-tools
-      const response = await fetch('/api/artifact-log', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-session-id': sessionId, // Pass session ID in header
-        },
-        body: JSON.stringify({ 
-          userInput,
-          artifactContent: content,
-          title,
-          toolContent: content,
-          generationTime: 0, // Since it's already generated
-          sessionId // Also pass in body for backup
-        }),
-      });
-      
-        if (response.ok) {
-          const result = await response.json();
-          console.log('✅ Micro-tool logged to Supabase successfully:', result);
-        } else {
-          const errorText = await response.text();
-          console.error('❌ Failed to log micro-tool to Supabase:', response.status, errorText);
-        }
-    } catch (error) {
-      console.error('Error logging micro-tool to Supabase:', error);
-    }
-  };
+  // Note: Artifact logging now handled automatically by the chat API
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
-    setLastUserMessage(userMessage); // Track the user's message for artifact logging
     setInput('');
     setIsLoading(true);
 
@@ -155,92 +113,17 @@ export default function TrustRecoveryProtocol() {
         setTrustLevel(prev => Math.min(100, prev + 5));
       }
 
-      // Check if Noah's response contains artifact content
-      console.log('=== ARTIFACT DETECTION ===');
-      console.log('Noah\'s full response:', data.content);
-      
-      // Check for both structured format (TITLE:/TOOL:) and natural format (bold headers or code blocks)
-      // Simple detection: look for Noah's tool signal phrase
-      const hasToolSignal = data.content.includes("Here's a tool for you to consider:");
-      
-      const hasArtifactMarkers = hasToolSignal;
-      
-      console.log('=== ARTIFACT DETECTION DEBUG ===');
-      console.log('Full response:', data.content);
-      console.log('Has tool signal phrase:', hasToolSignal);
-      console.log('Has artifact markers:', hasArtifactMarkers);
-      console.log('==================================');
-      if (hasArtifactMarkers) {
-        console.log('Parsing artifact from Noah\'s response');
+      // Handle artifact if present in response
+      if (data.artifact) {
+        console.log('✅ Artifact received from API:', data.artifact);
         
-        let title = '';
-        let toolContent = '';
-        let cleanContent = '';
-
-        if (hasToolSignal) {
-          // Simple parsing: split on the signal phrase
-          const parts = data.content.split("Here's a tool for you to consider:");
-          const beforeTool = parts[0] || '';
-          const toolPart = parts[1] || '';
-          
-          // Extract title - should be the first bold header after the signal phrase
-          title = 'Custom Tool'; // Default fallback
-          
-          const toolLines = toolPart.trim().split('\n');
-          for (const line of toolLines) {
-            const cleanLine = line.trim();
-            
-            // Look for the first bold header (Noah's title)
-            if (cleanLine.startsWith('**') && cleanLine.endsWith('**')) {
-              title = cleanLine.replace(/\*\*/g, '').trim();
-              break;
-            }
-          }
-          
-          // Tool content is everything after the signal phrase
-          toolContent = toolPart.trim();
-          
-          // Clean content is everything before the signal phrase
-          cleanContent = beforeTool.trim();
-        }
-
-        if (title && toolContent) {
-          console.log('=== PARSED ARTIFACT ===');
-          console.log('Title:', title);
-          console.log('Tool content:', toolContent);
-          console.log('Clean content:', cleanContent);
-
-          // Update the last message with clean content
-          setMessages(prev => {
-            const newMessages = [...prev];
-            newMessages[newMessages.length - 1] = {
-              ...newMessages[newMessages.length - 1],
-              content: cleanContent || data.content // Show full response if cleaning fails
-            };
-            return newMessages;
+        // Set artifact state with smooth animation
+        setTimeout(() => {
+          setArtifact({
+            title: data.artifact.title,
+            content: data.artifact.content
           });
-
-          // Set the artifact
-          console.log('Setting artifact state with:', { title, content: toolContent });
-          
-          // Log to Supabase immediately (no delay)
-          console.log('🎯 Artifact created, logging to Supabase:', { 
-            title, 
-            contentLength: toolContent.length,
-            userMessage: lastUserMessage
-          });
-          logMicroToolToSupabase(title, toolContent, lastUserMessage);
-          
-          // Set UI state with slight delay for smooth animation
-          setTimeout(() => {
-            setArtifact({ title, content: toolContent });
-            console.log('Artifact state set!');
-          }, 800);
-        } else {
-          console.log('Failed to parse artifact - missing title or tool content');
-        }
-      } else {
-        console.log('No artifact markers found in response');
+        }, 800);
       }
 
     } catch (error) {
@@ -331,73 +214,17 @@ export default function TrustRecoveryProtocol() {
         setTrustLevel(prev => Math.min(100, prev + 5));
       }
 
-      // Check if the challenge response contains artifact content (same simple approach)
-      const hasToolSignal = data.content.includes("Here's a tool for you to consider:");
-      
-      const hasArtifactMarkers = hasToolSignal;
-      
-      if (hasArtifactMarkers) {
-        console.log('Parsing artifact from challenge response');
+      // Handle artifact if present in challenge response
+      if (data.artifact) {
+        console.log('✅ Challenge artifact received from API:', data.artifact);
         
-        let title = '';
-        let toolContent = '';
-        let cleanContent = '';
-
-        if (hasToolSignal) {
-          // Simple parsing: split on the signal phrase (same as handleSubmit)
-          const parts = data.content.split("Here's a tool for you to consider:");
-          const beforeTool = parts[0] || '';
-          const toolPart = parts[1] || '';
-          
-          // Extract title - should be the first bold header after the signal phrase
-          title = 'Challenge Tool'; // Default fallback
-          
-          const toolLines = toolPart.trim().split('\n');
-          for (const line of toolLines) {
-            const cleanLine = line.trim();
-            
-            // Look for the first bold header (Noah's title)
-            if (cleanLine.startsWith('**') && cleanLine.endsWith('**')) {
-              title = cleanLine.replace(/\*\*/g, '').trim();
-              break;
-            }
-          }
-          
-          // Tool content is everything after the signal phrase
-          toolContent = toolPart.trim();
-          
-          // Clean content is everything before the signal phrase
-          cleanContent = beforeTool.trim();
-        }
-
-        if (title && toolContent) {
-          console.log('=== PARSED CHALLENGE ARTIFACT ===');
-          console.log('Title:', title);
-          console.log('Tool content:', toolContent);
-
-          // Update the last message with clean content
-          setMessages(prev => {
-            const newMessages = [...prev];
-            newMessages[newMessages.length - 1] = {
-              ...newMessages[newMessages.length - 1],
-              content: cleanContent || data.content // Show full response if cleaning fails
-            };
-            return newMessages;
+        // Set artifact state with smooth animation
+        setTimeout(() => {
+          setArtifact({
+            title: data.artifact.title,
+            content: data.artifact.content
           });
-
-          // Log to Supabase immediately (no delay)
-          console.log('🎯 Challenge artifact created, logging to Supabase:', { 
-            title, 
-            contentLength: toolContent.length,
-            userMessage: lastUserMessage
-          });
-          logMicroToolToSupabase(title, toolContent, lastUserMessage);
-          
-          // Set UI state with slight delay for smooth animation
-          setTimeout(() => {
-            setArtifact({ title, content: toolContent });
-          }, 800);
-        }
+        }, 800);
       }
 
     } catch (error) {
