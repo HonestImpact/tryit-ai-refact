@@ -4,6 +4,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { AI_CONFIG } from '@/lib/ai-config';
 import { ArtifactService } from '@/lib/artifact-service';
+import { contentFilter } from '@/lib/safety/content-filter';
 
 interface ChatResponse {
   content: string;
@@ -47,6 +48,16 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
 
     // Get the last user message for artifact context
     const lastUserMessage = messages[messages.length - 1]?.content || '';
+
+    // SAFETY FILTER: Check content before processing
+    const safetyResult = contentFilter.filterContent(lastUserMessage, context.sessionId);
+    
+    if (!safetyResult.allowed) {
+      // Return safety response (blank lines + tag, or complete silence)
+      return NextResponse.json({
+        content: safetyResult.response || ''
+      });
+    }
 
     // ROUTE LOGIC: Use single-agent Noah for simple conversations, multi-agent for complex requests
     const isComplexRequest = shouldUseMultiAgent(lastUserMessage, messages);

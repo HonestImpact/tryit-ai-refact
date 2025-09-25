@@ -5,6 +5,7 @@ import { NoahAgent } from './noah-agent';
 import { MultiAgentOrchestrator } from './orchestrator';
 import { ProviderManager } from '../providers/provider-manager';
 import { AnthropicProvider } from '../providers/anthropic-provider';
+import { contentFilter } from '../safety/content-filter';
 import type {
   Agent,
   AgentOrchestrator,
@@ -76,7 +77,19 @@ export class MultiAgentSystem {
       }>;
       userPreferences?: Record<string, unknown>;
     }
-  ) {
+  ): Promise<AgentResponse> {
+    // SAFETY CHECK: Verify session is not terminated
+    if (!contentFilter.shouldRespond(sessionId)) {
+      // Complete radio silence for terminated sessions
+      return {
+        requestId: this.generateRequestId(),
+        agentId: 'system',
+        content: '',
+        confidence: 1.0,
+        timestamp: new Date(),
+        metadata: { terminated: true }
+      };
+    }
     if (!this.isInitialized) {
       throw new Error('System not initialized');
     }
