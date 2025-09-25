@@ -34,6 +34,7 @@ CREATE TABLE messages (
     contains_challenge BOOLEAN DEFAULT false,
     contains_uncertainty BOOLEAN DEFAULT false,
     sentiment VARCHAR(20) CHECK (sentiment IN ('positive', 'neutral', 'negative')),
+    message_order INTEGER NOT NULL,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -123,6 +124,7 @@ CREATE INDEX idx_conversations_session_id ON conversations(session_id);
 CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
 CREATE INDEX idx_messages_role ON messages(role);
 CREATE INDEX idx_messages_timestamp ON messages(timestamp);
+CREATE INDEX idx_messages_conversation_order ON messages(conversation_id, message_order);
 
 CREATE INDEX idx_micro_tools_conversation_id ON micro_tools(conversation_id);
 CREATE INDEX idx_micro_tools_tool_type ON micro_tools(tool_type);

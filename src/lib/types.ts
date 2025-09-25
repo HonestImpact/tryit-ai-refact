@@ -6,6 +6,7 @@ export interface SanitizedMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string; // ISO string
+  messageOrder: number; // Sequential order within conversation
   wordCount: number;
   containsChallenge: boolean;
   containsUncertainty: boolean;

@@ -35,13 +35,14 @@ class ConversationArchiver {
       artifactsGenerated?: number;
     }
   ): Promise<void> {
-    const sanitizedMessages: SanitizedMessage[] = data.messages.map(msg => {
+    const sanitizedMessages: SanitizedMessage[] = data.messages.map((msg, index) => {
       const sanitizedContent = sanitizeContent(msg.content || '');
       const analysis = analyzeMessage(sanitizedContent);
       return {
         role: msg.role,
         content: sanitizedContent,
         timestamp: new Date().toISOString(),
+        messageOrder: index + 1, // Sequential order starting from 1
         wordCount: analysis.wordCount,
         containsChallenge: analysis.containsChallenge,
         containsUncertainty: analysis.containsUncertainty,

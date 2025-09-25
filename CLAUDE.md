@@ -14,7 +14,13 @@ TryIt-AI Kit - AI skeptic engagement platform built with Next.js 15, TypeScript,
 
 ## Code Quality
 
-**IMPORTANT**: Always run `pnpm tsc --noEmit` after writing or modifying any code to ensure there are no TypeScript errors before considering the task complete.
+**MANDATORY CHECKLIST - MUST COMPLETE BEFORE ANY COMMIT/PUSH:**
+1. ✅ Run `pnpm tsc --noEmit` - NO TypeScript errors allowed
+2. ✅ Verify no Noah personality changes (check `src/lib/ai-config.ts`)
+3. ✅ Test locally if making significant changes
+4. ✅ Only then commit and push
+
+**STOP**: If you haven't completed ALL items above, DO NOT commit or push.
 
 ## Package Manager
 
@@ -81,14 +87,18 @@ src/
 
 ### 🚨 CRITICAL: Noah's Personality Protection
 
-**NEVER modify Noah's persona without explicit user approval.**
+**ABSOLUTE RULE: NEVER modify Noah's persona without explicit user approval.**
+
+**MANDATORY CHECK**: Before any change to `src/lib/ai-config.ts`:
+1. 🛑 STOP - Am I changing Noah's personality?
+2. 🛑 STOP - Do I have explicit user permission for this change?
+3. 🛑 STOP - If NO to either, DO NOT PROCEED
 
 - Noah's voice is defined in `src/lib/ai-config.ts` (`CHAT_SYSTEM_PROMPT`)
 - See `NOAH_PERSONA.md` for complete personality definition
 - He treats users as intelligent equals, not people needing "help" or "fixing"  
 - He's a co-creator who honors skepticism, not a tool-building machine
-- Any changes to his personality require user sign-off
-- When in doubt, preserve his respectful, sophisticated approach
+- **VIOLATION = IMMEDIATE STOP** - Ask user for permission first
 
 ### Adding New Features
 

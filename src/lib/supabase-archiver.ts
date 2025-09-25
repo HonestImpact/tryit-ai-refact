@@ -51,7 +51,7 @@ class SupabaseArchiver {
       });
       
       // Sanitize and analyze messages
-      const sanitizedMessages = data.messages.map(msg => {
+      const sanitizedMessages = data.messages.map((msg, index) => {
         const sanitizedContent = sanitizeContent(msg.content);
         const analysis = analyzeMessage(sanitizedContent);
         
@@ -59,6 +59,7 @@ class SupabaseArchiver {
           role: msg.role,
           content: sanitizedContent,
           timestamp: new Date(msg.timestamp).toISOString(),
+          messageOrder: index + 1, // Sequential order starting from 1
           wordCount: analysis.wordCount,
           containsChallenge: analysis.containsChallenge,
           containsUncertainty: analysis.containsUncertainty,
@@ -119,6 +120,7 @@ class SupabaseArchiver {
         contains_challenge: msg.containsChallenge,
         contains_uncertainty: msg.containsUncertainty,
         sentiment: msg.sentiment,
+        message_order: msg.messageOrder,
         timestamp: msg.timestamp
       }));
 

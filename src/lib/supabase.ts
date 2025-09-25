@@ -48,6 +48,7 @@ export interface Message {
   contains_challenge: boolean;
   contains_uncertainty: boolean;
   sentiment: 'positive' | 'neutral' | 'negative';
+  message_order: number;
   timestamp: string;
   created_at: string;
 }
