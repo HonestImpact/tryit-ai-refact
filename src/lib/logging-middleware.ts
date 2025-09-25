@@ -86,16 +86,8 @@ async function logChatInteraction(
   context: LoggingContext
 ): Promise<void> {
   try {
-    let body = context.requestBody;
-    if (!body) {
-      try {
-        body = await req.json();
-      } catch (error) {
-        console.warn('Could not read request body for logging:', error);
-        body = { messages: [] };
-      }
-    }
-
+    // Use the parsed body from context (already consumed by handler)
+    const body = context.requestBody || { messages: [] };
     const responseClone = response.clone();
     const responseData = await responseClone.json();
 
@@ -107,22 +99,28 @@ async function logChatInteraction(
     // Check for artifacts in the new response format
     const artifactsGenerated = responseData.artifact ? 1 : 0;
 
+    // Create timestamps for proper message ordering
+    const responseTimestamp = Date.now();
+    const baseTimestamp = responseTimestamp - (requestMessages.length * 1000); // Space out timestamps
+
     // Create complete conversation including Noah's response
     const completeConversation = [
-      ...requestMessages.map((msg: { role: string; content: string }) => ({
+      ...requestMessages.map((msg: { role: string; content: string }, index: number) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
-        timestamp: Date.now()
+        timestamp: baseTimestamp + (index * 1000) // Sequential timestamps
       })),
-      // Add Noah's response to the conversation
+      // Add Noah's response to the conversation with current timestamp
       {
         role: 'assistant' as const,
         content: responseData.content || '',
-        timestamp: Date.now()
+        timestamp: responseTimestamp
       }
     ];
 
     const arch = getArchiver();
+    
+    // Log the conversation first
     await arch.logConversation({
       sessionId: context.sessionId,
       messages: completeConversation,
@@ -130,6 +128,25 @@ async function logChatInteraction(
       skepticMode,
       artifactsGenerated
     });
+
+    // If there's an artifact, log it separately to the micro_tools table
+    if (responseData.artifact) {
+      try {
+        await arch.logArtifact({
+          sessionId: context.sessionId,
+          userInput: requestMessages[requestMessages.length - 1]?.content || '',
+          artifactContent: JSON.stringify({
+            title: responseData.artifact.title,
+            content: responseData.artifact.content,
+            reasoning: responseData.artifact.reasoning
+          }),
+          generationTime: context.startTime ? Date.now() - context.startTime : 0
+        });
+        console.log('✅ Artifact logged to micro_tools table');
+      } catch (artifactError) {
+        console.error('❌ Failed to log artifact to micro_tools:', artifactError);
+      }
+    }
   } catch (error) {
     console.error('Failed to log chat interaction:', error);
   }

@@ -356,33 +356,16 @@ export class ArtifactService {
     return data.content;
   }
 
-  // Complete artifact workflow: detect, generate if needed, log
+  // Complete artifact workflow: detect, generate if needed
+  // Note: Logging is now handled by the middleware layer
   static async handleArtifactWorkflow(
     assistantResponse: string,
     userInput: string,
     sessionId: string
   ): Promise<ParsedArtifact> {
-    // First, check if response already contains an artifact
-    const parsed = this.parseArtifact(assistantResponse);
-    
-    if (parsed.hasArtifact) {
-      // Log the existing artifact
-      try {
-        await this.logArtifact({
-          userInput,
-          sessionId,
-          assistantResponse: parsed.content
-        });
-        console.log('✅ Artifact logged successfully');
-      } catch (error) {
-        console.error('❌ Failed to log artifact:', error);
-      }
-      
-      return parsed;
-    }
-
-    // No artifact found in response
-    return parsed;
+    // Parse and return artifact if found
+    // Logging will be handled by the middleware after response
+    return this.parseArtifact(assistantResponse);
   }
 }
 
