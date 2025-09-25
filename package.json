@@ -18,11 +18,13 @@
     "@langchain/core": "^0.3.77",
     "@supabase/supabase-js": "^2.57.4",
     "ai": "^5.0.47",
-    "dotenv": "^17.2.2",
+    "dotenv": "^16.6.1",
     "langchain": "^0.3.34",
     "next": "15.5.3",
+    "openai": "^4.104.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
