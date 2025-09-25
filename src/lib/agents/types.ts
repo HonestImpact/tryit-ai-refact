@@ -49,7 +49,7 @@ export interface AgentResponse {
   readonly confidence: number;
   readonly tools?: GeneratedTool[];
   readonly knowledge?: KnowledgeResult[];
-  readonly metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>; // Make mutable for agent updates
   readonly timestamp: Date;
 }
 
@@ -95,7 +95,8 @@ export type KnowledgeType =
   | 'pattern'
   | 'example'
   | 'documentation'
-  | 'best-practice';
+  | 'best-practice'
+  | 'conversation';
 
 // ===== TOOL GENERATION TYPES =====
 

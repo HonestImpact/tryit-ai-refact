@@ -30,6 +30,7 @@ export type {
   AgentRequest,
   AgentResponse,
   AgentOrchestrator,
-  LLMProvider,
-  SystemConfig
+  LLMProvider
 } from './types';
+
+export type { SystemConfig } from './system-config';

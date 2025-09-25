@@ -63,7 +63,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<SystemStatusRe
     }
 
     // Format provider information
-    const providers = systemStatus.providers.map(provider => ({
+    const providers = (systemStatus.providers || []).map(provider => ({
       name: provider.name,
       isAvailable: provider.status.isAvailable,
       responseTime: provider.status.responseTime,
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<SystemStatusRe
     }));
 
     // Format agent information
-    const agents = systemStatus.agents.map(agent => ({
+    const agents = (systemStatus.agents || []).map(agent => ({
       id: agent.id,
       name: agent.name,
       isHealthy: agent.status.isHealthy,
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<SystemStatusRe
 
     const response: SystemStatusResponse = {
       status: 'initialized',
-      isHealthy: systemStatus.isHealthy,
+      isHealthy: systemStatus.isHealthy || false,
       timestamp: new Date().toISOString(),
       providers,
       agents,

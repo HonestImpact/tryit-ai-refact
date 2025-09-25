@@ -340,3 +340,13 @@ export class ProviderManager {
     console.log(`[${level.toUpperCase()}] ProviderManager:`, logData);
   }
 }
+
+// Export singleton instance for compatibility
+let providerManagerInstance: ProviderManager | null = null;
+
+export function getProviderManager(): ProviderManager {
+  if (!providerManagerInstance) {
+    providerManagerInstance = new ProviderManager();
+  }
+  return providerManagerInstance;
+}

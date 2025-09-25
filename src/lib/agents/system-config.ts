@@ -85,7 +85,11 @@ export class MultiAgentSystem {
       id: this.generateRequestId(),
       sessionId,
       content,
-      context,
+      context: context ? {
+        conversationHistory: context.conversationHistory || [],
+        userPreferences: context.userPreferences,
+        sessionData: {}
+      } : undefined,
       timestamp: new Date()
     };
 
@@ -115,7 +119,8 @@ export class MultiAgentSystem {
       status: 'initialized',
       providers,
       agents,
-      isHealthy: this.isSystemHealthy()
+      isHealthy: this.isSystemHealthy(),
+      canFallback: this.canFallbackToSingleAgent()
     };
   }
 
@@ -154,7 +159,8 @@ export class MultiAgentSystem {
         this.log('info', 'Anthropic provider initialized');
       } catch (error) {
         this.log('error', 'Failed to initialize Anthropic provider:', { error });
-        throw error;
+        // Don't throw - allow system to continue with degraded functionality
+        this.log('warn', 'System will continue with degraded functionality');
       }
     }
 
@@ -236,6 +242,11 @@ export class MultiAgentSystem {
     const hasHealthyAgent = agents.some(a => a.getStatus().isHealthy);
     
     return hasHealthyProvider && hasHealthyAgent;
+  }
+
+  private canFallbackToSingleAgent(): boolean {
+    // Even if multi-agent system fails, can we fall back to single-agent mode?
+    return process.env.ANTHROPIC_API_KEY != null;
   }
 
   private generateRequestId(): string {
@@ -331,6 +342,10 @@ export async function getMultiAgentSystem(config?: SystemConfig): Promise<MultiA
     await systemInstance.initialize();
   }
   return systemInstance;
+}
+
+export function getSystemConfig(): SystemConfig {
+  return createDefaultConfig();
 }
 
 export async function shutdownMultiAgentSystem(): Promise<void> {

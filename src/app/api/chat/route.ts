@@ -24,6 +24,66 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
     // Get the last user message for artifact context
     const lastUserMessage = messages[messages.length - 1]?.content || '';
 
+    // TRY MULTI-AGENT SYSTEM FIRST (with graceful fallback)
+    try {
+      const { getMultiAgentSystem } = await import('@/lib/agents/system-config');
+      const multiAgentSystem = await getMultiAgentSystem();
+      const systemStatus = multiAgentSystem.getSystemStatus();
+      
+      // If multi-agent system is healthy, use it
+      if (systemStatus.status === 'initialized' && systemStatus.isHealthy) {
+        const conversationHistory = messages.slice(0, -1).map((msg: { role: string; content: string }) => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+          timestamp: new Date()
+        }));
+
+        const agentResponse = await multiAgentSystem.processRequest(
+          lastUserMessage,
+          context.sessionId,
+          {
+            conversationHistory,
+            userPreferences: { trustLevel, skepticMode }
+          }
+        );
+
+        // Process response for artifacts using existing system
+        const parsed = await ArtifactService.handleArtifactWorkflow(
+          agentResponse.content,
+          lastUserMessage,
+          context.sessionId
+        );
+
+        const response: ChatResponse = {
+          content: parsed.cleanContent || agentResponse.content
+        };
+
+        if (parsed.hasArtifact) {
+          response.artifact = {
+            title: parsed.title,
+            content: parsed.content,
+            reasoning: parsed.reasoning
+          };
+          
+          // Ensure we show the full content in chat for natural conversation flow
+          if (!parsed.cleanContent || parsed.cleanContent.length < agentResponse.content.length * 0.7) {
+            response.content = agentResponse.content;
+          }
+        }
+
+        return NextResponse.json(response);
+      }
+    } catch (multiAgentError) {
+      console.warn('Multi-agent system failed, falling back to single agent:', multiAgentError);
+      // Log this as a system health issue for monitoring
+      console.error('SYSTEM DEGRADATION: Multi-agent system unavailable', {
+        error: multiAgentError,
+        sessionId: context.sessionId,
+        fallbackActivated: true
+      });
+    }
+
+    // FALLBACK: Use original single-agent system
     // Check if we should use fake responses for testing
     if (process.env.LOCAL_FAKE_LLM === 'true') {
       const userQuery = lastUserMessage.toLowerCase();
@@ -131,11 +191,20 @@ What aspects of your current approach are you most interested in examining?`;
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
-      { content: 'Something went wrong. Want to try that again? I learn from failures.' },
-      { status: 500 }
-    );
+    console.error('CRITICAL ERROR: All chat systems failed', error);
+    
+    // EMERGENCY FALLBACK: Static response to ensure user always gets something
+    const emergencyResponse = {
+      content: `I'm experiencing technical difficulties, but I'm designed to be transparent about that. The system is having trouble connecting to its AI services right now.
+
+This is exactly the kind of moment where most AI tools would give you a generic "try again later" message. Instead, I'll tell you what's actually happening: something in the infrastructure isn't responding as expected.
+
+If you're testing this system, this failure mode is actually valuable data. If you're trying to get something done, I apologize that I can't be more useful right now.
+
+Want to try refreshing and asking again? Sometimes these issues resolve quickly.`
+    };
+
+    return NextResponse.json(emergencyResponse, { status: 500 });
   }
 }
 

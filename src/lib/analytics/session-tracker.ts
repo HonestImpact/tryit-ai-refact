@@ -107,6 +107,7 @@ export class SessionTracker {
     };
 
     session.agentInteractions.push(interaction);
+    // @ts-ignore - TODO: Fix readonly property when implementing analytics
     session.conversationCount++;
 
     // Update performance metrics

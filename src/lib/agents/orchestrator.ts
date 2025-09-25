@@ -366,3 +366,13 @@ export class MultiAgentOrchestrator implements AgentOrchestrator {
     console.log(`[${level.toUpperCase()}] Orchestrator:`, logData);
   }
 }
+
+// Export a singleton instance getter for compatibility
+let orchestratorInstance: MultiAgentOrchestrator | null = null;
+
+export function getAgentOrchestrator(): MultiAgentOrchestrator {
+  if (!orchestratorInstance) {
+    orchestratorInstance = new MultiAgentOrchestrator();
+  }
+  return orchestratorInstance;
+}

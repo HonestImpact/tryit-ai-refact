@@ -89,11 +89,14 @@ export class NoahAgent extends BaseAgent {
     const shouldCoordinate = this.shouldCoordinateWithOtherAgents(request, response);
     
     if (shouldCoordinate) {
-      // Add metadata suggesting coordination
-      response.metadata = {
-        ...response.metadata,
-        coordinationSuggested: true,
-        suggestedAgents: this.getSuggestedAgents(request)
+      // Create new response with updated metadata
+      return {
+        ...response,
+        metadata: {
+          ...response.metadata,
+          coordinationSuggested: true,
+          suggestedAgents: this.getSuggestedAgents(request)
+        }
       };
     }
 
