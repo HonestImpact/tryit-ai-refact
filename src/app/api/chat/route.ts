@@ -30,45 +30,55 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
       let fakeResponse = '';
       
       if (userQuery.includes('focus') || userQuery.includes('concentration')) {
-        fakeResponse = `I understand you're struggling with focus. Try this simple approach:
+        fakeResponse = `I can tell you're thinking critically about focus - most people just want quick fixes. Your awareness that concentration is complex is exactly right.
 
-**Pomodoro Focus System**
+Here's what I've seen work for people who take a systematic approach:
 
-1. Set a timer for 25 minutes
-2. Work on one task without distractions
-3. Take a 5-minute break when timer rings
-4. Repeat for 3-4 cycles, then take a longer break
+**Structured Focus Sessions**
 
-This technique works because it breaks work into manageable chunks and gives your brain regular rest periods.`;
+1. Choose one specific outcome you want
+2. Set a 25-minute boundary 
+3. Work within that constraint
+4. Take a genuine break when it ends
+5. Repeat 3-4 cycles, then step back
+
+The constraint isn't arbitrary - it acknowledges that sustained attention is a finite resource. You're designing a system that works with your cognitive architecture, not against it.
+
+Want to refine this approach based on what you know about your own patterns?`;
       } else if (userQuery.includes('email') || userQuery.includes('template')) {
-        fakeResponse = `You can use this email template:
+        fakeResponse = `I appreciate that you're looking for something more substantial than generic templates. Here's a framework that respects both your time and the recipient's intelligence:
 
-**Professional Follow-up Email**
+**Direct Professional Communication**
 
-Subject: Following up on [Topic]
+Subject: [Specific reference to your actual conversation]
 
-Hi [Name],
+[Name],
 
-I wanted to follow up on our conversation about [specific topic]. Here are the key points we discussed:
+Circling back on [the specific thing you discussed]. Key points:
 
-- Point 1
-- Point 2  
-- Point 3
+- [Actual point with context]
+- [Next actual point]
+- [What needs clarification or action]
 
-Please let me know if you have any questions or need clarification.
+[Your clear ask or next step]
 
-Best regards,
-[Your name]`;
+[Your name]
+
+The structure works because it's honest about what happened and what needs to happen next. Want to adapt this for your specific situation?`;
       } else {
-        fakeResponse = `Here are some practical steps you can try:
+        fakeResponse = `You're right to be thoughtful about this rather than jumping to solutions. Most productivity advice treats symptoms rather than examining underlying patterns.
 
-**Daily Organization System**
+Here's a framework that respects your judgment:
 
-1. Start each day by listing your top 3 priorities
-2. Use time blocking to schedule focused work periods
-3. Review and adjust your approach at the end of each day
+**Intentional Daily Design**
 
-This system helps because it provides structure while remaining flexible enough to adapt to changing needs.`;
+1. Identify 3 outcomes that would make today worthwhile
+2. Sequence them based on your energy and constraints
+3. Build in decision points to evaluate and adjust
+
+This isn't about productivity optimization - it's about conscious choice-making. You're the architect of how you spend your attention.
+
+What aspects of your current approach are you most interested in examining?`;
       }
       
       const parsed = ArtifactService.parseArtifact(fakeResponse);

@@ -79,6 +79,17 @@ src/
 5. **Maintain TypeScript strict compliance** - No `any` types, full interface coverage
 6. **Preserve session management integration** - Critical for user journey tracking
 
+### 🚨 CRITICAL: Noah's Personality Protection
+
+**NEVER modify Noah's persona without explicit user approval.**
+
+- Noah's voice is defined in `src/lib/ai-config.ts` (`CHAT_SYSTEM_PROMPT`)
+- See `NOAH_PERSONA.md` for complete personality definition
+- He treats users as intelligent equals, not people needing "help" or "fixing"  
+- He's a co-creator who honors skepticism, not a tool-building machine
+- Any changes to his personality require user sign-off
+- When in doubt, preserve his respectful, sophisticated approach
+
 ### Adding New Features
 
 1. **Services**: Create new services in `src/lib/` following existing patterns
