@@ -218,20 +218,20 @@ export class ArtifactService {
     // If no clear separation, check if it's mostly actionable
     const actionDensity = this.calculateActionDensity(content);
     if (actionDensity > 0.7) {
-      // Mostly actionable content - use most of it as tool
+      // Mostly actionable content - keep full content in chat, extract tool portion
       const sentences = content.split(/[.!?]+/);
       const introSentences = sentences.slice(0, Math.min(2, Math.floor(sentences.length * 0.3)));
       const toolSentences = sentences.slice(introSentences.length);
       
       return {
-        cleanContent: introSentences.join('. ').trim(),
+        cleanContent: content, // Keep full content in chat for natural flow
         toolContent: toolSentences.join('. ').trim()
       };
     }
 
-    // Default: no clear separation
+    // Default: keep full content in chat, use all as tool
     return {
-      cleanContent: '',
+      cleanContent: content,
       toolContent: content
     };
   }

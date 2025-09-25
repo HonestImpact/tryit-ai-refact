@@ -74,7 +74,7 @@ This system helps because it provides structure while remaining flexible enough 
       const parsed = ArtifactService.parseArtifact(fakeResponse);
       
       return NextResponse.json({
-        content: parsed.cleanContent || fakeResponse,
+        content: fakeResponse, // Always show full response in chat for natural flow
         artifact: parsed.hasArtifact ? {
           title: parsed.title,
           content: parsed.content,
@@ -107,6 +107,11 @@ This system helps because it provides structure while remaining flexible enough 
         content: parsed.content,
         reasoning: parsed.reasoning
       };
+      
+      // Ensure we show the full content in chat for natural conversation flow
+      if (!parsed.cleanContent || parsed.cleanContent.length < result.text.length * 0.7) {
+        response.content = result.text;
+      }
     }
 
     return NextResponse.json(response);
