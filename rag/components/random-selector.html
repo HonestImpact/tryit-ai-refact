@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Selector - Decision Maker & Idea Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+        .selector-container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .mode-selector { display: flex; gap: 10px; margin: 20px 0; justify-content: center; }
+        .mode-btn { padding: 12px 24px; border: 2px solid #007bff; background: white; color: #007bff; border-radius: 6px; cursor: pointer; font-weight: bold; transition: all 0.3s; }
+        .mode-btn.active { background: #007bff; color: white; }
+        .mode-btn:hover { transform: translateY(-2px); }
+        .input-section { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ddd; }
+        .input-section h3 { margin: 0 0 15px 0; color: #333; }
+        .list-input { display: flex; gap: 10px; margin: 10px 0; }
+        .list-input input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .list-input button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        .list-input button:hover { background: #218838; }
+        .items-container { margin: 15px 0; }
+        .item-tag { display: inline-block; background: #e9ecef; padding: 8px 12px; margin: 4px; border-radius: 20px; border: 1px solid #ced4da; }
+        .item-tag .remove { color: #dc3545; cursor: pointer; margin-left: 8px; font-weight: bold; }
+        .item-tag .remove:hover { color: #c82333; }
+        .weighted-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; }
+        .weight-slider { width: 100px; }
+        .weight-value { min-width: 40px; text-align: center; font-weight: bold; }
+        .result-section { background: white; padding: 30px; border-radius: 8px; margin: 20px 0; border: 2px solid #28a745; text-align: center; min-height: 150px; display: flex; flex-direction: column; justify-content: center; }
+        .result-display { font-size: 2.5em; font-weight: bold; color: #28a745; margin: 20px 0; min-height: 80px; display: flex; align-items: center; justify-content: center; }
+        .result-spinning { animation: spin 0.5s linear infinite; color: #ffc107; }
+        .select-button { padding: 15px 30px; font-size: 18px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; margin: 10px; min-width: 200px; }
+        .select-button:hover { background: #0056b3; transform: scale(1.05); }
+        .select-button:disabled { background: #6c757d; cursor: not-allowed; transform: none; }
+        .history-section { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ddd; }
+        .history-item { padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .history-time { font-size: 0.8em; color: #666; }
+        .presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 15px 0; }
+        .preset-btn { padding: 10px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .preset-btn:hover { background: #138496; }
+        .controls { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
+        .control-btn { padding: 8px 16px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; }
+        .control-btn:hover { background: #f8f9fa; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .multiple-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 20px 0; }
+        .multiple-result { background: #e8f5e8; padding: 15px; border-radius: 6px; text-align: center; border: 1px solid #28a745; }
+    </style>
+</head>
+<body>
+    <div class="selector-container">
+        <h2>🎲 Random Selector - Decision Maker & Idea Generator</h2>
+        <p>Beat decision fatigue with weighted random selection. Perfect for choosing restaurants, picking team members, or generating ideas.</p>
+        
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="setMode('simple')">🎯 Simple Choice</button>
+            <button class="mode-btn" onclick="setMode('weighted')">⚖️ Weighted Selection</button>
+            <button class="mode-btn" onclick="setMode('multiple')">🔢 Multiple Picks</button>
+            <button class="mode-btn" onclick="setMode('teams')">👥 Team Maker</button>
+        </div>
+
+        <div class="input-section" id="inputSection">
+            <h3 id="sectionTitle">Add Your Options</h3>
+            
+            <div class="presets">
+                <button class="preset-btn" onclick="loadPreset('restaurants')">🍕 Restaurants</button>
+                <button class="preset-btn" onclick="loadPreset('movies')">🎬 Movies</button>
+                <button class="preset-btn" onclick="loadPreset('activities')">🎮 Activities</button>
+                <button class="preset-btn" onclick="loadPreset('ideas')">💡 Ideas</button>
+            </div>
+            
+            <div class="list-input">
+                <input type="text" id="itemInput" placeholder="Enter an option..." 
+                       onkeypress="if(event.key==='Enter') addItem()">
+                <button onclick="addItem()">Add</button>
+            </div>
+            
+            <div class="items-container" id="itemsContainer">
+                <!-- Items will be added here -->
+            </div>
+            
+            <div class="controls">
+                <button class="control-btn" onclick="clearItems()">Clear All</button>
+                <button class="control-btn" onclick="exportItems()">Export List</button>
+                <button class="control-btn" onclick="importItems()">Import List</button>
+            </div>
+        </div>
+
+        <div class="result-section">
+            <div class="result-display" id="resultDisplay">
+                Add some options above, then click Select!
+            </div>
+            <button class="select-button" id="selectButton" onclick="selectRandom()" disabled>
+                🎲 Make Selection
+            </button>
+            <div id="multipleResults" class="multiple-results" style="display: none;"></div>
+        </div>
+
+        <div class="history-section">
+            <h3>📜 Selection History</h3>
+            <div id="historyContainer">
+                <p style="color: #666; text-align: center;">No selections yet</p>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="control-btn" onclick="clearHistory()">Clear History</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let items = [];
+        let currentMode = 'simple';
+        let history = [];
+        let isSelecting = false;
+
+        const presets = {
+            restaurants: ['Pizza Place', 'Sushi Bar', 'Burger Joint', 'Thai Restaurant', 'Italian Bistro', 'Mexican Grill'],
+            movies: ['Action Movie', 'Comedy', 'Drama', 'Horror Film', 'Sci-Fi', 'Documentary'],
+            activities: ['Go for a walk', 'Read a book', 'Watch a movie', 'Call a friend', 'Exercise', 'Cook something new'],
+            ideas: ['Start a blog', 'Learn a language', 'Take up photography', 'Join a club', 'Volunteer', 'Start a hobby']
+        };
+
+        function setMode(mode) {
+            currentMode = mode;
+            
+            // Update button states
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update UI based on mode
+            updateModeUI();
+            updateItemsDisplay();
+            updateSelectButton();
+        }
+
+        function updateModeUI() {
+            const titles = {
+                simple: 'Add Your Options',
+                weighted: 'Add Weighted Options',
+                multiple: 'Add Options (Multiple Selection)',
+                teams: 'Add Team Members'
+            };
+            
+            document.getElementById('sectionTitle').textContent = titles[currentMode];
+        }
+
+        function addItem() {
+            const input = document.getElementById('itemInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            if (items.find(item => item.text === text)) {
+                alert('Item already exists');
+                return;
+            }
+            
+            const item = {
+                id: Date.now(),
+                text: text,
+                weight: currentMode === 'weighted' ? 5 : 1
+            };
+            
+            items.push(item);
+            input.value = '';
+            updateItemsDisplay();
+            updateSelectButton();
+        }
+
+        function removeItem(id) {
+            items = items.filter(item => item.id !== id);
+            updateItemsDisplay();
+            updateSelectButton();
+        }
+
+        function updateWeight(id, weight) {
+            const item = items.find(item => item.id === id);
+            if (item) {
+                item.weight = parseInt(weight);
+            }
+        }
+
+        function updateItemsDisplay() {
+            const container = document.getElementById('itemsContainer');
+            
+            if (items.length === 0) {
+                container.innerHTML = '<p style="color: #666; text-align: center; margin: 20px 0;">No items added yet</p>';
+                return;
+            }
+            
+            if (currentMode === 'weighted') {
+                container.innerHTML = items.map(item => `
+                    <div class="weighted-item">
+                        <span>${item.text}</span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="range" class="weight-slider" min="1" max="10" 
+                                   value="${item.weight}" 
+                                   onchange="updateWeight(${item.id}, this.value)">
+                            <span class="weight-value">${item.weight}</span>
+                            <span class="remove" onclick="removeItem(${item.id})">×</span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = items.map(item => `
+                    <div class="item-tag">
+                        ${item.text}
+                        <span class="remove" onclick="removeItem(${item.id})">×</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function updateSelectButton() {
+            const button = document.getElementById('selectButton');
+            const hasItems = items.length > 0;
+            
+            button.disabled = !hasItems || isSelecting;
+            
+            if (currentMode === 'teams') {
+                button.textContent = items.length >= 2 ? '👥 Create Teams' : '👥 Need 2+ Members';
+            } else if (currentMode === 'multiple') {
+                button.textContent = items.length >= 2 ? '🔢 Pick Multiple' : '🔢 Need 2+ Options';
+            } else {
+                button.textContent = hasItems ? '🎲 Make Selection' : '🎲 Add Options First';
+            }
+        }
+
+        function selectRandom() {
+            if (items.length === 0 || isSelecting) return;
+            
+            isSelecting = true;
+            const resultDisplay = document.getElementById('resultDisplay');
+            const multipleResults = document.getElementById('multipleResults');
+            
+            // Hide multiple results initially
+            multipleResults.style.display = 'none';
+            
+            // Show spinning animation
+            resultDisplay.className = 'result-display result-spinning';
+            resultDisplay.textContent = '🎲';
+            
+            // Simulate selection delay
+            setTimeout(() => {
+                let result;
+                
+                switch (currentMode) {
+                    case 'simple':
+                        result = selectSimple();
+                        break;
+                    case 'weighted':
+                        result = selectWeighted();
+                        break;
+                    case 'multiple':
+                        result = selectMultiple();
+                        break;
+                    case 'teams':
+                        result = createTeams();
+                        break;
+                }
+                
+                displayResult(result);
+                addToHistory(result);
+                
+                resultDisplay.className = 'result-display';
+                isSelecting = false;
+                updateSelectButton();
+            }, 1000 + Math.random() * 1000);
+        }
+
+        function selectSimple() {
+            const randomIndex = Math.floor(Math.random() * items.length);
+            return { type: 'single', value: items[randomIndex].text };
+        }
+
+        function selectWeighted() {
+            const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+            let random = Math.random() * totalWeight;
+            
+            for (const item of items) {
+                random -= item.weight;
+                if (random <= 0) {
+                    return { type: 'single', value: item.text };
+                }
+            }
+            
+            return { type: 'single', value: items[items.length - 1].text };
+        }
+
+        function selectMultiple() {
+            const count = Math.min(3, Math.ceil(items.length / 2));
+            const shuffled = [...items].sort(() => Math.random() - 0.5);
+            const selected = shuffled.slice(0, count).map(item => item.text);
+            return { type: 'multiple', value: selected };
+        }
+
+        function createTeams() {
+            const shuffled = [...items].sort(() => Math.random() - 0.5);
+            const teamSize = Math.ceil(shuffled.length / 2);
+            const team1 = shuffled.slice(0, teamSize).map(item => item.text);
+            const team2 = shuffled.slice(teamSize).map(item => item.text);
+            return { type: 'teams', value: { team1, team2 } };
+        }
+
+        function displayResult(result) {
+            const resultDisplay = document.getElementById('resultDisplay');
+            const multipleResults = document.getElementById('multipleResults');
+            
+            switch (result.type) {
+                case 'single':
+                    resultDisplay.textContent = result.value;
+                    multipleResults.style.display = 'none';
+                    break;
+                    
+                case 'multiple':
+                    resultDisplay.textContent = `${result.value.length} selections made!`;
+                    multipleResults.innerHTML = result.value.map((item, index) => `
+                        <div class="multiple-result">
+                            <div style="font-size: 1.2em; font-weight: bold;">#${index + 1}</div>
+                            <div>${item}</div>
+                        </div>
+                    `).join('');
+                    multipleResults.style.display = 'grid';
+                    break;
+                    
+                case 'teams':
+                    resultDisplay.textContent = 'Teams Created!';
+                    multipleResults.innerHTML = `
+                        <div class="multiple-result" style="background: #e8f4fd;">
+                            <div style="font-size: 1.2em; font-weight: bold; color: #0066cc;">Team 1</div>
+                            <div>${result.value.team1.join(', ')}</div>
+                        </div>
+                        <div class="multiple-result" style="background: #fff2e8;">
+                            <div style="font-size: 1.2em; font-weight: bold; color: #cc6600;">Team 2</div>
+                            <div>${result.value.team2.join(', ')}</div>
+                        </div>
+                    `;
+                    multipleResults.style.display = 'grid';
+                    break;
+            }
+        }
+
+        function addToHistory(result) {
+            const historyItem = {
+                id: Date.now(),
+                result: result,
+                mode: currentMode,
+                timestamp: new Date(),
+                itemCount: items.length
+            };
+            
+            history.unshift(historyItem);
+            
+            // Keep only last 10 items
+            if (history.length > 10) {
+                history = history.slice(0, 10);
+            }
+            
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const container = document.getElementById('historyContainer');
+            
+            if (history.length === 0) {
+                container.innerHTML = '<p style="color: #666; text-align: center;">No selections yet</p>';
+                return;
+            }
+            
+            container.innerHTML = history.map(item => {
+                let resultText;
+                switch (item.result.type) {
+                    case 'single':
+                        resultText = item.result.value;
+                        break;
+                    case 'multiple':
+                        resultText = `${item.result.value.length} items: ${item.result.value.join(', ')}`;
+                        break;
+                    case 'teams':
+                        resultText = `Team 1: ${item.result.value.team1.join(', ')} | Team 2: ${item.result.value.team2.join(', ')}`;
+                        break;
+                }
+                
+                return `
+                    <div class="history-item">
+                        <div>
+                            <strong>${resultText}</strong>
+                            <div style="font-size: 0.8em; color: #666;">
+                                ${item.mode} mode, ${item.itemCount} options
+                            </div>
+                        </div>
+                        <div class="history-time">
+                            ${item.timestamp.toLocaleTimeString()}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadPreset(presetName) {
+            if (confirm(`Load ${presetName} preset? This will replace current items.`)) {
+                items = presets[presetName].map((text, index) => ({
+                    id: Date.now() + index,
+                    text: text,
+                    weight: currentMode === 'weighted' ? 5 : 1
+                }));
+                updateItemsDisplay();
+                updateSelectButton();
+            }
+        }
+
+        function clearItems() {
+            if (items.length > 0 && confirm('Clear all items?')) {
+                items = [];
+                updateItemsDisplay();
+                updateSelectButton();
+            }
+        }
+
+        function clearHistory() {
+            if (history.length > 0 && confirm('Clear selection history?')) {
+                history = [];
+                updateHistoryDisplay();
+            }
+        }
+
+        function exportItems() {
+            if (items.length === 0) {
+                alert('No items to export');
+                return;
+            }
+            
+            const text = items.map(item => 
+                currentMode === 'weighted' ? `${item.text} (weight: ${item.weight})` : item.text
+            ).join('\n');
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `random_selector_items_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importItems() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const lines = e.target.result.split('\n').filter(line => line.trim());
+                        if (confirm(`Import ${lines.length} items? This will replace current items.`)) {
+                            items = lines.map((line, index) => ({
+                                id: Date.now() + index,
+                                text: line.trim(),
+                                weight: currentMode === 'weighted' ? 5 : 1
+                            }));
+                            updateItemsDisplay();
+                            updateSelectButton();
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        // Initialize with sample data
+        items = [
+            { id: 1, text: 'Option A', weight: 5 },
+            { id: 2, text: 'Option B', weight: 5 },
+            { id: 3, text: 'Option C', weight: 5 }
+        ];
+
+        updateItemsDisplay();
+        updateSelectButton();
+    </script>
+</body>
+</html>

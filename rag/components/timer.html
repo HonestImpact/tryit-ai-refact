@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Timer</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 20px auto; padding: 20px; text-align: center; }
+        .timer { background: #f5f5f5; padding: 30px; border-radius: 8px; }
+        #display { font-size: 48px; font-weight: bold; margin: 20px 0; font-family: monospace; }
+        button { padding: 12px 24px; margin: 10px; font-size: 16px; cursor: pointer; border: none; border-radius: 4px; }
+        .start { background: #4CAF50; color: white; }
+        .pause { background: #ff9800; color: white; }
+        .reset { background: #f44336; color: white; }
+        .preset { background: #2196F3; color: white; margin: 5px; }
+        input { padding: 8px; margin: 5px; width: 60px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="timer">
+        <h3>Focus Timer</h3>
+        
+        <div id="display">25:00</div>
+        
+        <div>
+            <input type="number" id="minutes" min="1" max="60" value="25"> minutes
+        </div>
+        
+        <div>
+            <button class="preset" onclick="setTimer(5)">5 min</button>
+            <button class="preset" onclick="setTimer(15)">15 min</button>
+            <button class="preset" onclick="setTimer(25)">25 min</button>
+            <button class="preset" onclick="setTimer(45)">45 min</button>
+        </div>
+        
+        <div>
+            <button id="startBtn" class="start" onclick="startTimer()">Start</button>
+            <button id="pauseBtn" class="pause" onclick="pauseTimer()" style="display:none;">Pause</button>
+            <button class="reset" onclick="resetTimer()">Reset</button>
+        </div>
+        
+        <div id="status">Ready to focus!</div>
+    </div>
+
+    <script>
+        let timeLeft = 1500; // 25 minutes in seconds
+        let timerInterval = null;
+        let isRunning = false;
+
+        function updateDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('display').innerText = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function setTimer(minutes) {
+            timeLeft = minutes * 60;
+            document.getElementById('minutes').value = minutes;
+            updateDisplay();
+            if (isRunning) pauseTimer();
+        }
+
+        function startTimer() {
+            if (!isRunning) {
+                timeLeft = parseInt(document.getElementById('minutes').value) * 60;
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    updateDisplay();
+                    
+                    if (timeLeft <= 0) {
+                        pauseTimer();
+                        document.getElementById('status').innerText = '🎉 Time\'s up! Great work!';
+                        alert('Timer finished! Time for a break.');
+                    }
+                }, 1000);
+                
+                isRunning = true;
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('pauseBtn').style.display = 'inline-block';
+                document.getElementById('status').innerText = 'Focus time! Stay concentrated.';
+            }
+        }
+
+        function pauseTimer() {
+            if (isRunning) {
+                clearInterval(timerInterval);
+                isRunning = false;
+                document.getElementById('startBtn').style.display = 'inline-block';
+                document.getElementById('pauseBtn').style.display = 'none';
+                document.getElementById('status').innerText = 'Timer paused.';
+            }
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            const minutes = parseInt(document.getElementById('minutes').value) || 25;
+            timeLeft = minutes * 60;
+            updateDisplay();
+            document.getElementById('status').innerText = 'Ready to focus!';
+        }
+
+        // Initialize
+        updateDisplay();
+    </script>
+</body>
+</html>

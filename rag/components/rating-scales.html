@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rating Scales - Interactive Feedback & Scoring</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
+        .rating-container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .rating-section { background: white; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0; padding: 20px; }
+        .section-title { font-size: 1.2em; font-weight: bold; color: #333; margin-bottom: 15px; }
+        .rating-item { margin: 20px 0; padding: 15px; border: 1px solid #e9ecef; border-radius: 6px; background: #fafafa; }
+        .rating-label { font-weight: bold; margin-bottom: 10px; color: #333; }
+        .rating-description { color: #666; font-size: 0.9em; margin-bottom: 15px; }
+        .rating-scale { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; }
+        .rating-option { width: 40px; height: 40px; border: 2px solid #ccc; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; font-weight: bold; background: white; }
+        .rating-option:hover { transform: scale(1.1); border-color: #007bff; }
+        .rating-option.selected { background: #007bff; color: white; border-color: #007bff; transform: scale(1.1); }
+        .rating-labels { display: flex; justify-content: space-between; margin: 10px 0; font-size: 0.8em; color: #666; }
+        .star-rating { display: flex; gap: 5px; justify-content: center; margin: 15px 0; }
+        .star { font-size: 2em; color: #ddd; cursor: pointer; transition: all 0.2s; }
+        .star:hover, .star.filled { color: #ffc107; transform: scale(1.1); }
+        .emoji-rating { display: flex; gap: 10px; justify-content: center; margin: 15px 0; }
+        .emoji-option { font-size: 2.5em; cursor: pointer; transition: all 0.2s; filter: grayscale(100%); }
+        .emoji-option:hover, .emoji-option.selected { transform: scale(1.2); filter: none; }
+        .slider-container { margin: 20px 0; }
+        .rating-slider { width: 100%; height: 8px; border-radius: 5px; background: #ddd; outline: none; cursor: pointer; }
+        .rating-slider::-webkit-slider-thumb { appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #007bff; cursor: pointer; }
+        .rating-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #007bff; cursor: pointer; border: none; }
+        .slider-value { text-align: center; font-size: 1.5em; font-weight: bold; color: #007bff; margin: 10px 0; }
+        .thermometer { width: 100px; height: 200px; background: #f0f0f0; border-radius: 50px; margin: 20px auto; position: relative; border: 3px solid #ccc; }
+        .thermometer-fill { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, #28a745, #ffc107, #dc3545); border-radius: 0 0 50px 50px; transition: height 0.3s; }
+        .thermometer-labels { display: flex; flex-direction: column; justify-content: space-between; height: 200px; margin-left: 10px; font-size: 0.8em; color: #666; }
+        .nps-scale { display: grid; grid-template-columns: repeat(11, 1fr); gap: 5px; margin: 15px 0; }
+        .nps-option { height: 40px; border: 2px solid #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; font-weight: bold; background: white; }
+        .nps-option:hover { transform: translateY(-2px); }
+        .nps-option.selected { color: white; transform: translateY(-2px); }
+        .nps-option.detractor.selected { background: #dc3545; border-color: #dc3545; }
+        .nps-option.passive.selected { background: #ffc107; border-color: #ffc107; color: #333; }
+        .nps-option.promoter.selected { background: #28a745; border-color: #28a745; }
+        .nps-labels { display: flex; justify-content: space-between; margin: 10px 0; font-size: 0.8em; color: #666; }
+        .results-section { background: white; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0; padding: 20px; }
+        .result-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 4px; }
+        .result-score { font-weight: bold; color: #007bff; }
+        .average-score { text-align: center; font-size: 1.5em; margin: 20px 0; }
+        .score-value { font-size: 2em; font-weight: bold; color: #28a745; }
+        .controls { display: flex; gap: 10px; justify-content: center; margin: 20px 0; }
+        .control-btn { padding: 10px 20px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; }
+        .control-btn:hover { background: #f8f9fa; }
+        .primary-btn { background: #007bff; color: white; border-color: #007bff; }
+        .primary-btn:hover { background: #0056b3; }
+        .export-btn { background: #28a745; color: white; border-color: #28a745; }
+        .export-btn:hover { background: #218838; }
+        .clear-btn { background: #dc3545; color: white; border-color: #dc3545; }
+        .clear-btn:hover { background: #c82333; }
+        .templates { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 20px 0; }
+        .template-btn { background: #17a2b8; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; text-align: center; }
+        .template-btn:hover { background: #138496; }
+    </style>
+</head>
+<body>
+    <div class="rating-container">
+        <h2>⭐ Rating Scales - Interactive Feedback & Scoring</h2>
+        <p>Collect feedback and ratings with engaging visual interfaces. Perfect for surveys, reviews, and user experience measurement.</p>
+        
+        <div class="templates">
+            <button class="template-btn" onclick="loadTemplate('satisfaction')">😊 Customer Satisfaction</button>
+            <button class="template-btn" onclick="loadTemplate('employee')">👔 Employee Survey</button>
+            <button class="template-btn" onclick="loadTemplate('product')">📦 Product Review</button>
+            <button class="template-btn" onclick="loadTemplate('service')">🎯 Service Quality</button>
+            <button class="template-btn" onclick="loadTemplate('event')">🎉 Event Feedback</button>
+        </div>
+
+        <div id="ratingSections">
+            <!-- Rating sections will be dynamically added here -->
+        </div>
+
+        <div class="controls">
+            <button class="control-btn primary-btn" onclick="addRatingItem()">+ Add Rating Item</button>
+            <button class="control-btn" onclick="resetAll()">🔄 Reset All</button>
+            <button class="control-btn export-btn" onclick="exportResults()">📊 Export Results</button>
+            <button class="control-btn clear-btn" onclick="clearAll()">🗑️ Clear All</button>
+        </div>
+
+        <div class="results-section">
+            <h3>📈 Results Summary</h3>
+            <div class="average-score">
+                <div>Overall Score</div>
+                <div class="score-value" id="overallScore">0.0</div>
+                <div style="color: #666; font-size: 0.8em;">out of 10</div>
+            </div>
+            <div id="resultsList">
+                <!-- Individual results will be shown here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ratingItems = [];
+        let ratings = {};
+
+        class RatingItem {
+            constructor(label, description, type, options = {}) {
+                this.id = Date.now() + Math.random();
+                this.label = label;
+                this.description = description;
+                this.type = type; // 'numeric', 'stars', 'emoji', 'slider', 'thermometer', 'nps'
+                this.options = options;
+                this.value = null;
+            }
+        }
+
+        const templates = {
+            satisfaction: [
+                new RatingItem('Overall Satisfaction', 'How satisfied are you with our service?', 'stars'),
+                new RatingItem('Ease of Use', 'How easy was it to use our product?', 'numeric', { min: 1, max: 10 }),
+                new RatingItem('Value for Money', 'How do you rate the value for money?', 'slider', { min: 0, max: 10 }),
+                new RatingItem('Recommendation', 'How likely are you to recommend us?', 'nps')
+            ],
+            employee: [
+                new RatingItem('Job Satisfaction', 'How satisfied are you with your current role?', 'emoji', { 
+                    emojis: ['😫', '😟', '😐', '🙂', '😊'] 
+                }),
+                new RatingItem('Work-Life Balance', 'Rate your work-life balance', 'thermometer'),
+                new RatingItem('Team Collaboration', 'How well does your team work together?', 'stars'),
+                new RatingItem('Management Support', 'Rate the support from management', 'numeric', { min: 1, max: 10 })
+            ],
+            product: [
+                new RatingItem('Product Quality', 'Rate the overall quality', 'stars'),
+                new RatingItem('Design & Appearance', 'How do you rate the design?', 'slider', { min: 0, max: 10 }),
+                new RatingItem('Ease of Use', 'How user-friendly is the product?', 'numeric', { min: 1, max: 10 }),
+                new RatingItem('Value Rating', 'Overall value assessment', 'thermometer')
+            ],
+            service: [
+                new RatingItem('Response Time', 'How quickly did we respond?', 'emoji', { 
+                    emojis: ['🐌', '⏰', '⚡', '🚀', '💨'] 
+                }),
+                new RatingItem('Staff Helpfulness', 'How helpful was our staff?', 'stars'),
+                new RatingItem('Problem Resolution', 'How well was your issue resolved?', 'numeric', { min: 1, max: 10 }),
+                new RatingItem('Net Promoter Score', 'Likelihood to recommend our service', 'nps')
+            ],
+            event: [
+                new RatingItem('Event Organization', 'How well was the event organized?', 'stars'),
+                new RatingItem('Content Quality', 'Rate the quality of content/presentations', 'slider', { min: 0, max: 10 }),
+                new RatingItem('Venue & Facilities', 'How do you rate the venue?', 'thermometer'),
+                new RatingItem('Overall Experience', 'Your overall event experience', 'emoji', { 
+                    emojis: ['😞', '😕', '😐', '😊', '🤩'] 
+                })
+            ]
+        };
+
+        function loadTemplate(templateName) {
+            if (confirm(`Load ${templateName} template? This will replace current items.`)) {
+                ratingItems = [...templates[templateName]];
+                ratings = {};
+                renderRatingSections();
+                updateResults();
+            }
+        }
+
+        function addRatingItem() {
+            const label = prompt('Enter rating item label:');
+            if (label) {
+                const type = prompt('Enter type (numeric/stars/emoji/slider/thermometer/nps):', 'stars');
+                const description = prompt('Enter description (optional):') || '';
+                
+                const item = new RatingItem(label, description, type);
+                ratingItems.push(item);
+                renderRatingSections();
+                updateResults();
+            }
+        }
+
+        function removeRatingItem(itemId) {
+            if (confirm('Remove this rating item?')) {
+                ratingItems = ratingItems.filter(item => item.id !== itemId);
+                delete ratings[itemId];
+                renderRatingSections();
+                updateResults();
+            }
+        }
+
+        function renderRatingSections() {
+            const container = document.getElementById('ratingSections');
+            
+            if (ratingItems.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; margin: 40px 0;">No rating items yet. Add some above or choose a template!</p>';
+                return;
+            }
+            
+            container.innerHTML = ratingItems.map(item => `
+                <div class="rating-section">
+                    <div class="rating-item">
+                        <div class="rating-label">
+                            ${item.label}
+                            <button onclick="removeRatingItem(${item.id})" style="float: right; background: #dc3545; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer;">×</button>
+                        </div>
+                        ${item.description ? `<div class="rating-description">${item.description}</div>` : ''}
+                        ${renderRatingInterface(item)}
+                    </div>
+                </div>
+            `).join('');
+            
+            // Re-attach event listeners
+            setTimeout(setupEventListeners, 100);
+        }
+
+        function renderRatingInterface(item) {
+            switch (item.type) {
+                case 'numeric':
+                    return renderNumericRating(item);
+                case 'stars':
+                    return renderStarRating(item);
+                case 'emoji':
+                    return renderEmojiRating(item);
+                case 'slider':
+                    return renderSliderRating(item);
+                case 'thermometer':
+                    return renderThermometerRating(item);
+                case 'nps':
+                    return renderNPSRating(item);
+                default:
+                    return renderNumericRating(item);
+            }
+        }
+
+        function renderNumericRating(item) {
+            const min = item.options.min || 1;
+            const max = item.options.max || 10;
+            const selected = ratings[item.id];
+            
+            let html = '<div class="rating-scale">';
+            for (let i = min; i <= max; i++) {
+                html += `<div class="rating-option ${selected === i ? 'selected' : ''}" onclick="setRating(${item.id}, ${i})">${i}</div>`;
+            }
+            html += '</div>';
+            html += `<div class="rating-labels"><span>Poor (${min})</span><span>Excellent (${max})</span></div>`;
+            return html;
+        }
+
+        function renderStarRating(item) {
+            const maxStars = item.options.maxStars || 5;
+            const selected = ratings[item.id] || 0;
+            
+            let html = '<div class="star-rating">';
+            for (let i = 1; i <= maxStars; i++) {
+                html += `<span class="star ${i <= selected ? 'filled' : ''}" onclick="setRating(${item.id}, ${i})">⭐</span>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function renderEmojiRating(item) {
+            const emojis = item.options.emojis || ['😞', '😕', '😐', '😊', '😍'];
+            const selected = ratings[item.id];
+            
+            let html = '<div class="emoji-rating">';
+            emojis.forEach((emoji, index) => {
+                const value = index + 1;
+                html += `<span class="emoji-option ${selected === value ? 'selected' : ''}" onclick="setRating(${item.id}, ${value})">${emoji}</span>`;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function renderSliderRating(item) {
+            const min = item.options.min || 0;
+            const max = item.options.max || 10;
+            const value = ratings[item.id] || min;
+            
+            return `
+                <div class="slider-container">
+                    <input type="range" class="rating-slider" min="${min}" max="${max}" value="${value}" 
+                           onchange="setRating(${item.id}, parseFloat(this.value))" 
+                           oninput="updateSliderValue(${item.id}, this.value)">
+                    <div class="slider-value" id="slider_${item.id}">${value}</div>
+                    <div class="rating-labels"><span>Poor (${min})</span><span>Excellent (${max})</span></div>
+                </div>
+            `;
+        }
+
+        function renderThermometerRating(item) {
+            const value = ratings[item.id] || 0;
+            const percentage = (value / 10) * 100;
+            
+            return `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
+                    <div class="thermometer" onclick="setThermometerRating(event, ${item.id})">
+                        <div class="thermometer-fill" style="height: ${percentage}%"></div>
+                    </div>
+                    <div class="thermometer-labels">
+                        <span>10</span>
+                        <span>8</span>
+                        <span>6</span>
+                        <span>4</span>
+                        <span>2</span>
+                        <span>0</span>
+                    </div>
+                    <div style="font-size: 1.2em; font-weight: bold; color: #007bff;">${value.toFixed(1)}</div>
+                </div>
+            `;
+        }
+
+        function renderNPSRating(item) {
+            const selected = ratings[item.id];
+            
+            let html = '<div class="nps-scale">';
+            for (let i = 0; i <= 10; i++) {
+                let cssClass = 'nps-option';
+                if (i <= 6) cssClass += ' detractor';
+                else if (i <= 8) cssClass += ' passive';
+                else cssClass += ' promoter';
+                
+                if (selected === i) cssClass += ' selected';
+                
+                html += `<div class="${cssClass}" onclick="setRating(${item.id}, ${i})">${i}</div>`;
+            }
+            html += '</div>';
+            html += '<div class="nps-labels"><span>Not likely</span><span>Extremely likely</span></div>';
+            return html;
+        }
+
+        function setRating(itemId, value) {
+            ratings[itemId] = value;
+            renderRatingSections();
+            updateResults();
+        }
+
+        function updateSliderValue(itemId, value) {
+            document.getElementById(`slider_${itemId}`).textContent = value;
+        }
+
+        function setThermometerRating(event, itemId) {
+            const thermometer = event.currentTarget;
+            const rect = thermometer.getBoundingClientRect();
+            const y = event.clientY - rect.top;
+            const percentage = Math.max(0, Math.min(100, (rect.height - y) / rect.height * 100));
+            const value = (percentage / 100) * 10;
+            
+            setRating(itemId, value);
+        }
+
+        function setupEventListeners() {
+            // Event listeners are set up in the HTML generation
+        }
+
+        function updateResults() {
+            updateOverallScore();
+            updateResultsList();
+        }
+
+        function updateOverallScore() {
+            const values = Object.values(ratings);
+            if (values.length === 0) {
+                document.getElementById('overallScore').textContent = '0.0';
+                return;
+            }
+            
+            // Normalize all ratings to 0-10 scale
+            const normalizedValues = values.map((value, index) => {
+                const item = ratingItems[index];
+                if (item && item.type === 'stars') {
+                    return (value / (item.options.maxStars || 5)) * 10;
+                }
+                return value;
+            });
+            
+            const average = normalizedValues.reduce((sum, val) => sum + val, 0) / normalizedValues.length;
+            document.getElementById('overallScore').textContent = average.toFixed(1);
+        }
+
+        function updateResultsList() {
+            const container = document.getElementById('resultsList');
+            
+            if (Object.keys(ratings).length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">No ratings yet</p>';
+                return;
+            }
+            
+            container.innerHTML = ratingItems.map(item => {
+                const value = ratings[item.id];
+                if (value === undefined) return '';
+                
+                let displayValue = value;
+                if (item.type === 'stars') {
+                    displayValue = `${value}/5 ⭐`;
+                } else if (item.type === 'emoji') {
+                    displayValue = `${value}/5`;
+                } else if (item.type === 'thermometer' || item.type === 'slider') {
+                    displayValue = `${value.toFixed(1)}/10`;
+                } else if (item.type === 'nps') {
+                    displayValue = `${value}/10`;
+                    if (value <= 6) displayValue += ' (Detractor)';
+                    else if (value <= 8) displayValue += ' (Passive)';
+                    else displayValue += ' (Promoter)';
+                } else {
+                    displayValue = `${value}/10`;
+                }
+                
+                return `
+                    <div class="result-item">
+                        <span>${item.label}</span>
+                        <span class="result-score">${displayValue}</span>
+                    </div>
+                `;
+            }).filter(Boolean).join('');
+        }
+
+        function resetAll() {
+            if (confirm('Reset all ratings?')) {
+                ratings = {};
+                renderRatingSections();
+                updateResults();
+            }
+        }
+
+        function clearAll() {
+            if (confirm('Clear all rating items and responses?')) {
+                ratingItems = [];
+                ratings = {};
+                renderRatingSections();
+                updateResults();
+            }
+        }
+
+        function exportResults() {
+            if (Object.keys(ratings).length === 0) {
+                alert('No ratings to export');
+                return;
+            }
+            
+            let report = 'Rating Scale Results\n';
+            report += '==================\n\n';
+            report += `Generated: ${new Date().toLocaleDateString()}\n`;
+            report += `Overall Score: ${document.getElementById('overallScore').textContent}/10\n\n`;
+            
+            ratingItems.forEach(item => {
+                const value = ratings[item.id];
+                if (value !== undefined) {
+                    report += `${item.label}:\n`;
+                    if (item.description) report += `  Description: ${item.description}\n`;
+                    report += `  Rating: ${value}`;
+                    
+                    if (item.type === 'stars') {
+                        report += ` out of ${item.options.maxStars || 5} stars`;
+                    } else if (item.type === 'nps') {
+                        if (value <= 6) report += ' (Detractor)';
+                        else if (value <= 8) report += ' (Passive)';
+                        else report += ' (Promoter)';
+                    } else if (item.type !== 'emoji') {
+                        report += ' out of 10';
+                    }
+                    
+                    report += '\n\n';
+                }
+            });
+            
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rating_results_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize with sample template
+        loadTemplate('satisfaction');
+    </script>
+</body>
+</html>

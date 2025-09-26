@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Tracker - Personal Finance Management</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
+        .budget-container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .budget-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+        .summary-card { background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #007bff; text-align: center; }
+        .summary-card.income { border-left-color: #28a745; }
+        .summary-card.expenses { border-left-color: #dc3545; }
+        .summary-card.remaining { border-left-color: #17a2b8; }
+        .summary-card.over-budget { border-left-color: #dc3545; background: #f8d7da; }
+        .summary-value { font-size: 2em; font-weight: bold; margin: 10px 0; }
+        .summary-label { color: #666; font-size: 0.9em; text-transform: uppercase; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .control-section { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
+        .control-section h3 { margin: 0 0 15px 0; color: #333; }
+        .input-row { display: flex; gap: 10px; margin: 10px 0; align-items: center; }
+        .input-row input, .input-row select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex: 1; }
+        .input-row button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .input-row button:hover { background: #0056b3; }
+        .categories { margin: 20px 0; }
+        .category-card { background: white; border: 1px solid #ddd; border-radius: 6px; margin: 10px 0; overflow: hidden; }
+        .category-header { background: #f8f9fa; padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .category-header:hover { background: #e9ecef; }
+        .category-title { font-weight: bold; display: flex; align-items: center; gap: 10px; }
+        .category-budget { font-size: 1.1em; }
+        .over-budget { color: #dc3545; font-weight: bold; }
+        .under-budget { color: #28a745; }
+        .category-content { padding: 15px; display: none; }
+        .category-content.expanded { display: block; }
+        .expense-list { margin: 10px 0; }
+        .expense-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #eee; border-radius: 4px; margin: 5px 0; }
+        .expense-item:hover { background: #f8f9fa; }
+        .expense-date { font-size: 0.9em; color: #666; }
+        .expense-amount { font-weight: bold; }
+        .delete-btn { background: #dc3545; color: white; border: none; border-radius: 3px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
+        .delete-btn:hover { background: #c82333; }
+        .progress-bar { background: #e9ecef; border-radius: 10px; height: 20px; margin: 10px 0; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 10px; transition: width 0.3s ease; }
+        .progress-normal { background: #28a745; }
+        .progress-warning { background: #ffc107; }
+        .progress-danger { background: #dc3545; }
+        .export-controls { text-align: center; margin: 20px 0; }
+        .export-btn { background: #17a2b8; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 0 5px; }
+        .export-btn:hover { background: #138496; }
+        .clear-btn { background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .clear-btn:hover { background: #c82333; }
+    </style>
+</head>
+<body>
+    <div class="budget-container">
+        <h2>Budget Tracker - Personal Finance Management</h2>
+        <p>Track income, expenses, and stay within budget with category breakdowns and visual progress indicators.</p>
+        
+        <div class="budget-summary">
+            <div class="summary-card income">
+                <div class="summary-label">Total Income</div>
+                <div class="summary-value" id="totalIncome">$0</div>
+            </div>
+            <div class="summary-card expenses">
+                <div class="summary-label">Total Expenses</div>
+                <div class="summary-value" id="totalExpenses">$0</div>
+            </div>
+            <div class="summary-card remaining" id="remainingCard">
+                <div class="summary-label">Remaining</div>
+                <div class="summary-value" id="remaining">$0</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-section">
+                <h3>💰 Add Income</h3>
+                <div class="input-row">
+                    <input type="text" id="incomeDesc" placeholder="Income source">
+                    <input type="number" id="incomeAmount" placeholder="Amount" step="0.01">
+                    <button onclick="addIncome()">Add</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>📝 Add Category</h3>
+                <div class="input-row">
+                    <input type="text" id="categoryName" placeholder="Category name">
+                    <input type="number" id="categoryBudget" placeholder="Budget amount" step="0.01">
+                    <button onclick="addCategory()">Add</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <h3>💸 Add Expense</h3>
+            <div class="input-row">
+                <select id="expenseCategory">
+                    <option value="">Select category</option>
+                </select>
+                <input type="text" id="expenseDesc" placeholder="Expense description">
+                <input type="number" id="expenseAmount" placeholder="Amount" step="0.01">
+                <input type="date" id="expenseDate">
+                <button onclick="addExpense()">Add</button>
+            </div>
+        </div>
+
+        <div class="categories" id="categoriesContainer">
+            <!-- Categories will be dynamically added here -->
+        </div>
+
+        <div class="export-controls">
+            <button class="export-btn" onclick="exportBudget()">📊 Export Report</button>
+            <button class="export-btn" onclick="saveBudget()">💾 Save Budget</button>
+            <button class="export-btn" onclick="loadBudget()">📁 Load Budget</button>
+            <button class="clear-btn" onclick="clearBudget()">🗑️ Clear All</button>
+        </div>
+    </div>
+
+    <script>
+        let budget = {
+            income: [],
+            categories: {},
+            expenses: []
+        };
+
+        function addIncome() {
+            const desc = document.getElementById('incomeDesc').value.trim();
+            const amount = parseFloat(document.getElementById('incomeAmount').value);
+            
+            if (!desc || !amount || amount <= 0) {
+                alert('Please enter valid income details');
+                return;
+            }
+            
+            budget.income.push({
+                id: Date.now(),
+                description: desc,
+                amount: amount,
+                date: new Date().toISOString().split('T')[0]
+            });
+            
+            document.getElementById('incomeDesc').value = '';
+            document.getElementById('incomeAmount').value = '';
+            
+            updateDisplay();
+        }
+
+        function addCategory() {
+            const name = document.getElementById('categoryName').value.trim();
+            const budgetAmount = parseFloat(document.getElementById('categoryBudget').value);
+            
+            if (!name || !budgetAmount || budgetAmount <= 0) {
+                alert('Please enter valid category details');
+                return;
+            }
+            
+            if (budget.categories[name]) {
+                alert('Category already exists');
+                return;
+            }
+            
+            budget.categories[name] = {
+                budget: budgetAmount,
+                expenses: []
+            };
+            
+            document.getElementById('categoryName').value = '';
+            document.getElementById('categoryBudget').value = '';
+            
+            updateCategoryDropdown();
+            updateDisplay();
+        }
+
+        function addExpense() {
+            const category = document.getElementById('expenseCategory').value;
+            const desc = document.getElementById('expenseDesc').value.trim();
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+            const date = document.getElementById('expenseDate').value;
+            
+            if (!category || !desc || !amount || amount <= 0 || !date) {
+                alert('Please fill in all expense details');
+                return;
+            }
+            
+            const expense = {
+                id: Date.now(),
+                description: desc,
+                amount: amount,
+                date: date,
+                category: category
+            };
+            
+            budget.categories[category].expenses.push(expense);
+            budget.expenses.push(expense);
+            
+            document.getElementById('expenseCategory').value = '';
+            document.getElementById('expenseDesc').value = '';
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            
+            updateDisplay();
+        }
+
+        function removeExpense(expenseId, category) {
+            budget.categories[category].expenses = budget.categories[category].expenses.filter(e => e.id !== expenseId);
+            budget.expenses = budget.expenses.filter(e => e.id !== expenseId);
+            updateDisplay();
+        }
+
+        function removeCategory(categoryName) {
+            if (confirm(`Delete category "${categoryName}" and all its expenses?`)) {
+                // Remove expenses from global list
+                budget.expenses = budget.expenses.filter(e => e.category !== categoryName);
+                delete budget.categories[categoryName];
+                updateCategoryDropdown();
+                updateDisplay();
+            }
+        }
+
+        function toggleCategory(categoryName) {
+            const content = document.getElementById(`content_${categoryName.replace(/\s+/g, '_')}`);
+            content.classList.toggle('expanded');
+        }
+
+        function updateCategoryDropdown() {
+            const select = document.getElementById('expenseCategory');
+            select.innerHTML = '<option value="">Select category</option>';
+            
+            Object.keys(budget.categories).forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                select.appendChild(option);
+            });
+        }
+
+        function updateDisplay() {
+            updateSummary();
+            updateCategories();
+        }
+
+        function updateSummary() {
+            const totalIncome = budget.income.reduce((sum, item) => sum + item.amount, 0);
+            const totalExpenses = budget.expenses.reduce((sum, item) => sum + item.amount, 0);
+            const remaining = totalIncome - totalExpenses;
+            
+            document.getElementById('totalIncome').textContent = formatCurrency(totalIncome);
+            document.getElementById('totalExpenses').textContent = formatCurrency(totalExpenses);
+            document.getElementById('remaining').textContent = formatCurrency(remaining);
+            
+            const remainingCard = document.getElementById('remainingCard');
+            remainingCard.className = remaining >= 0 ? 'summary-card remaining' : 'summary-card over-budget';
+        }
+
+        function updateCategories() {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
+            
+            if (Object.keys(budget.categories).length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; margin: 40px 0;">Add budget categories to start tracking expenses</p>';
+                return;
+            }
+            
+            Object.entries(budget.categories).forEach(([categoryName, categoryData]) => {
+                const totalSpent = categoryData.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+                const remaining = categoryData.budget - totalSpent;
+                const percentage = (totalSpent / categoryData.budget) * 100;
+                
+                const isOverBudget = totalSpent > categoryData.budget;
+                const categoryId = categoryName.replace(/\s+/g, '_');
+                
+                let progressClass = 'progress-normal';
+                if (percentage > 90) progressClass = 'progress-danger';
+                else if (percentage > 75) progressClass = 'progress-warning';
+                
+                const categoryCard = document.createElement('div');
+                categoryCard.className = 'category-card';
+                categoryCard.innerHTML = `
+                    <div class="category-header" onclick="toggleCategory('${categoryName}')">
+                        <div class="category-title">
+                            <span>${categoryName}</span>
+                            <span style="font-size: 0.9em; color: #666;">(${categoryData.expenses.length} expenses)</span>
+                        </div>
+                        <div class="category-budget ${isOverBudget ? 'over-budget' : (remaining > 0 ? 'under-budget' : '')}">
+                            ${formatCurrency(totalSpent)} / ${formatCurrency(categoryData.budget)}
+                            ${isOverBudget ? ' ⚠️' : ''}
+                        </div>
+                    </div>
+                    <div class="category-content" id="content_${categoryId}">
+                        <div class="progress-bar">
+                            <div class="progress-fill ${progressClass}" style="width: ${Math.min(percentage, 100)}%"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9em; color: #666; margin: 5px 0;">
+                            <span>${percentage.toFixed(1)}% of budget used</span>
+                            <span>${isOverBudget ? 'Over by ' + formatCurrency(Math.abs(remaining)) : 'Remaining: ' + formatCurrency(remaining)}</span>
+                        </div>
+                        <div class="expense-list">
+                            ${categoryData.expenses.length === 0 ? 
+                                '<p style="color: #666; text-align: center; margin: 20px 0;">No expenses yet</p>' :
+                                categoryData.expenses.map(expense => `
+                                    <div class="expense-item">
+                                        <div>
+                                            <div><strong>${expense.description}</strong></div>
+                                            <div class="expense-date">${formatDate(expense.date)}</div>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <span class="expense-amount">${formatCurrency(expense.amount)}</span>
+                                            <button class="delete-btn" onclick="removeExpense(${expense.id}, '${categoryName}')">×</button>
+                                        </div>
+                                    </div>
+                                `).join('')
+                            }
+                        </div>
+                        <div style="text-align: right; margin-top: 10px;">
+                            <button class="delete-btn" onclick="removeCategory('${categoryName}')">Delete Category</button>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(categoryCard);
+            });
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function exportBudget() {
+            const totalIncome = budget.income.reduce((sum, item) => sum + item.amount, 0);
+            const totalExpenses = budget.expenses.reduce((sum, item) => sum + item.amount, 0);
+            
+            let report = 'Budget Report\n';
+            report += '=============\n\n';
+            report += `Total Income: ${formatCurrency(totalIncome)}\n`;
+            report += `Total Expenses: ${formatCurrency(totalExpenses)}\n`;
+            report += `Remaining: ${formatCurrency(totalIncome - totalExpenses)}\n\n`;
+            
+            report += 'Category Breakdown:\n';
+            report += '-------------------\n';
+            
+            Object.entries(budget.categories).forEach(([categoryName, categoryData]) => {
+                const totalSpent = categoryData.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+                const remaining = categoryData.budget - totalSpent;
+                
+                report += `\n${categoryName}:\n`;
+                report += `  Budget: ${formatCurrency(categoryData.budget)}\n`;
+                report += `  Spent: ${formatCurrency(totalSpent)}\n`;
+                report += `  Remaining: ${formatCurrency(remaining)}\n`;
+                
+                if (categoryData.expenses.length > 0) {
+                    report += '  Expenses:\n';
+                    categoryData.expenses.forEach(expense => {
+                        report += `    - ${expense.description}: ${formatCurrency(expense.amount)} (${formatDate(expense.date)})\n`;
+                    });
+                }
+            });
+            
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `budget_report_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function saveBudget() {
+            const data = JSON.stringify(budget, null, 2);
+            localStorage.setItem('budget_tracker_data', data);
+            alert('Budget saved locally!');
+        }
+
+        function loadBudget() {
+            const saved = localStorage.getItem('budget_tracker_data');
+            if (saved) {
+                if (confirm('Load saved budget? This will replace current data.')) {
+                    budget = JSON.parse(saved);
+                    updateCategoryDropdown();
+                    updateDisplay();
+                    alert('Budget loaded!');
+                }
+            } else {
+                alert('No saved budget found');
+            }
+        }
+
+        function clearBudget() {
+            if (confirm('Clear all budget data? This cannot be undone.')) {
+                budget = { income: [], categories: {}, expenses: [] };
+                updateCategoryDropdown();
+                updateDisplay();
+            }
+        }
+
+        // Initialize with sample data
+        budget = {
+            income: [
+                { id: 1, description: 'Salary', amount: 5000, date: '2024-01-01' }
+            ],
+            categories: {
+                'Housing': { budget: 1500, expenses: [
+                    { id: 1, description: 'Rent', amount: 1200, date: '2024-01-01', category: 'Housing' }
+                ]},
+                'Food': { budget: 600, expenses: [
+                    { id: 2, description: 'Groceries', amount: 250, date: '2024-01-02', category: 'Food' }
+                ]},
+                'Transportation': { budget: 400, expenses: [] }
+            },
+            expenses: [
+                { id: 1, description: 'Rent', amount: 1200, date: '2024-01-01', category: 'Housing' },
+                { id: 2, description: 'Groceries', amount: 250, date: '2024-01-02', category: 'Food' }
+            ]
+        };
+
+        // Set default date
+        document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+
+        updateCategoryDropdown();
+        updateDisplay();
+    </script>
+</body>
+</html>

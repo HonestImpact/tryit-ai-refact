@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Matrix - Weighted Comparison Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; padding: 20px; }
+        .matrix-container { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .controls { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 6px; }
+        .input-group { margin: 10px 0; display: flex; align-items: center; gap: 10px; }
+        .input-group label { min-width: 100px; font-weight: bold; }
+        .input-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .input-group button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .input-group button:hover { background: #0056b3; }
+        .matrix-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .matrix-table th, .matrix-table td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        .matrix-table th { background: #f1f3f4; font-weight: bold; }
+        .criteria-cell { text-align: left; font-weight: bold; background: #f8f9fa; }
+        .weight-input { width: 60px; text-align: center; }
+        .score-input { width: 50px; text-align: center; }
+        .total-cell { background: #e8f5e8; font-weight: bold; font-size: 1.1em; }
+        .winner { background: #d4edda; border: 2px solid #28a745; }
+        .results { margin: 20px 0; padding: 15px; background: #e8f5e8; border-radius: 6px; }
+        .clear-btn { background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .clear-btn:hover { background: #c82333; }
+        .help-text { font-size: 14px; color: #666; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="matrix-container">
+        <h2>Decision Matrix - Weighted Comparison Tool</h2>
+        <p class="help-text">Compare options across multiple criteria with custom weights. Perfect for choosing between jobs, products, or any complex decisions.</p>
+        
+        <div class="controls">
+            <div class="input-group">
+                <label>Add Criteria:</label>
+                <input type="text" id="criteriaInput" placeholder="e.g., Cost, Quality, Location">
+                <input type="number" id="weightInput" placeholder="Weight (1-10)" min="1" max="10" value="5">
+                <button onclick="addCriteria()">Add</button>
+            </div>
+            
+            <div class="input-group">
+                <label>Add Option:</label>
+                <input type="text" id="optionInput" placeholder="e.g., Option A, Company X">
+                <button onclick="addOption()">Add</button>
+            </div>
+            
+            <div class="input-group">
+                <button class="clear-btn" onclick="clearMatrix()">Clear All</button>
+                <span class="help-text">Score each option 1-10 for each criteria. Higher scores are better.</span>
+            </div>
+        </div>
+
+        <table class="matrix-table" id="matrixTable">
+            <thead id="tableHeader">
+                <tr>
+                    <th>Criteria (Weight)</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+            <tfoot id="tableFooter">
+            </tfoot>
+        </table>
+
+        <div class="results" id="results" style="display: none;">
+            <h3>🏆 Decision Results</h3>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let criteria = [];
+        let options = [];
+        let scores = {};
+
+        function addCriteria() {
+            const input = document.getElementById('criteriaInput');
+            const weightInput = document.getElementById('weightInput');
+            const criteriaName = input.value.trim();
+            const weight = parseInt(weightInput.value) || 5;
+            
+            if (criteriaName && !criteria.find(c => c.name === criteriaName)) {
+                criteria.push({ name: criteriaName, weight: weight });
+                input.value = '';
+                weightInput.value = '5';
+                updateTable();
+            }
+        }
+
+        function addOption() {
+            const input = document.getElementById('optionInput');
+            const optionName = input.value.trim();
+            
+            if (optionName && !options.includes(optionName)) {
+                options.push(optionName);
+                input.value = '';
+                updateTable();
+            }
+        }
+
+        function updateTable() {
+            const table = document.getElementById('matrixTable');
+            const header = document.getElementById('tableHeader');
+            const body = document.getElementById('tableBody');
+            const footer = document.getElementById('tableFooter');
+            
+            // Clear existing content
+            header.innerHTML = '';
+            body.innerHTML = '';
+            footer.innerHTML = '';
+            
+            if (criteria.length === 0 || options.length === 0) {
+                document.getElementById('results').style.display = 'none';
+                return;
+            }
+            
+            // Build header
+            let headerRow = '<tr><th>Criteria (Weight)</th>';
+            options.forEach(option => {
+                headerRow += `<th>${option}</th>`;
+            });
+            headerRow += '</tr>';
+            header.innerHTML = headerRow;
+            
+            // Build body
+            criteria.forEach(criterion => {
+                let row = `<tr><td class="criteria-cell">${criterion.name} (${criterion.weight})</td>`;
+                options.forEach(option => {
+                    const scoreId = `score_${criterion.name}_${option}`;
+                    const currentScore = scores[scoreId] || '';
+                    row += `<td><input type="number" class="score-input" id="${scoreId}" 
+                           value="${currentScore}" min="1" max="10" 
+                           onchange="updateScores()" placeholder="1-10"></td>`;
+                });
+                row += '</tr>';
+                body.innerHTML += row;
+            });
+            
+            // Build footer (totals)
+            let footerRow = '<tr><td class="criteria-cell">Weighted Total</td>';
+            options.forEach(option => {
+                footerRow += `<td class="total-cell" id="total_${option}">-</td>`;
+            });
+            footerRow += '</tr>';
+            footer.innerHTML = footerRow;
+            
+            updateScores();
+        }
+
+        function updateScores() {
+            // Collect all scores
+            criteria.forEach(criterion => {
+                options.forEach(option => {
+                    const scoreId = `score_${criterion.name}_${option}`;
+                    const input = document.getElementById(scoreId);
+                    if (input) {
+                        scores[scoreId] = input.value;
+                    }
+                });
+            });
+            
+            // Calculate totals
+            const totals = {};
+            options.forEach(option => {
+                let total = 0;
+                let hasAllScores = true;
+                
+                criteria.forEach(criterion => {
+                    const scoreId = `score_${criterion.name}_${option}`;
+                    const score = parseInt(scores[scoreId]) || 0;
+                    if (score === 0) hasAllScores = false;
+                    total += score * criterion.weight;
+                });
+                
+                totals[option] = hasAllScores ? total : 0;
+                const totalCell = document.getElementById(`total_${option}`);
+                if (totalCell) {
+                    totalCell.textContent = hasAllScores ? total.toFixed(1) : '-';
+                    totalCell.classList.remove('winner');
+                }
+            });
+            
+            // Find and highlight winner
+            const maxScore = Math.max(...Object.values(totals));
+            if (maxScore > 0) {
+                const winner = Object.keys(totals).find(option => totals[option] === maxScore);
+                const winnerCell = document.getElementById(`total_${winner}`);
+                if (winnerCell) {
+                    winnerCell.classList.add('winner');
+                }
+                
+                showResults(totals, winner);
+            } else {
+                document.getElementById('results').style.display = 'none';
+            }
+        }
+
+        function showResults(totals, winner) {
+            const resultsDiv = document.getElementById('results');
+            const contentDiv = document.getElementById('resultsContent');
+            
+            // Sort options by score
+            const sortedOptions = Object.keys(totals)
+                .filter(option => totals[option] > 0)
+                .sort((a, b) => totals[b] - totals[a]);
+            
+            let content = `<strong>Winner: ${winner}</strong> (Score: ${totals[winner].toFixed(1)})<br><br>`;
+            content += '<strong>Full Rankings:</strong><br>';
+            
+            sortedOptions.forEach((option, index) => {
+                const emoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '📍';
+                content += `${emoji} ${option}: ${totals[option].toFixed(1)}<br>`;
+            });
+            
+            contentDiv.innerHTML = content;
+            resultsDiv.style.display = 'block';
+        }
+
+        function clearMatrix() {
+            if (confirm('Clear all data? This cannot be undone.')) {
+                criteria = [];
+                options = [];
+                scores = {};
+                updateTable();
+            }
+        }
+
+        // Add default example
+        criteria = [
+            { name: 'Cost', weight: 8 },
+            { name: 'Quality', weight: 9 },
+            { name: 'Location', weight: 6 }
+        ];
+        options = ['Option A', 'Option B'];
+        updateTable();
+    </script>
+</body>
+</html>

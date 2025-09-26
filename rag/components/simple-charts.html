@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Charts - Bar & Pie Visualizations</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 20px auto; padding: 20px; }
+        .charts-container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .chart-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .control-section { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
+        .control-section h3 { margin: 0 0 15px 0; color: #333; }
+        .chart-types { display: flex; gap: 10px; margin: 15px 0; justify-content: center; }
+        .chart-type-btn { padding: 10px 20px; border: 2px solid #007bff; background: white; color: #007bff; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .chart-type-btn.active { background: #007bff; color: white; }
+        .data-input { margin: 10px 0; }
+        .data-row { display: flex; gap: 10px; margin: 8px 0; align-items: center; }
+        .data-row input[type="text"] { flex: 2; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .data-row input[type="number"] { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .data-row input[type="color"] { width: 40px; height: 35px; border: none; border-radius: 4px; cursor: pointer; }
+        .data-row button { padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .add-data-btn { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%; margin: 10px 0; }
+        .add-data-btn:hover { background: #218838; }
+        .chart-display { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin: 20px 0; text-align: center; }
+        .chart-canvas { max-width: 100%; margin: 20px auto; }
+        .chart-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0; }
+        .option-group { padding: 10px; background: #f8f9fa; border-radius: 4px; }
+        .option-group label { display: block; margin: 5px 0; font-size: 14px; }
+        .option-group input, .option-group select { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 3px; }
+        .presets { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; justify-content: center; }
+        .preset-btn { padding: 8px 15px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .preset-btn:hover { background: #138496; }
+        .export-controls { text-align: center; margin: 20px 0; }
+        .export-btn { padding: 10px 20px; background: #6f42c1; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 0 5px; }
+        .export-btn:hover { background: #5a32a3; }
+        .stats-display { background: #e8f5e8; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; text-align: center; }
+        .stat-item { background: white; padding: 10px; border-radius: 4px; }
+        .stat-value { font-size: 1.2em; font-weight: bold; color: #007bff; }
+        .stat-label { font-size: 0.8em; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="charts-container">
+        <h2>📊 Simple Charts - Bar & Pie Visualizations</h2>
+        <p>Create beautiful, interactive charts with custom data. Perfect for presentations, reports, and data visualization.</p>
+        
+        <div class="chart-types">
+            <button class="chart-type-btn active" onclick="setChartType('bar')">📊 Bar Chart</button>
+            <button class="chart-type-btn" onclick="setChartType('pie')">🥧 Pie Chart</button>
+            <button class="chart-type-btn" onclick="setChartType('line')">📈 Line Chart</button>
+            <button class="chart-type-btn" onclick="setChartType('doughnut')">🍩 Doughnut Chart</button>
+        </div>
+
+        <div class="chart-controls">
+            <div class="control-section">
+                <h3>📝 Chart Data</h3>
+                
+                <div class="presets">
+                    <button class="preset-btn" onclick="loadPreset('sales')">Sales Data</button>
+                    <button class="preset-btn" onclick="loadPreset('survey')">Survey Results</button>
+                    <button class="preset-btn" onclick="loadPreset('budget')">Budget Breakdown</button>
+                    <button class="preset-btn" onclick="loadPreset('grades')">Grade Distribution</button>
+                    <button class="preset-btn" onclick="loadPreset('traffic')">Website Traffic</button>
+                </div>
+                
+                <div class="data-input" id="dataInput">
+                    <!-- Data rows will be added here -->
+                </div>
+                
+                <button class="add-data-btn" onclick="addDataRow()">+ Add Data Point</button>
+                
+                <div class="stats-display">
+                    <h4 style="margin: 0 0 10px 0;">📊 Data Statistics</h4>
+                    <div class="stats-grid" id="statsGrid">
+                        <!-- Stats will be populated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>⚙️ Chart Options</h3>
+                <div class="chart-options">
+                    <div class="option-group">
+                        <label>Chart Title:</label>
+                        <input type="text" id="chartTitle" value="My Chart" onchange="updateChart()">
+                    </div>
+                    <div class="option-group">
+                        <label>Width (px):</label>
+                        <input type="number" id="chartWidth" value="600" min="300" max="1200" onchange="updateChart()">
+                    </div>
+                    <div class="option-group">
+                        <label>Height (px):</label>
+                        <input type="number" id="chartHeight" value="400" min="200" max="800" onchange="updateChart()">
+                    </div>
+                    <div class="option-group">
+                        <label>Background:</label>
+                        <select id="chartBackground" onchange="updateChart()">
+                            <option value="white">White</option>
+                            <option value="transparent">Transparent</option>
+                            <option value="#f8f9fa">Light Gray</option>
+                            <option value="#000000">Black</option>
+                        </select>
+                    </div>
+                    <div class="option-group">
+                        <label>Show Legend:</label>
+                        <input type="checkbox" id="showLegend" checked onchange="updateChart()">
+                    </div>
+                    <div class="option-group">
+                        <label>Show Values:</label>
+                        <input type="checkbox" id="showValues" checked onchange="updateChart()">
+                    </div>
+                    <div class="option-group">
+                        <label>Animation:</label>
+                        <input type="checkbox" id="enableAnimation" checked onchange="updateChart()">
+                    </div>
+                    <div class="option-group" id="barOptions" style="display: none;">
+                        <label>Bar Direction:</label>
+                        <select id="barDirection" onchange="updateChart()">
+                            <option value="vertical">Vertical</option>
+                            <option value="horizontal">Horizontal</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-display">
+            <canvas id="chartCanvas" class="chart-canvas"></canvas>
+            <div id="noDataMessage" style="display: none; color: #666; font-size: 1.2em; margin: 40px 0;">
+                Add some data points above to see your chart
+            </div>
+        </div>
+
+        <div class="export-controls">
+            <button class="export-btn" onclick="exportChart('png')">📥 Download PNG</button>
+            <button class="export-btn" onclick="exportChart('jpg')">📥 Download JPG</button>
+            <button class="export-btn" onclick="exportData()">📋 Export Data</button>
+            <button class="export-btn" onclick="importData()">📁 Import Data</button>
+            <button class="export-btn" onclick="clearData()" style="background: #dc3545;">🗑️ Clear All</button>
+        </div>
+    </div>
+
+    <script>
+        let currentChart = null;
+        let currentChartType = 'bar';
+        let chartData = [
+            { label: 'January', value: 65, color: '#FF6384' },
+            { label: 'February', value: 59, color: '#36A2EB' },
+            { label: 'March', value: 80, color: '#FFCE56' },
+            { label: 'April', value: 81, color: '#4BC0C0' },
+            { label: 'May', value: 56, color: '#9966FF' }
+        ];
+
+        const presets = {
+            sales: [
+                { label: 'Q1 Sales', value: 125000, color: '#FF6384' },
+                { label: 'Q2 Sales', value: 145000, color: '#36A2EB' },
+                { label: 'Q3 Sales', value: 132000, color: '#FFCE56' },
+                { label: 'Q4 Sales', value: 168000, color: '#4BC0C0' }
+            ],
+            survey: [
+                { label: 'Very Satisfied', value: 45, color: '#4BC0C0' },
+                { label: 'Satisfied', value: 30, color: '#36A2EB' },
+                { label: 'Neutral', value: 15, color: '#FFCE56' },
+                { label: 'Unsatisfied', value: 7, color: '#FF9F40' },
+                { label: 'Very Unsatisfied', value: 3, color: '#FF6384' }
+            ],
+            budget: [
+                { label: 'Housing', value: 1200, color: '#FF6384' },
+                { label: 'Food', value: 600, color: '#36A2EB' },
+                { label: 'Transportation', value: 400, color: '#FFCE56' },
+                { label: 'Entertainment', value: 300, color: '#4BC0C0' },
+                { label: 'Savings', value: 500, color: '#9966FF' }
+            ],
+            grades: [
+                { label: 'A (90-100)', value: 25, color: '#4BC0C0' },
+                { label: 'B (80-89)', value: 35, color: '#36A2EB' },
+                { label: 'C (70-79)', value: 28, color: '#FFCE56' },
+                { label: 'D (60-69)', value: 8, color: '#FF9F40' },
+                { label: 'F (0-59)', value: 4, color: '#FF6384' }
+            ],
+            traffic: [
+                { label: 'Organic Search', value: 4500, color: '#4BC0C0' },
+                { label: 'Direct', value: 2800, color: '#36A2EB' },
+                { label: 'Social Media', value: 1200, color: '#FF6384' },
+                { label: 'Referrals', value: 800, color: '#FFCE56' },
+                { label: 'Email', value: 600, color: '#9966FF' }
+            ]
+        };
+
+        function setChartType(type) {
+            currentChartType = type;
+            
+            // Update button states
+            document.querySelectorAll('.chart-type-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Show/hide type-specific options
+            document.getElementById('barOptions').style.display = 
+                type === 'bar' ? 'block' : 'none';
+            
+            updateChart();
+        }
+
+        function addDataRow() {
+            const dataInput = document.getElementById('dataInput');
+            const index = chartData.length;
+            const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0'];
+            
+            const row = document.createElement('div');
+            row.className = 'data-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Label" value="Item ${index + 1}" 
+                       onchange="updateDataPoint(${index}, 'label', this.value)">
+                <input type="number" placeholder="Value" value="50" 
+                       onchange="updateDataPoint(${index}, 'value', parseFloat(this.value))">
+                <input type="color" value="${colors[index % colors.length]}" 
+                       onchange="updateDataPoint(${index}, 'color', this.value)">
+                <button onclick="removeDataPoint(${index})">×</button>
+            `;
+            
+            dataInput.appendChild(row);
+            
+            chartData.push({
+                label: `Item ${index + 1}`,
+                value: 50,
+                color: colors[index % colors.length]
+            });
+            
+            updateChart();
+            updateStats();
+        }
+
+        function removeDataPoint(index) {
+            chartData.splice(index, 1);
+            renderDataInput();
+            updateChart();
+            updateStats();
+        }
+
+        function updateDataPoint(index, field, value) {
+            if (chartData[index]) {
+                chartData[index][field] = value;
+                updateChart();
+                updateStats();
+            }
+        }
+
+        function renderDataInput() {
+            const dataInput = document.getElementById('dataInput');
+            dataInput.innerHTML = '';
+            
+            chartData.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'data-row';
+                row.innerHTML = `
+                    <input type="text" placeholder="Label" value="${item.label}" 
+                           onchange="updateDataPoint(${index}, 'label', this.value)">
+                    <input type="number" placeholder="Value" value="${item.value}" 
+                           onchange="updateDataPoint(${index}, 'value', parseFloat(this.value))">
+                    <input type="color" value="${item.color}" 
+                           onchange="updateDataPoint(${index}, 'color', this.value)">
+                    <button onclick="removeDataPoint(${index})">×</button>
+                `;
+                dataInput.appendChild(row);
+            });
+        }
+
+        function updateStats() {
+            const statsGrid = document.getElementById('statsGrid');
+            
+            if (chartData.length === 0) {
+                statsGrid.innerHTML = '<div style="grid-column: 1 / -1; color: #666;">No data to analyze</div>';
+                return;
+            }
+            
+            const values = chartData.map(item => item.value);
+            const total = values.reduce((sum, val) => sum + val, 0);
+            const average = total / values.length;
+            const max = Math.max(...values);
+            const min = Math.min(...values);
+            
+            statsGrid.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${chartData.length}</div>
+                    <div class="stat-label">Data Points</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${total.toLocaleString()}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${average.toFixed(1)}</div>
+                    <div class="stat-label">Average</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${max.toLocaleString()}</div>
+                    <div class="stat-label">Maximum</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${min.toLocaleString()}</div>
+                    <div class="stat-label">Minimum</div>
+                </div>
+            `;
+        }
+
+        function updateChart() {
+            const canvas = document.getElementById('chartCanvas');
+            const noDataMessage = document.getElementById('noDataMessage');
+            
+            if (chartData.length === 0) {
+                canvas.style.display = 'none';
+                noDataMessage.style.display = 'block';
+                return;
+            }
+            
+            canvas.style.display = 'block';
+            noDataMessage.style.display = 'none';
+            
+            // Set canvas size
+            const width = parseInt(document.getElementById('chartWidth').value);
+            const height = parseInt(document.getElementById('chartHeight').value);
+            canvas.width = width;
+            canvas.height = height;
+            
+            drawChart(canvas);
+        }
+
+        function drawChart(canvas) {
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const title = document.getElementById('chartTitle').value;
+            const background = document.getElementById('chartBackground').value;
+            const showLegend = document.getElementById('showLegend').checked;
+            const showValues = document.getElementById('showValues').checked;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Set background
+            if (background !== 'transparent') {
+                ctx.fillStyle = background;
+                ctx.fillRect(0, 0, width, height);
+            }
+            
+            // Draw title
+            ctx.fillStyle = background === '#000000' ? 'white' : 'black';
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(title, width / 2, 30);
+            
+            // Calculate chart area
+            const margin = 60;
+            const legendHeight = showLegend ? 40 : 0;
+            const chartWidth = width - margin * 2;
+            const chartHeight = height - margin * 2 - 40 - legendHeight;
+            const chartX = margin;
+            const chartY = 50;
+            
+            switch (currentChartType) {
+                case 'bar':
+                    drawBarChart(ctx, chartX, chartY, chartWidth, chartHeight, showValues);
+                    break;
+                case 'pie':
+                case 'doughnut':
+                    drawPieChart(ctx, chartX, chartY, chartWidth, chartHeight, showValues, currentChartType === 'doughnut');
+                    break;
+                case 'line':
+                    drawLineChart(ctx, chartX, chartY, chartWidth, chartHeight, showValues);
+                    break;
+            }
+            
+            // Draw legend
+            if (showLegend) {
+                drawLegend(ctx, margin, height - legendHeight, width - margin * 2, legendHeight);
+            }
+        }
+
+        function drawBarChart(ctx, x, y, width, height, showValues) {
+            const maxValue = Math.max(...chartData.map(item => item.value));
+            const barWidth = width / chartData.length * 0.8;
+            const barSpacing = width / chartData.length * 0.2;
+            
+            chartData.forEach((item, index) => {
+                const barHeight = (item.value / maxValue) * height;
+                const barX = x + index * (barWidth + barSpacing) + barSpacing / 2;
+                const barY = y + height - barHeight;
+                
+                // Draw bar
+                ctx.fillStyle = item.color;
+                ctx.fillRect(barX, barY, barWidth, barHeight);
+                
+                // Draw value on top
+                if (showValues) {
+                    ctx.fillStyle = 'black';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(item.value.toString(), barX + barWidth / 2, barY - 5);
+                }
+                
+                // Draw label
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.save();
+                ctx.translate(barX + barWidth / 2, y + height + 15);
+                ctx.rotate(-Math.PI / 4);
+                ctx.fillText(item.label, 0, 0);
+                ctx.restore();
+            });
+        }
+
+        function drawPieChart(ctx, x, y, width, height, showValues, isDoughnut) {
+            const centerX = x + width / 2;
+            const centerY = y + height / 2;
+            const radius = Math.min(width, height) / 2 - 20;
+            const innerRadius = isDoughnut ? radius * 0.4 : 0;
+            
+            const total = chartData.reduce((sum, item) => sum + item.value, 0);
+            let currentAngle = -Math.PI / 2;
+            
+            chartData.forEach((item, index) => {
+                const sliceAngle = (item.value / total) * 2 * Math.PI;
+                
+                // Draw slice
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+                ctx.closePath();
+                ctx.fillStyle = item.color;
+                ctx.fill();
+                
+                // Draw inner circle for doughnut
+                if (isDoughnut) {
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
+                    ctx.fillStyle = document.getElementById('chartBackground').value || 'white';
+                    ctx.fill();
+                }
+                
+                // Draw values
+                if (showValues) {
+                    const labelAngle = currentAngle + sliceAngle / 2;
+                    const labelRadius = (radius + innerRadius) / 2;
+                    const labelX = centerX + Math.cos(labelAngle) * labelRadius;
+                    const labelY = centerY + Math.sin(labelAngle) * labelRadius;
+                    
+                    ctx.fillStyle = 'black';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(item.value.toString(), labelX, labelY);
+                }
+                
+                currentAngle += sliceAngle;
+            });
+        }
+
+        function drawLineChart(ctx, x, y, width, height, showValues) {
+            const maxValue = Math.max(...chartData.map(item => item.value));
+            const minValue = Math.min(...chartData.map(item => item.value));
+            const valueRange = maxValue - minValue || 1;
+            
+            const pointSpacing = width / (chartData.length - 1);
+            
+            // Draw line
+            ctx.beginPath();
+            ctx.strokeStyle = '#007bff';
+            ctx.lineWidth = 3;
+            
+            chartData.forEach((item, index) => {
+                const pointX = x + index * pointSpacing;
+                const pointY = y + height - ((item.value - minValue) / valueRange) * height;
+                
+                if (index === 0) {
+                    ctx.moveTo(pointX, pointY);
+                } else {
+                    ctx.lineTo(pointX, pointY);
+                }
+            });
+            ctx.stroke();
+            
+            // Draw points
+            chartData.forEach((item, index) => {
+                const pointX = x + index * pointSpacing;
+                const pointY = y + height - ((item.value - minValue) / valueRange) * height;
+                
+                ctx.beginPath();
+                ctx.arc(pointX, pointY, 6, 0, 2 * Math.PI);
+                ctx.fillStyle = item.color;
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw value
+                if (showValues) {
+                    ctx.fillStyle = 'black';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(item.value.toString(), pointX, pointY - 10);
+                }
+                
+                // Draw label
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.save();
+                ctx.translate(pointX, y + height + 15);
+                ctx.rotate(-Math.PI / 4);
+                ctx.fillText(item.label, 0, 0);
+                ctx.restore();
+            });
+        }
+
+        function drawLegend(ctx, x, y, width, height) {
+            const itemWidth = width / chartData.length;
+            
+            chartData.forEach((item, index) => {
+                const itemX = x + index * itemWidth;
+                
+                // Draw color box
+                ctx.fillStyle = item.color;
+                ctx.fillRect(itemX, y + 5, 15, 15);
+                
+                // Draw label
+                ctx.fillStyle = 'black';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(item.label, itemX + 20, y + 17);
+            });
+        }
+
+        function loadPreset(presetName) {
+            if (confirm(`Load ${presetName} preset? This will replace current data.`)) {
+                chartData = [...presets[presetName]];
+                renderDataInput();
+                updateChart();
+                updateStats();
+            }
+        }
+
+        function exportChart(format) {
+            const canvas = document.getElementById('chartCanvas');
+            const link = document.createElement('a');
+            link.download = `chart.${format}`;
+            link.href = canvas.toDataURL(`image/${format === 'jpg' ? 'jpeg' : 'png'}`);
+            link.click();
+        }
+
+        function exportData() {
+            const data = chartData.map(item => `${item.label},${item.value},${item.color}`).join('\n');
+            const csvContent = 'Label,Value,Color\n' + data;
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'chart_data.csv';
+            link.click();
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.csv,.txt';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const lines = e.target.result.split('\n').filter(line => line.trim());
+                            const header = lines[0].toLowerCase();
+                            
+                            if (header.includes('label') && header.includes('value')) {
+                                const newData = [];
+                                for (let i = 1; i < lines.length; i++) {
+                                    const [label, value, color] = lines[i].split(',');
+                                    if (label && value) {
+                                        newData.push({
+                                            label: label.trim(),
+                                            value: parseFloat(value.trim()) || 0,
+                                            color: color?.trim() || '#007bff'
+                                        });
+                                    }
+                                }
+                                
+                                if (newData.length > 0 && confirm(`Import ${newData.length} data points?`)) {
+                                    chartData = newData;
+                                    renderDataInput();
+                                    updateChart();
+                                    updateStats();
+                                }
+                            } else {
+                                alert('CSV must have Label,Value,Color headers');
+                            }
+                        } catch (error) {
+                            alert('Error reading file: ' + error.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function clearData() {
+            if (confirm('Clear all chart data?')) {
+                chartData = [];
+                renderDataInput();
+                updateChart();
+                updateStats();
+            }
+        }
+
+        // Initialize
+        renderDataInput();
+        updateChart();
+        updateStats();
+    </script>
+</body>
+</html>

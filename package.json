@@ -9,15 +9,19 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "setup-rag": "node scripts/setup-rag.mjs",
+    "test-rag": "node scripts/test-rag.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.17",
     "@langchain/anthropic": "^0.3.28",
     "@langchain/community": "^0.3.56",
     "@langchain/core": "^0.3.77",
+    "@langchain/openai": "^0.6.13",
     "@supabase/supabase-js": "^2.57.4",
     "ai": "^5.0.47",
+    "chromadb": "^3.0.15",
     "dotenv": "^16.6.1",
     "langchain": "^0.3.34",
     "next": "15.5.3",
@@ -35,6 +39,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "tailwindcss": "^4",
+    "tsx": "^4.20.5",
     "typescript": "^5",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.4"

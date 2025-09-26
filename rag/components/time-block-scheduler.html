@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Block Scheduler - Daily Planner Grid</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 20px auto; padding: 20px; }
+        .scheduler-container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .scheduler-header { display: flex; justify-content: space-between; align-items: center; margin: 20px 0; }
+        .date-navigation { display: flex; align-items: center; gap: 15px; }
+        .nav-btn { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+        .nav-btn:hover { background: #0056b3; }
+        .current-date { font-size: 1.3em; font-weight: bold; color: #333; min-width: 200px; text-align: center; }
+        .quick-actions { display: flex; gap: 10px; }
+        .action-btn { padding: 8px 15px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; }
+        .action-btn:hover { background: #f8f9fa; }
+        .add-block-btn { background: #28a745; color: white; border: none; }
+        .add-block-btn:hover { background: #218838; }
+        .time-grid { display: grid; grid-template-columns: 80px 1fr; background: white; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
+        .time-column { background: #f8f9fa; }
+        .schedule-column { position: relative; min-height: 100vh; }
+        .hour-slot { height: 60px; border-bottom: 1px solid #e9ecef; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #666; position: relative; }
+        .hour-slot:last-child { border-bottom: none; }
+        .hour-line { position: absolute; right: 0; top: 0; bottom: 0; width: 1px; background: #ddd; }
+        .schedule-slot { height: 60px; border-bottom: 1px solid #e9ecef; position: relative; cursor: pointer; }
+        .schedule-slot:hover { background: #f8f9fa; }
+        .schedule-slot:last-child { border-bottom: none; }
+        .time-block { position: absolute; left: 2px; right: 2px; background: #007bff; color: white; border-radius: 4px; padding: 4px 8px; font-size: 0.9em; cursor: pointer; z-index: 10; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+        .time-block:hover { background: #0056b3; transform: scale(1.02); }
+        .time-block.category-work { background: #007bff; }
+        .time-block.category-personal { background: #28a745; }
+        .time-block.category-health { background: #fd7e14; }
+        .time-block.category-social { background: #e83e8c; }
+        .time-block.category-learning { background: #6f42c1; }
+        .time-block.category-break { background: #6c757d; }
+        .block-title { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .block-time { font-size: 0.8em; opacity: 0.9; }
+        .block-actions { position: absolute; top: 2px; right: 2px; opacity: 0; transition: opacity 0.2s; }
+        .time-block:hover .block-actions { opacity: 1; }
+        .block-action-btn { background: rgba(255,255,255,0.3); border: none; color: white; padding: 2px 4px; margin: 0 1px; border-radius: 2px; cursor: pointer; font-size: 10px; }
+        .block-action-btn:hover { background: rgba(255,255,255,0.5); }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 5% auto; padding: 20px; width: 90%; max-width: 500px; border-radius: 8px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-modal { background: none; border: none; font-size: 1.5em; cursor: pointer; }
+        .form-row { margin: 15px 0; }
+        .form-row label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        .form-row input, .form-row textarea, .form-row select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; }
+        .form-row textarea { height: 60px; resize: vertical; }
+        .form-row.time-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .form-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .form-btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .form-btn.save { background: #28a745; color: white; }
+        .form-btn.cancel { background: #6c757d; color: white; }
+        .form-btn:hover { opacity: 0.8; }
+        .templates { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 20px 0; }
+        .template-btn { background: #17a2b8; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; text-align: center; }
+        .template-btn:hover { background: #138496; }
+        .summary-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { background: white; padding: 15px; border-radius: 6px; text-align: center; border-left: 4px solid #007bff; }
+        .stat-value { font-size: 1.3em; font-weight: bold; color: #007bff; }
+        .stat-label { color: #666; font-size: 0.9em; }
+        .category-legend { display: flex; gap: 15px; margin: 15px 0; flex-wrap: wrap; justify-content: center; }
+        .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.9em; }
+        .legend-color { width: 16px; height: 16px; border-radius: 3px; }
+        .export-controls { text-align: center; margin: 20px 0; }
+        .export-btn { background: #6f42c1; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 0 5px; }
+        .export-btn:hover { background: #5a32a3; }
+    </style>
+</head>
+<body>
+    <div class="scheduler-container">
+        <h2>⏰ Time Block Scheduler - Daily Planner Grid</h2>
+        <p>Plan your day with visual time blocks. Perfect for deep work scheduling, meeting management, and productivity optimization.</p>
+        
+        <div class="scheduler-header">
+            <div class="date-navigation">
+                <button class="nav-btn" onclick="changeDate(-1)">‹ Previous</button>
+                <div class="current-date" id="currentDate"></div>
+                <button class="nav-btn" onclick="changeDate(1)">Next ›</button>
+                <button class="nav-btn" onclick="goToToday()">Today</button>
+            </div>
+            <div class="quick-actions">
+                <button class="action-btn add-block-btn" onclick="showAddBlockForm()">+ Add Block</button>
+                <button class="action-btn" onclick="showTemplates()">📋 Templates</button>
+                <button class="action-btn" onclick="clearDay()">🗑️ Clear Day</button>
+            </div>
+        </div>
+
+        <div class="category-legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #007bff;"></div>
+                <span>Work</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #28a745;"></div>
+                <span>Personal</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #fd7e14;"></div>
+                <span>Health</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e83e8c;"></div>
+                <span>Social</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #6f42c1;"></div>
+                <span>Learning</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #6c757d;"></div>
+                <span>Break</span>
+            </div>
+        </div>
+
+        <div class="summary-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalBlocks">0</div>
+                <div class="stat-label">Total Blocks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="scheduledTime">0h</div>
+                <div class="stat-label">Scheduled Time</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="freeTime">24h</div>
+                <div class="stat-label">Free Time</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="workTime">0h</div>
+                <div class="stat-label">Work Time</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="productivityScore">0%</div>
+                <div class="stat-label">Productivity Score</div>
+            </div>
+        </div>
+
+        <div class="time-grid">
+            <div class="time-column" id="timeColumn">
+                <!-- Time slots will be generated here -->
+            </div>
+            <div class="schedule-column" id="scheduleColumn">
+                <!-- Schedule slots will be generated here -->
+            </div>
+        </div>
+
+        <div class="export-controls">
+            <button class="export-btn" onclick="exportSchedule()">📤 Export Schedule</button>
+            <button class="export-btn" onclick="printSchedule()">🖨️ Print Schedule</button>
+            <button class="export-btn" onclick="saveSchedule()">💾 Save Schedule</button>
+            <button class="export-btn" onclick="loadSchedule()">📁 Load Schedule</button>
+        </div>
+    </div>
+
+    <!-- Add/Edit Block Modal -->
+    <div id="blockModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add Time Block</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="blockForm">
+                <div class="form-row">
+                    <label>Title:</label>
+                    <input type="text" id="blockTitle" required placeholder="Enter block title">
+                </div>
+                <div class="form-row">
+                    <label>Description:</label>
+                    <textarea id="blockDescription" placeholder="Optional description"></textarea>
+                </div>
+                <div class="form-row time-inputs">
+                    <div>
+                        <label>Start Time:</label>
+                        <input type="time" id="blockStartTime" required>
+                    </div>
+                    <div>
+                        <label>End Time:</label>
+                        <input type="time" id="blockEndTime" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>Category:</label>
+                    <select id="blockCategory">
+                        <option value="work">Work</option>
+                        <option value="personal">Personal</option>
+                        <option value="health">Health</option>
+                        <option value="social">Social</option>
+                        <option value="learning">Learning</option>
+                        <option value="break">Break</option>
+                    </select>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="form-btn cancel" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="form-btn save">Save Block</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Templates Modal -->
+    <div id="templatesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Schedule Templates</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="templates">
+                <button class="template-btn" onclick="loadTemplate('deepwork')">🧠 Deep Work Day</button>
+                <button class="template-btn" onclick="loadTemplate('meetings')">🤝 Meeting Heavy Day</button>
+                <button class="template-btn" onclick="loadTemplate('balanced')">⚖️ Balanced Day</button>
+                <button class="template-btn" onclick="loadTemplate('creative')">🎨 Creative Day</button>
+                <button class="template-btn" onclick="loadTemplate('maintenance')">🔧 Maintenance Day</button>
+                <button class="template-btn" onclick="loadTemplate('learning')">📚 Learning Day</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDate = new Date();
+        let timeBlocks = [];
+        let editingBlockId = null;
+
+        class TimeBlock {
+            constructor(title, description, startTime, endTime, category, date) {
+                this.id = Date.now() + Math.random();
+                this.title = title;
+                this.description = description;
+                this.startTime = startTime;
+                this.endTime = endTime;
+                this.category = category;
+                this.date = date || currentDate.toISOString().split('T')[0];
+            }
+
+            getDurationMinutes() {
+                const start = new Date(`2000-01-01T${this.startTime}`);
+                const end = new Date(`2000-01-01T${this.endTime}`);
+                return (end - start) / (1000 * 60);
+            }
+
+            getDurationHours() {
+                return this.getDurationMinutes() / 60;
+            }
+
+            getStartMinutes() {
+                const [hours, minutes] = this.startTime.split(':').map(Number);
+                return hours * 60 + minutes;
+            }
+
+            getEndMinutes() {
+                const [hours, minutes] = this.endTime.split(':').map(Number);
+                return hours * 60 + minutes;
+            }
+
+            overlaps(otherBlock) {
+                return this.date === otherBlock.date &&
+                       this.getStartMinutes() < otherBlock.getEndMinutes() &&
+                       this.getEndMinutes() > otherBlock.getStartMinutes();
+            }
+        }
+
+        const templates = {
+            deepwork: [
+                new TimeBlock('Morning Routine', 'Coffee, breakfast, planning', '07:00', '08:00', 'personal'),
+                new TimeBlock('Deep Work Block 1', 'Most important project', '08:00', '10:00', 'work'),
+                new TimeBlock('Break', 'Walk, stretch, snack', '10:00', '10:15', 'break'),
+                new TimeBlock('Deep Work Block 2', 'Continue main project', '10:15', '12:15', 'work'),
+                new TimeBlock('Lunch Break', 'Healthy lunch away from desk', '12:15', '13:15', 'break'),
+                new TimeBlock('Admin & Email', 'Communication and admin tasks', '13:15', '14:15', 'work'),
+                new TimeBlock('Deep Work Block 3', 'Secondary project', '14:15', '16:15', 'work'),
+                new TimeBlock('Wind Down', 'Plan tomorrow, organize', '16:15', '17:00', 'personal')
+            ],
+            meetings: [
+                new TimeBlock('Morning Prep', 'Review agenda, prep materials', '08:00', '09:00', 'work'),
+                new TimeBlock('Team Standup', 'Daily team sync', '09:00', '09:30', 'work'),
+                new TimeBlock('Project Review', 'Weekly project check-in', '09:30', '10:30', 'work'),
+                new TimeBlock('Break', 'Coffee and mental reset', '10:30', '10:45', 'break'),
+                new TimeBlock('Client Call', 'Quarterly business review', '10:45', '11:45', 'work'),
+                new TimeBlock('Strategy Meeting', 'Q4 planning session', '11:45', '12:45', 'work'),
+                new TimeBlock('Lunch', 'Working lunch with team', '12:45', '13:45', 'social'),
+                new TimeBlock('1:1 Meetings', 'Individual team check-ins', '13:45', '15:45', 'work'),
+                new TimeBlock('Follow-up Tasks', 'Action items from meetings', '15:45', '17:00', 'work')
+            ],
+            balanced: [
+                new TimeBlock('Morning Workout', 'Gym or home exercise', '06:30', '07:30', 'health'),
+                new TimeBlock('Breakfast & News', 'Healthy start to day', '07:30', '08:30', 'personal'),
+                new TimeBlock('Focused Work', 'High-priority tasks', '08:30', '10:30', 'work'),
+                new TimeBlock('Team Meeting', 'Weekly sync', '10:30', '11:30', 'work'),
+                new TimeBlock('Emails & Admin', 'Communication catch-up', '11:30', '12:30', 'work'),
+                new TimeBlock('Lunch Break', 'Mindful eating', '12:30', '13:30', 'break'),
+                new TimeBlock('Creative Work', 'brainstorming, design', '13:30', '15:00', 'work'),
+                new TimeBlock('Learning Time', 'Skill development', '15:00', '16:00', 'learning'),
+                new TimeBlock('Social Time', 'Connect with friends/family', '18:00', '19:00', 'social'),
+                new TimeBlock('Evening Wind-down', 'Reading, relaxation', '20:00', '21:00', 'personal')
+            ],
+            creative: [
+                new TimeBlock('Morning Pages', 'Journaling and planning', '07:00', '08:00', 'personal'),
+                new TimeBlock('Creative Block 1', 'Main creative project', '08:00', '10:00', 'work'),
+                new TimeBlock('Inspiration Break', 'Browse, research, explore', '10:00', '10:30', 'learning'),
+                new TimeBlock('Creative Block 2', 'Continue main project', '10:30', '12:30', 'work'),
+                new TimeBlock('Lunch & Walk', 'Outdoor break for ideas', '12:30', '13:30', 'break'),
+                new TimeBlock('Skill Practice', 'Technique improvement', '13:30', '14:30', 'learning'),
+                new TimeBlock('Collaborative Work', 'Feedback and iteration', '14:30', '16:00', 'work'),
+                new TimeBlock('Creative Exploration', 'Experiment with new ideas', '16:00', '17:00', 'work')
+            ],
+            maintenance: [
+                new TimeBlock('Email Cleanup', 'Inbox zero challenge', '08:00', '09:00', 'work'),
+                new TimeBlock('File Organization', 'Digital declutter', '09:00', '10:00', 'work'),
+                new TimeBlock('System Updates', 'Software and tools', '10:00', '11:00', 'work'),
+                new TimeBlock('Documentation', 'Update procedures', '11:00', '12:00', 'work'),
+                new TimeBlock('Lunch Break', 'Relaxing meal', '12:00', '13:00', 'break'),
+                new TimeBlock('Calendar Review', 'Plan next week', '13:00', '14:00', 'work'),
+                new TimeBlock('Goal Review', 'Progress check-in', '14:00', '15:00', 'personal'),
+                new TimeBlock('Learning & Reading', 'Industry articles', '15:00', '16:00', 'learning'),
+                new TimeBlock('Workspace Cleanup', 'Physical organization', '16:00', '17:00', 'personal')
+            ],
+            learning: [
+                new TimeBlock('Morning Reading', 'Industry news and articles', '07:00', '08:00', 'learning'),
+                new TimeBlock('Online Course', 'Structured learning', '08:00', '10:00', 'learning'),
+                new TimeBlock('Practice Session', 'Apply new skills', '10:00', '11:00', 'learning'),
+                new TimeBlock('Discussion Forum', 'Community engagement', '11:00', '11:30', 'social'),
+                new TimeBlock('Lunch & Podcast', 'Educational content', '11:30', '12:30', 'learning'),
+                new TimeBlock('Project Work', 'Apply learning', '12:30', '14:30', 'work'),
+                new TimeBlock('Study Group', 'Peer learning', '14:30', '15:30', 'social'),
+                new TimeBlock('Reflection & Notes', 'Consolidate learning', '15:30', '16:30', 'learning'),
+                new TimeBlock('Teaching Others', 'Share knowledge', '16:30', '17:30', 'social')
+            ]
+        };
+
+        function initializeScheduler() {
+            generateTimeGrid();
+            updateDateDisplay();
+            updateSchedule();
+        }
+
+        function generateTimeGrid() {
+            const timeColumn = document.getElementById('timeColumn');
+            const scheduleColumn = document.getElementById('scheduleColumn');
+            
+            timeColumn.innerHTML = '';
+            scheduleColumn.innerHTML = '';
+            
+            for (let hour = 0; hour < 24; hour++) {
+                // Time label
+                const timeSlot = document.createElement('div');
+                timeSlot.className = 'hour-slot';
+                timeSlot.innerHTML = `
+                    ${hour.toString().padStart(2, '0')}:00
+                    <div class="hour-line"></div>
+                `;
+                timeColumn.appendChild(timeSlot);
+                
+                // Schedule slot
+                const scheduleSlot = document.createElement('div');
+                scheduleSlot.className = 'schedule-slot';
+                scheduleSlot.setAttribute('data-hour', hour);
+                scheduleSlot.addEventListener('click', () => addBlockAtTime(hour));
+                scheduleColumn.appendChild(scheduleSlot);
+            }
+        }
+
+        function updateDateDisplay() {
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            };
+            document.getElementById('currentDate').textContent = currentDate.toLocaleDateString('en-US', options);
+        }
+
+        function changeDate(days) {
+            currentDate.setDate(currentDate.getDate() + days);
+            updateDateDisplay();
+            updateSchedule();
+        }
+
+        function goToToday() {
+            currentDate = new Date();
+            updateDateDisplay();
+            updateSchedule();
+        }
+
+        function addBlockAtTime(hour) {
+            const startTime = `${hour.toString().padStart(2, '0')}:00`;
+            const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`;
+            
+            document.getElementById('blockStartTime').value = startTime;
+            document.getElementById('blockEndTime').value = endTime;
+            showAddBlockForm();
+        }
+
+        function showAddBlockForm() {
+            editingBlockId = null;
+            document.getElementById('modalTitle').textContent = 'Add Time Block';
+            document.getElementById('blockForm').reset();
+            
+            // Set default times if not set
+            if (!document.getElementById('blockStartTime').value) {
+                const now = new Date();
+                const currentHour = now.getHours();
+                const startTime = `${currentHour.toString().padStart(2, '0')}:00`;
+                const endTime = `${(currentHour + 1).toString().padStart(2, '0')}:00`;
+                
+                document.getElementById('blockStartTime').value = startTime;
+                document.getElementById('blockEndTime').value = endTime;
+            }
+            
+            document.getElementById('blockModal').style.display = 'block';
+        }
+
+        function editBlock(blockId) {
+            const block = timeBlocks.find(b => b.id === blockId);
+            if (block) {
+                editingBlockId = blockId;
+                document.getElementById('modalTitle').textContent = 'Edit Time Block';
+                document.getElementById('blockTitle').value = block.title;
+                document.getElementById('blockDescription').value = block.description;
+                document.getElementById('blockStartTime').value = block.startTime;
+                document.getElementById('blockEndTime').value = block.endTime;
+                document.getElementById('blockCategory').value = block.category;
+                document.getElementById('blockModal').style.display = 'block';
+            }
+        }
+
+        function deleteBlock(blockId) {
+            if (confirm('Delete this time block?')) {
+                timeBlocks = timeBlocks.filter(b => b.id !== blockId);
+                updateSchedule();
+            }
+        }
+
+        function showTemplates() {
+            document.getElementById('templatesModal').style.display = 'block';
+        }
+
+        function loadTemplate(templateName) {
+            if (confirm(`Load ${templateName} template? This will replace today's schedule.`)) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                // Remove existing blocks for this date
+                timeBlocks = timeBlocks.filter(b => b.date !== dateStr);
+                
+                // Add template blocks
+                templates[templateName].forEach(templateBlock => {
+                    const block = new TimeBlock(
+                        templateBlock.title,
+                        templateBlock.description,
+                        templateBlock.startTime,
+                        templateBlock.endTime,
+                        templateBlock.category,
+                        dateStr
+                    );
+                    timeBlocks.push(block);
+                });
+                
+                updateSchedule();
+                closeModal();
+            }
+        }
+
+        function clearDay() {
+            if (confirm('Clear all blocks for today?')) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                timeBlocks = timeBlocks.filter(b => b.date !== dateStr);
+                updateSchedule();
+            }
+        }
+
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+
+        document.getElementById('blockForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('blockTitle').value.trim();
+            const description = document.getElementById('blockDescription').value.trim();
+            const startTime = document.getElementById('blockStartTime').value;
+            const endTime = document.getElementById('blockEndTime').value;
+            const category = document.getElementById('blockCategory').value;
+            const dateStr = currentDate.toISOString().split('T')[0];
+            
+            if (!title || !startTime || !endTime) return;
+            
+            // Validate time order
+            if (startTime >= endTime) {
+                alert('End time must be after start time');
+                return;
+            }
+            
+            const newBlock = new TimeBlock(title, description, startTime, endTime, category, dateStr);
+            
+            // Check for overlaps (excluding the block being edited)
+            const existingBlocks = timeBlocks.filter(b => 
+                b.date === dateStr && (!editingBlockId || b.id !== editingBlockId)
+            );
+            
+            const hasOverlap = existingBlocks.some(block => newBlock.overlaps(block));
+            if (hasOverlap) {
+                if (!confirm('This time block overlaps with existing blocks. Continue anyway?')) {
+                    return;
+                }
+            }
+            
+            if (editingBlockId) {
+                const existingBlock = timeBlocks.find(b => b.id === editingBlockId);
+                if (existingBlock) {
+                    Object.assign(existingBlock, {
+                        title, description, startTime, endTime, category
+                    });
+                }
+            } else {
+                timeBlocks.push(newBlock);
+            }
+            
+            updateSchedule();
+            closeModal();
+        });
+
+        function updateSchedule() {
+            updateStats();
+            renderBlocks();
+        }
+
+        function updateStats() {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            const todayBlocks = timeBlocks.filter(b => b.date === dateStr);
+            
+            const totalBlocks = todayBlocks.length;
+            const totalMinutes = todayBlocks.reduce((sum, block) => sum + block.getDurationMinutes(), 0);
+            const scheduledHours = Math.round(totalMinutes / 60 * 10) / 10;
+            const freeHours = Math.round((24 - scheduledHours) * 10) / 10;
+            
+            const workMinutes = todayBlocks
+                .filter(b => b.category === 'work')
+                .reduce((sum, block) => sum + block.getDurationMinutes(), 0);
+            const workHours = Math.round(workMinutes / 60 * 10) / 10;
+            
+            // Productivity score: work time + learning time as % of scheduled time
+            const productiveMinutes = todayBlocks
+                .filter(b => ['work', 'learning'].includes(b.category))
+                .reduce((sum, block) => sum + block.getDurationMinutes(), 0);
+            const productivityScore = totalMinutes > 0 ? Math.round((productiveMinutes / totalMinutes) * 100) : 0;
+            
+            document.getElementById('totalBlocks').textContent = totalBlocks;
+            document.getElementById('scheduledTime').textContent = scheduledHours + 'h';
+            document.getElementById('freeTime').textContent = freeHours + 'h';
+            document.getElementById('workTime').textContent = workHours + 'h';
+            document.getElementById('productivityScore').textContent = productivityScore + '%';
+        }
+
+        function renderBlocks() {
+            // Clear existing blocks
+            document.querySelectorAll('.time-block').forEach(block => block.remove());
+            
+            const dateStr = currentDate.toISOString().split('T')[0];
+            const todayBlocks = timeBlocks.filter(b => b.date === dateStr);
+            
+            const scheduleColumn = document.getElementById('scheduleColumn');
+            
+            todayBlocks.forEach(block => {
+                const blockElement = document.createElement('div');
+                blockElement.className = `time-block category-${block.category}`;
+                
+                // Calculate position and height
+                const startMinutes = block.getStartMinutes();
+                const durationMinutes = block.getDurationMinutes();
+                const top = (startMinutes / 60) * 60; // 60px per hour
+                const height = (durationMinutes / 60) * 60;
+                
+                blockElement.style.top = top + 'px';
+                blockElement.style.height = height + 'px';
+                
+                blockElement.innerHTML = `
+                    <div class="block-actions">
+                        <button class="block-action-btn" onclick="editBlock(${block.id})" title="Edit">✏️</button>
+                        <button class="block-action-btn" onclick="deleteBlock(${block.id})" title="Delete">🗑️</button>
+                    </div>
+                    <div class="block-title">${block.title}</div>
+                    <div class="block-time">${block.startTime} - ${block.endTime}</div>
+                    ${block.description ? `<div style="font-size: 0.8em; opacity: 0.8; margin-top: 2px;">${block.description}</div>` : ''}
+                `;
+                
+                scheduleColumn.appendChild(blockElement);
+            });
+        }
+
+        function exportSchedule() {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            const todayBlocks = timeBlocks.filter(b => b.date === dateStr);
+            
+            let schedule = `Schedule for ${currentDate.toLocaleDateString()}\n`;
+            schedule += '='.repeat(40) + '\n\n';
+            
+            // Sort blocks by start time
+            todayBlocks.sort((a, b) => a.getStartMinutes() - b.getStartMinutes());
+            
+            todayBlocks.forEach(block => {
+                schedule += `${block.startTime} - ${block.endTime} | ${block.title}\n`;
+                if (block.description) {
+                    schedule += `  ${block.description}\n`;
+                }
+                schedule += `  Category: ${block.category}\n\n`;
+            });
+            
+            const blob = new Blob([schedule], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `schedule_${dateStr}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function printSchedule() {
+            const printWindow = window.open('', '_blank');
+            const dateStr = currentDate.toLocaleDateString();
+            const todayBlocks = timeBlocks.filter(b => b.date === currentDate.toISOString().split('T')[0]);
+            
+            todayBlocks.sort((a, b) => a.getStartMinutes() - b.getStartMinutes());
+            
+            const scheduleHTML = `
+                <html>
+                <head>
+                    <title>Schedule - ${dateStr}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        h1 { text-align: center; }
+                        .block { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; }
+                        .time { font-weight: bold; }
+                        .title { font-size: 1.1em; margin: 5px 0; }
+                        .description { color: #666; font-style: italic; }
+                        .category { color: #999; font-size: 0.9em; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Daily Schedule - ${dateStr}</h1>
+                    ${todayBlocks.map(block => `
+                        <div class="block">
+                            <div class="time">${block.startTime} - ${block.endTime}</div>
+                            <div class="title">${block.title}</div>
+                            ${block.description ? `<div class="description">${block.description}</div>` : ''}
+                            <div class="category">Category: ${block.category}</div>
+                        </div>
+                    `).join('')}
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(scheduleHTML);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function saveSchedule() {
+            const data = {
+                timeBlocks: timeBlocks,
+                currentDate: currentDate.toISOString()
+            };
+            localStorage.setItem('time_block_schedule', JSON.stringify(data));
+            alert('Schedule saved locally!');
+        }
+
+        function loadSchedule() {
+            const saved = localStorage.getItem('time_block_schedule');
+            if (saved) {
+                if (confirm('Load saved schedule? This will replace current data.')) {
+                    const data = JSON.parse(saved);
+                    timeBlocks = data.timeBlocks || [];
+                    if (data.currentDate) {
+                        currentDate = new Date(data.currentDate);
+                    }
+                    updateDateDisplay();
+                    updateSchedule();
+                    alert('Schedule loaded!');
+                }
+            } else {
+                alert('No saved schedule found');
+            }
+        }
+
+        // Close modals when clicking outside
+        window.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                closeModal();
+            }
+        });
+
+        // Initialize with sample data
+        loadTemplate('balanced');
+        initializeScheduler();
+    </script>
+</body>
+</html>

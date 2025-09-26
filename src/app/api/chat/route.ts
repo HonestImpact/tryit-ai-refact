@@ -15,6 +15,46 @@ interface ChatResponse {
   };
 }
 
+// Helper function to get RAG context for Noah
+async function getRAGContext(userMessage: string): Promise<string[]> {
+  if (!AI_CONFIG.RAG_ENABLED) {
+    return [];
+  }
+
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { KnowledgeService } = await import('@/lib/knowledge/knowledge-service');
+    const { AnthropicProvider } = await import('@/lib/providers/anthropic-provider');
+
+    // Initialize knowledge service if RAG is enabled
+    const llmProvider = new AnthropicProvider({
+      apiKey: process.env.ANTHROPIC_API_KEY!,
+      model: 'claude-3-5-sonnet-20241022',
+      maxTokens: 4000
+    });
+
+    const knowledgeService = new KnowledgeService(llmProvider);
+    await knowledgeService.initialize();
+
+    // Search for relevant components
+    const results = await knowledgeService.search(userMessage, {
+      maxResults: AI_CONFIG.RAG_CONTEXT_LIMIT,
+      minRelevanceScore: AI_CONFIG.RAG_RELEVANCE_THRESHOLD
+    });
+
+    // Format results for context
+    return results.map(result => {
+      const item = result.item;
+      const metadata = item.metadata as any;
+      return `${metadata.title || item.type}: ${result.context || item.content.substring(0, 200)}...`;
+    });
+
+  } catch (error) {
+    console.warn('RAG context retrieval failed (falling back to basic Noah):', error);
+    return [];
+  }
+}
+
 // Helper function to determine if request should use multi-agent system
 function shouldUseMultiAgent(lastMessage: string, allMessages: any[]): boolean {
   const content = lastMessage.toLowerCase();
@@ -198,11 +238,19 @@ What aspects of your current approach are you most interested in examining?`;
       });
     }
 
+    // Get RAG context for enhanced responses
+    const ragContext = await getRAGContext(lastUserMessage);
+    
+    // Use RAG-enhanced system prompt if we have relevant context
+    const systemPrompt = ragContext.length > 0 
+      ? AI_CONFIG.RAG_SYSTEM_PROMPT(ragContext)
+      : AI_CONFIG.CHAT_SYSTEM_PROMPT;
+
     // Call the actual Anthropic API
     const result = await generateText({
       model: anthropic(AI_CONFIG.getModel()),
       messages: messages,
-      system: AI_CONFIG.CHAT_SYSTEM_PROMPT,
+      system: systemPrompt,
     });
 
     // Process response for artifacts

@@ -1,7 +1,7 @@
 // LangChain Integration for Conversation Memory and Reasoning
 // Built on the existing TryIt-AI foundation
 
-import { ChatMessageHistory } from '@langchain/core/chat_history';
+import { ChatMessageHistory } from '@langchain/community/stores/message/in_memory';
 import { BaseMessage, HumanMessage, AIMessage } from '@langchain/core/messages';
 import { ConversationSummaryMemory } from 'langchain/memory';
 import { PromptTemplate } from '@langchain/core/prompts';

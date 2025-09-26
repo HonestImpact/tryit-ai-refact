@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Step Forms - Progressive Data Collection</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+        .form-container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .progress-bar { background: #e9ecef; height: 8px; border-radius: 4px; margin: 20px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #007bff, #28a745); transition: width 0.3s ease; border-radius: 4px; }
+        .progress-info { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
+        .step-indicator { display: flex; justify-content: center; margin: 20px 0; }
+        .step { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 10px; font-weight: bold; transition: all 0.3s; }
+        .step.completed { background: #28a745; color: white; }
+        .step.current { background: #007bff; color: white; animation: pulse 2s infinite; }
+        .step.pending { background: #e9ecef; color: #666; }
+        .step-connector { flex: 1; height: 2px; background: #e9ecef; margin: 0 5px; }
+        .step-connector.completed { background: #28a745; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .form-step { background: white; border-radius: 8px; padding: 30px; margin: 20px 0; border: 1px solid #ddd; min-height: 400px; display: none; }
+        .form-step.active { display: block; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        .step-title { font-size: 1.5em; font-weight: bold; color: #333; margin-bottom: 10px; }
+        .step-description { color: #666; margin-bottom: 25px; font-size: 1.1em; }
+        .form-group { margin: 20px 0; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; transition: border-color 0.2s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 3px rgba(0,123,255,0.1); }
+        .form-group textarea { height: 100px; resize: vertical; }
+        .checkbox-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 15px 0; }
+        .checkbox-item { display: flex; align-items: center; padding: 10px; border: 1px solid #e9ecef; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+        .checkbox-item:hover { background: #f8f9fa; border-color: #007bff; }
+        .checkbox-item input[type="checkbox"] { margin-right: 10px; }
+        .radio-group { margin: 15px 0; }
+        .radio-item { display: flex; align-items: center; padding: 10px; margin: 5px 0; border: 1px solid #e9ecef; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+        .radio-item:hover { background: #f8f9fa; border-color: #007bff; }
+        .radio-item input[type="radio"] { margin-right: 10px; }
+        .radio-item.selected { background: #e3f2fd; border-color: #007bff; }
+        .file-upload { border: 2px dashed #ccc; border-radius: 6px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .file-upload:hover { border-color: #007bff; background: #f8f9fa; }
+        .file-upload.dragover { border-color: #007bff; background: #e3f2fd; }
+        .file-list { margin: 15px 0; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f8f9fa; border-radius: 4px; margin: 5px 0; }
+        .remove-file { color: #dc3545; cursor: pointer; }
+        .form-navigation { display: flex; justify-content: space-between; margin: 30px 0; }
+        .nav-btn { padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; transition: all 0.2s; }
+        .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-previous { background: #6c757d; color: white; }
+        .btn-previous:hover:not(:disabled) { background: #5a6268; }
+        .btn-next { background: #007bff; color: white; }
+        .btn-next:hover:not(:disabled) { background: #0056b3; }
+        .btn-submit { background: #28a745; color: white; }
+        .btn-submit:hover:not(:disabled) { background: #218838; }
+        .validation-error { color: #dc3545; font-size: 0.9em; margin-top: 5px; display: none; }
+        .form-group.error input, .form-group.error select, .form-group.error textarea { border-color: #dc3545; }
+        .form-group.error .validation-error { display: block; }
+        .summary-section { background: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0; }
+        .summary-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e9ecef; }
+        .summary-item:last-child { border-bottom: none; }
+        .templates { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 20px 0; }
+        .template-btn { background: #17a2b8; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; text-align: center; }
+        .template-btn:hover { background: #138496; }
+        .success-message { background: #d4edda; color: #155724; padding: 20px; border-radius: 6px; text-align: center; }
+        .form-controls { display: flex; gap: 10px; justify-content: center; margin: 20px 0; }
+        .control-btn { padding: 8px 15px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; }
+        .control-btn:hover { background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>📝 Multi-Step Forms - Progressive Data Collection</h2>
+        <p>Create engaging, user-friendly forms that break complex data collection into manageable steps.</p>
+        
+        <div class="templates">
+            <button class="template-btn" onclick="loadTemplate('registration')">👤 User Registration</button>
+            <button class="template-btn" onclick="loadTemplate('survey')">📊 Survey Form</button>
+            <button class="template-btn" onclick="loadTemplate('application')">📋 Job Application</button>
+            <button class="template-btn" onclick="loadTemplate('order')">🛒 Order Form</button>
+            <button class="template-btn" onclick="loadTemplate('feedback')">💬 Feedback Collection</button>
+        </div>
+
+        <div class="form-controls">
+            <button class="control-btn" onclick="resetForm()">🔄 Reset Form</button>
+            <button class="control-btn" onclick="exportData()">📤 Export Data</button>
+            <button class="control-btn" onclick="loadData()">📁 Load Data</button>
+        </div>
+
+        <div class="progress-info">
+            <span>Progress: <strong id="progressText">0%</strong></span>
+            <span>Step <span id="currentStepNumber">1</span> of <span id="totalSteps">1</span></span>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div class="step-indicator" id="stepIndicator">
+            <!-- Step indicators will be generated here -->
+        </div>
+
+        <div id="formSteps">
+            <!-- Form steps will be generated here -->
+        </div>
+
+        <div class="form-navigation">
+            <button class="nav-btn btn-previous" id="prevBtn" onclick="previousStep()" disabled>Previous</button>
+            <button class="nav-btn btn-next" id="nextBtn" onclick="nextStep()">Next</button>
+        </div>
+
+        <div id="completedMessage" style="display: none;">
+            <div class="success-message">
+                <h3>🎉 Form Completed Successfully!</h3>
+                <p>Thank you for providing your information. Your data has been collected.</p>
+                <button class="nav-btn btn-submit" onclick="startOver()">Start Over</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        let formSteps = [];
+        let formData = {};
+        let uploadedFiles = {};
+
+        class FormStep {
+            constructor(title, description, fields) {
+                this.title = title;
+                this.description = description;
+                this.fields = fields;
+            }
+        }
+
+        class FormField {
+            constructor(name, label, type, options = {}) {
+                this.name = name;
+                this.label = label;
+                this.type = type; // text, email, tel, select, textarea, checkbox, radio, file
+                this.required = options.required || false;
+                this.placeholder = options.placeholder || '';
+                this.options = options.options || []; // for select, radio, checkbox
+                this.validation = options.validation || null;
+            }
+        }
+
+        const templates = {
+            registration: [
+                new FormStep('Personal Information', 'Let\'s start with your basic details', [
+                    new FormField('firstName', 'First Name', 'text', { required: true, placeholder: 'Enter your first name' }),
+                    new FormField('lastName', 'Last Name', 'text', { required: true, placeholder: 'Enter your last name' }),
+                    new FormField('email', 'Email Address', 'email', { required: true, placeholder: 'your.email@example.com' }),
+                    new FormField('phone', 'Phone Number', 'tel', { placeholder: '+1 (555) 123-4567' })
+                ]),
+                new FormStep('Account Setup', 'Create your account credentials', [
+                    new FormField('username', 'Username', 'text', { required: true, placeholder: 'Choose a username' }),
+                    new FormField('password', 'Password', 'password', { required: true, placeholder: 'Create a strong password' }),
+                    new FormField('confirmPassword', 'Confirm Password', 'password', { required: true, placeholder: 'Confirm your password' }),
+                    new FormField('newsletter', 'Communications', 'checkbox', { 
+                        options: ['Subscribe to newsletter', 'Receive product updates', 'Marketing emails'] 
+                    })
+                ]),
+                new FormStep('Profile Details', 'Tell us more about yourself', [
+                    new FormField('bio', 'Bio', 'textarea', { placeholder: 'Tell us about yourself...' }),
+                    new FormField('avatar', 'Profile Picture', 'file'),
+                    new FormField('interests', 'Interests', 'checkbox', { 
+                        options: ['Technology', 'Sports', 'Music', 'Travel', 'Food', 'Books'] 
+                    })
+                ])
+            ],
+            survey: [
+                new FormStep('Demographics', 'Help us understand our audience', [
+                    new FormField('age', 'Age Group', 'radio', { 
+                        options: ['Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'] 
+                    }),
+                    new FormField('location', 'Location', 'select', { 
+                        options: ['North America', 'Europe', 'Asia', 'South America', 'Africa', 'Australia', 'Other'] 
+                    }),
+                    new FormField('occupation', 'Occupation', 'text', { placeholder: 'What do you do for work?' })
+                ]),
+                new FormStep('Experience', 'Tell us about your experience', [
+                    new FormField('satisfaction', 'Overall Satisfaction', 'radio', { 
+                        options: ['Very Dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very Satisfied'] 
+                    }),
+                    new FormField('features', 'Which features do you use?', 'checkbox', { 
+                        options: ['Basic Tools', 'Advanced Analytics', 'Reporting', 'Integrations', 'Mobile App', 'API'] 
+                    }),
+                    new FormField('feedback', 'Additional Feedback', 'textarea', { 
+                        placeholder: 'Share any additional thoughts or suggestions...' 
+                    })
+                ])
+            ],
+            application: [
+                new FormStep('Personal Information', 'Basic details about yourself', [
+                    new FormField('fullName', 'Full Name', 'text', { required: true }),
+                    new FormField('email', 'Email', 'email', { required: true }),
+                    new FormField('phone', 'Phone', 'tel', { required: true }),
+                    new FormField('address', 'Address', 'textarea', { placeholder: 'Full address including city, state, zip' })
+                ]),
+                new FormStep('Work Experience', 'Tell us about your background', [
+                    new FormField('currentRole', 'Current Role', 'text', { placeholder: 'Your current job title' }),
+                    new FormField('experience', 'Years of Experience', 'select', { 
+                        options: ['0-1 years', '2-5 years', '6-10 years', '11-15 years', '15+ years'] 
+                    }),
+                    new FormField('skills', 'Key Skills', 'checkbox', { 
+                        options: ['JavaScript', 'Python', 'React', 'Node.js', 'SQL', 'Project Management', 'Team Leadership'] 
+                    }),
+                    new FormField('resume', 'Resume', 'file', { required: true })
+                ]),
+                new FormStep('Additional Information', 'Final details', [
+                    new FormField('salary', 'Salary Expectations', 'text', { placeholder: 'Expected salary range' }),
+                    new FormField('startDate', 'Available Start Date', 'date'),
+                    new FormField('coverLetter', 'Cover Letter', 'textarea', { 
+                        placeholder: 'Why are you interested in this position?' 
+                    })
+                ])
+            ],
+            order: [
+                new FormStep('Product Selection', 'Choose your items', [
+                    new FormField('products', 'Products', 'checkbox', { 
+                        options: ['Laptop ($999)', 'Monitor ($299)', 'Keyboard ($79)', 'Mouse ($49)', 'Headphones ($199)'] 
+                    }),
+                    new FormField('quantity', 'Quantity', 'select', { 
+                        options: ['1', '2', '3', '4', '5+'] 
+                    }),
+                    new FormField('urgency', 'Delivery Speed', 'radio', { 
+                        options: ['Standard (5-7 days)', 'Express (2-3 days)', 'Overnight (+$25)'] 
+                    })
+                ]),
+                new FormStep('Shipping Information', 'Where should we send your order?', [
+                    new FormField('shippingName', 'Full Name', 'text', { required: true }),
+                    new FormField('shippingAddress', 'Address', 'textarea', { required: true }),
+                    new FormField('shippingPhone', 'Phone Number', 'tel', { required: true }),
+                    new FormField('specialInstructions', 'Special Instructions', 'textarea', { 
+                        placeholder: 'Any special delivery instructions?' 
+                    })
+                ]),
+                new FormStep('Payment & Review', 'Complete your order', [
+                    new FormField('paymentMethod', 'Payment Method', 'radio', { 
+                        options: ['Credit Card', 'PayPal', 'Bank Transfer', 'Cryptocurrency'] 
+                    }),
+                    new FormField('promoCode', 'Promo Code', 'text', { placeholder: 'Enter promo code if you have one' }),
+                    new FormField('terms', 'Agreement', 'checkbox', { 
+                        options: ['I agree to the terms and conditions', 'I agree to the privacy policy'] 
+                    })
+                ])
+            ],
+            feedback: [
+                new FormStep('About You', 'Help us understand your perspective', [
+                    new FormField('customerType', 'You are a...', 'radio', { 
+                        options: ['New Customer', 'Existing Customer', 'Former Customer', 'Potential Customer'] 
+                    }),
+                    new FormField('usageFrequency', 'How often do you use our service?', 'radio', { 
+                        options: ['Daily', 'Weekly', 'Monthly', 'Rarely', 'Never'] 
+                    })
+                ]),
+                new FormStep('Your Experience', 'Rate different aspects', [
+                    new FormField('easeOfUse', 'Ease of Use', 'radio', { 
+                        options: ['Very Difficult', 'Difficult', 'Neutral', 'Easy', 'Very Easy'] 
+                    }),
+                    new FormField('customerService', 'Customer Service', 'radio', { 
+                        options: ['Poor', 'Below Average', 'Average', 'Good', 'Excellent'] 
+                    }),
+                    new FormField('improvements', 'What could we improve?', 'checkbox', { 
+                        options: ['User Interface', 'Performance', 'Features', 'Documentation', 'Support', 'Pricing'] 
+                    })
+                ]),
+                new FormStep('Final Thoughts', 'Share your overall feedback', [
+                    new FormField('recommendation', 'Would you recommend us?', 'radio', { 
+                        options: ['Definitely not', 'Probably not', 'Maybe', 'Probably yes', 'Definitely yes'] 
+                    }),
+                    new FormField('comments', 'Additional Comments', 'textarea', { 
+                        placeholder: 'Any other feedback or suggestions?' 
+                    }),
+                    new FormField('followUp', 'Follow-up', 'checkbox', { 
+                        options: ['Yes, you may contact me about this feedback'] 
+                    })
+                ])
+            ]
+        };
+
+        function loadTemplate(templateName) {
+            if (confirm(`Load ${templateName} template? This will reset the current form.`)) {
+                formSteps = [...templates[templateName]];
+                resetForm();
+                renderForm();
+            }
+        }
+
+        function renderForm() {
+            renderStepIndicator();
+            renderFormSteps();
+            updateProgress();
+            updateNavigation();
+        }
+
+        function renderStepIndicator() {
+            const container = document.getElementById('stepIndicator');
+            container.innerHTML = '';
+            
+            formSteps.forEach((step, index) => {
+                if (index > 0) {
+                    const connector = document.createElement('div');
+                    connector.className = `step-connector ${index <= currentStep ? 'completed' : ''}`;
+                    container.appendChild(connector);
+                }
+                
+                const stepElement = document.createElement('div');
+                stepElement.className = `step ${index < currentStep ? 'completed' : index === currentStep ? 'current' : 'pending'}`;
+                stepElement.textContent = index + 1;
+                container.appendChild(stepElement);
+            });
+        }
+
+        function renderFormSteps() {
+            const container = document.getElementById('formSteps');
+            container.innerHTML = '';
+            
+            formSteps.forEach((step, stepIndex) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = `form-step ${stepIndex === currentStep ? 'active' : ''}`;
+                
+                let html = `
+                    <div class="step-title">${step.title}</div>
+                    <div class="step-description">${step.description}</div>
+                `;
+                
+                // Add summary for final step
+                if (stepIndex === formSteps.length - 1) {
+                    html += renderSummary();
+                }
+                
+                step.fields.forEach(field => {
+                    html += renderField(field);
+                });
+                
+                stepDiv.innerHTML = html;
+                container.appendChild(stepDiv);
+            });
+            
+            // Attach event listeners after rendering
+            setTimeout(attachEventListeners, 100);
+        }
+
+        function renderField(field) {
+            const value = formData[field.name] || '';
+            const errorClass = '';
+            
+            let html = `<div class="form-group ${errorClass}">`;
+            html += `<label>${field.label}${field.required ? ' *' : ''}</label>`;
+            
+            switch (field.type) {
+                case 'text':
+                case 'email':
+                case 'tel':
+                case 'password':
+                case 'date':
+                    html += `<input type="${field.type}" name="${field.name}" value="${value}" 
+                            placeholder="${field.placeholder}" ${field.required ? 'required' : ''}>`;
+                    break;
+                    
+                case 'textarea':
+                    html += `<textarea name="${field.name}" placeholder="${field.placeholder}" 
+                            ${field.required ? 'required' : ''}>${value}</textarea>`;
+                    break;
+                    
+                case 'select':
+                    html += `<select name="${field.name}" ${field.required ? 'required' : ''}>`;
+                    html += '<option value="">Select an option...</option>';
+                    field.options.forEach(option => {
+                        html += `<option value="${option}" ${value === option ? 'selected' : ''}>${option}</option>`;
+                    });
+                    html += '</select>';
+                    break;
+                    
+                case 'radio':
+                    html += '<div class="radio-group">';
+                    field.options.forEach(option => {
+                        html += `<div class="radio-item ${value === option ? 'selected' : ''}">`;
+                        html += `<input type="radio" name="${field.name}" value="${option}" 
+                                ${value === option ? 'checked' : ''}> ${option}`;
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                    break;
+                    
+                case 'checkbox':
+                    html += '<div class="checkbox-group">';
+                    const selectedValues = Array.isArray(value) ? value : [];
+                    field.options.forEach(option => {
+                        html += `<div class="checkbox-item">`;
+                        html += `<input type="checkbox" name="${field.name}" value="${option}" 
+                                ${selectedValues.includes(option) ? 'checked' : ''}> ${option}`;
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                    break;
+                    
+                case 'file':
+                    html += `<div class="file-upload" onclick="document.getElementById('${field.name}').click()">`;
+                    html += `<input type="file" id="${field.name}" name="${field.name}" style="display: none;" multiple>`;
+                    html += '<div>📁 Click to select files or drag and drop</div>';
+                    html += '</div>';
+                    if (uploadedFiles[field.name]) {
+                        html += '<div class="file-list">';
+                        uploadedFiles[field.name].forEach((file, index) => {
+                            html += `<div class="file-item">`;
+                            html += `<span>${file.name}</span>`;
+                            html += `<span class="remove-file" onclick="removeFile('${field.name}', ${index})">×</span>`;
+                            html += '</div>';
+                        });
+                        html += '</div>';
+                    }
+                    break;
+            }
+            
+            html += '<div class="validation-error">This field is required</div>';
+            html += '</div>';
+            
+            return html;
+        }
+
+        function renderSummary() {
+            let html = '<div class="summary-section"><h4>Review Your Information</h4>';
+            
+            Object.entries(formData).forEach(([key, value]) => {
+                if (value && value !== '') {
+                    let displayValue = value;
+                    if (Array.isArray(value)) {
+                        displayValue = value.join(', ');
+                    }
+                    html += `<div class="summary-item">`;
+                    html += `<span><strong>${formatFieldName(key)}:</strong></span>`;
+                    html += `<span>${displayValue}</span>`;
+                    html += '</div>';
+                }
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+        function formatFieldName(name) {
+            return name.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+        }
+
+        function attachEventListeners() {
+            // Text inputs
+            document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input[type="date"], textarea, select').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    updateFormData(e.target.name, e.target.value);
+                });
+            });
+            
+            // Radio buttons
+            document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    updateFormData(e.target.name, e.target.value);
+                    // Update visual selection
+                    document.querySelectorAll(`input[name="${e.target.name}"]`).forEach(r => {
+                        r.closest('.radio-item').classList.remove('selected');
+                    });
+                    e.target.closest('.radio-item').classList.add('selected');
+                });
+            });
+            
+            // Checkboxes
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const name = e.target.name;
+                    const value = e.target.value;
+                    
+                    if (!formData[name]) formData[name] = [];
+                    
+                    if (e.target.checked) {
+                        if (!formData[name].includes(value)) {
+                            formData[name].push(value);
+                        }
+                    } else {
+                        formData[name] = formData[name].filter(item => item !== value);
+                    }
+                });
+            });
+            
+            // File inputs
+            document.querySelectorAll('input[type="file"]').forEach(fileInput => {
+                fileInput.addEventListener('change', (e) => {
+                    const files = Array.from(e.target.files);
+                    const fieldName = e.target.name;
+                    
+                    if (!uploadedFiles[fieldName]) {
+                        uploadedFiles[fieldName] = [];
+                    }
+                    
+                    uploadedFiles[fieldName] = uploadedFiles[fieldName].concat(files);
+                    renderForm();
+                });
+            });
+        }
+
+        function updateFormData(name, value) {
+            formData[name] = value;
+            validateField(name, value);
+        }
+
+        function validateField(name, value) {
+            // Basic validation - can be extended
+            const field = getCurrentStepFields().find(f => f.name === name);
+            if (field && field.required && (!value || value.trim() === '')) {
+                return false;
+            }
+            return true;
+        }
+
+        function validateCurrentStep() {
+            const currentStepFields = getCurrentStepFields();
+            let isValid = true;
+            
+            currentStepFields.forEach(field => {
+                const value = formData[field.name];
+                const fieldElement = document.querySelector(`[name="${field.name}"]`);
+                
+                if (field.required) {
+                    let hasValue = false;
+                    
+                    if (field.type === 'checkbox') {
+                        hasValue = Array.isArray(value) && value.length > 0;
+                    } else if (field.type === 'file') {
+                        hasValue = uploadedFiles[field.name] && uploadedFiles[field.name].length > 0;
+                    } else {
+                        hasValue = value && value.trim() !== '';
+                    }
+                    
+                    if (!hasValue) {
+                        isValid = false;
+                        if (fieldElement) {
+                            fieldElement.closest('.form-group').classList.add('error');
+                        }
+                    } else {
+                        if (fieldElement) {
+                            fieldElement.closest('.form-group').classList.remove('error');
+                        }
+                    }
+                }
+            });
+            
+            return isValid;
+        }
+
+        function getCurrentStepFields() {
+            return formSteps[currentStep]?.fields || [];
+        }
+
+        function nextStep() {
+            if (!validateCurrentStep()) {
+                alert('Please fill in all required fields before continuing.');
+                return;
+            }
+            
+            if (currentStep < formSteps.length - 1) {
+                currentStep++;
+                renderForm();
+            } else {
+                completeForm();
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                renderForm();
+            }
+        }
+
+        function completeForm() {
+            document.getElementById('formSteps').style.display = 'none';
+            document.getElementById('completedMessage').style.display = 'block';
+            document.querySelector('.form-navigation').style.display = 'none';
+            document.querySelector('.progress-bar').style.display = 'none';
+            document.querySelector('.step-indicator').style.display = 'none';
+            
+            // Log the final data
+            console.log('Form completed with data:', formData);
+            console.log('Uploaded files:', uploadedFiles);
+        }
+
+        function startOver() {
+            resetForm();
+            renderForm();
+            document.getElementById('formSteps').style.display = 'block';
+            document.getElementById('completedMessage').style.display = 'none';
+            document.querySelector('.form-navigation').style.display = 'flex';
+            document.querySelector('.progress-bar').style.display = 'block';
+            document.querySelector('.step-indicator').style.display = 'flex';
+        }
+
+        function updateProgress() {
+            const progress = ((currentStep + 1) / formSteps.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = Math.round(progress) + '%';
+            document.getElementById('currentStepNumber').textContent = currentStep + 1;
+            document.getElementById('totalSteps').textContent = formSteps.length;
+        }
+
+        function updateNavigation() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            prevBtn.disabled = currentStep === 0;
+            
+            if (currentStep === formSteps.length - 1) {
+                nextBtn.textContent = 'Complete';
+                nextBtn.className = 'nav-btn btn-submit';
+            } else {
+                nextBtn.textContent = 'Next';
+                nextBtn.className = 'nav-btn btn-next';
+            }
+        }
+
+        function resetForm() {
+            currentStep = 0;
+            formData = {};
+            uploadedFiles = {};
+        }
+
+        function removeFile(fieldName, index) {
+            if (uploadedFiles[fieldName]) {
+                uploadedFiles[fieldName].splice(index, 1);
+                renderForm();
+            }
+        }
+
+        function exportData() {
+            const data = {
+                formData: formData,
+                uploadedFiles: Object.keys(uploadedFiles).reduce((acc, key) => {
+                    acc[key] = uploadedFiles[key].map(file => ({ name: file.name, size: file.size, type: file.type }));
+                    return acc;
+                }, {}),
+                timestamp: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `form_data_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function loadData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (confirm('Load saved form data? This will replace current data.')) {
+                                formData = data.formData || {};
+                                renderForm();
+                                alert('Form data loaded successfully!');
+                            }
+                        } catch (error) {
+                            alert('Error loading form data: ' + error.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        // Initialize with registration template
+        loadTemplate('registration');
+    </script>
+</body>
+</html>

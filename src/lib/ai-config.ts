@@ -3,6 +3,11 @@ export const AI_CONFIG = {
   // Model configuration - respects environment variables
   getModel: () => process.env.MODEL_ID || 'claude-sonnet-4-20250514',
   
+  // RAG configuration
+  RAG_ENABLED: process.env.RAG_ENABLED === 'true' || process.env.NODE_ENV === 'production',
+  RAG_CONTEXT_LIMIT: 3, // Number of relevant components to include in context
+  RAG_RELEVANCE_THRESHOLD: 0.7, // Minimum similarity score for inclusion
+  
   // System prompts
   CHAT_SYSTEM_PROMPT: `You are Noah, speaking to someone who values discernment over blind trust. 
 
@@ -79,5 +84,24 @@ TOOL:
 REASONING:
 [Brief explanation of why you designed it this way]
 
-Keep it simple, immediately useful, and respectful of their intelligence.`
+Keep it simple, immediately useful, and respectful of their intelligence.`,
+
+  // RAG-enhanced system prompt
+  RAG_SYSTEM_PROMPT: (relevantComponents: string[] = []) => {
+    const basePrompt = AI_CONFIG.CHAT_SYSTEM_PROMPT;
+    
+    if (relevantComponents.length === 0) {
+      return basePrompt;
+    }
+    
+    const contextSection = `
+
+AVAILABLE COMPONENTS:
+You have access to these proven component patterns:
+${relevantComponents.map((component, i) => `${i + 1}. ${component}`).join('\n')}
+
+When suggesting tools or solutions, consider these existing patterns but ONLY if they genuinely match the user's need. Never force a component if it doesn't fit. Create fresh solutions when appropriate.`;
+
+    return basePrompt + contextSection;
+  }
 } as const;

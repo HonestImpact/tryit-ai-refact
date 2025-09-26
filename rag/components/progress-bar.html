@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Tracker</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 20px auto; padding: 20px; }
+        .tracker { background: #f5f5f5; padding: 20px; border-radius: 8px; }
+        .progress-container { background: #ddd; border-radius: 10px; margin: 10px 0; }
+        .progress-bar { height: 20px; background: #4CAF50; border-radius: 10px; transition: width 0.3s; }
+        input, button { padding: 8px; margin: 5px; font-size: 14px; }
+        .controls { margin: 15px 0; }
+        #percentage { font-size: 18px; font-weight: bold; text-align: center; margin: 10px; }
+    </style>
+</head>
+<body>
+    <div class="tracker">
+        <h3>Progress Tracker</h3>
+        <label for="goal">Goal: </label>
+        <input type="text" id="goal" placeholder="What are you tracking?" value="My Project">
+        <br>
+        <label for="target">Target: </label>
+        <input type="number" id="target" placeholder="Target number" value="100">
+        <br>
+        <label for="current">Current: </label>
+        <input type="number" id="current" placeholder="Current progress" value="0">
+        
+        <div class="controls">
+            <button onclick="updateProgress()">Update Progress</button>
+            <button onclick="addProgress(1)">+1</button>
+            <button onclick="addProgress(5)">+5</button>
+            <button onclick="reset()">Reset</button>
+        </div>
+        
+        <div id="percentage">0%</div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+        </div>
+        <div id="status">Ready to track your progress!</div>
+    </div>
+
+    <script>
+        function updateProgress() {
+            const target = parseFloat(document.getElementById('target').value) || 100;
+            const current = parseFloat(document.getElementById('current').value) || 0;
+            const percentage = Math.min(Math.round((current / target) * 100), 100);
+            
+            document.getElementById('percentage').innerText = percentage + '%';
+            document.getElementById('progressBar').style.width = percentage + '%';
+            
+            const goal = document.getElementById('goal').value || 'Your goal';
+            if (percentage >= 100) {
+                document.getElementById('status').innerText = `🎉 Congratulations! You've completed ${goal}!`;
+            } else {
+                document.getElementById('status').innerText = `${current} / ${target} - Keep going with ${goal}!`;
+            }
+        }
+
+        function addProgress(amount) {
+            const currentInput = document.getElementById('current');
+            currentInput.value = (parseFloat(currentInput.value) || 0) + amount;
+            updateProgress();
+        }
+
+        function reset() {
+            document.getElementById('current').value = '0';
+            updateProgress();
+        }
+
+        // Initialize
+        updateProgress();
+    </script>
+</body>
+</html>

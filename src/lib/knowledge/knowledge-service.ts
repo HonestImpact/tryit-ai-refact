@@ -1,8 +1,8 @@
 // Knowledge Service - Main interface for knowledge layer
 // Built on the existing TryIt-AI foundation
 
-import { VectorizeProvider } from './vectorize-provider';
-import { LangChainMemoryProvider } from './langchain-memory';
+// Dynamic imports to avoid circular dependencies
+// Providers will be imported when needed
 import type {
   KnowledgeProvider,
   KnowledgeItem,
@@ -17,11 +17,22 @@ import type {
 import type { LLMProvider } from '../agents/types';
 
 interface KnowledgeConfig {
+  readonly provider?: 'langchain' | 'chroma' | 'vectorize';
   readonly vectorize?: {
     accountId: string;
     apiToken: string;
     indexName: string;
     dimensions: number;
+  };
+  readonly chroma?: {
+    url: string;
+    collectionName: string;
+  };
+  readonly langchain?: {
+    vectorStore: 'chroma' | 'memory';
+    chromaUrl?: string;
+    collectionName?: string;
+    enableTracing?: boolean;
   };
   readonly memory?: {
     maxMessages: number;
@@ -50,6 +61,17 @@ export class KnowledgeService implements KnowledgeProvider, KnowledgeIndexer {
     config: Partial<KnowledgeConfig> = {}
   ) {
     this.config = {
+      provider: (process.env.RAG_PROVIDER as any) || 'langchain',
+      chroma: {
+        url: process.env.CHROMA_URL, // Only if explicitly set
+        collectionName: process.env.CHROMA_COLLECTION || 'tryit-ai-knowledge'
+      },
+      langchain: {
+        vectorStore: process.env.CHROMA_URL ? 'chroma' : 'memory', // Only use Chroma if explicitly configured
+        chromaUrl: process.env.CHROMA_URL,
+        collectionName: process.env.CHROMA_COLLECTION || 'tryit-ai-knowledge',
+        enableTracing: process.env.LANGSMITH_TRACING === 'true'
+      },
       memory: {
         maxMessages: 50,
         summaryThreshold: 20,
@@ -69,19 +91,58 @@ export class KnowledgeService implements KnowledgeProvider, KnowledgeIndexer {
     if (this.isInitialized) return;
 
     try {
-      // Initialize vector store if config provided
-      if (this.config.vectorize) {
-        this.vectorStore = new VectorizeProvider(this.config.vectorize);
-        this.log('info', 'Vectorize provider initialized');
+      // Initialize vector store based on provider configuration
+      switch (this.config.provider) {
+        case 'langchain':
+          const { LangChainRAGProvider } = await import('./langchain-rag-provider');
+          this.vectorStore = new LangChainRAGProvider({
+            vectorStore: this.config.langchain?.chromaUrl ? 'chroma' : 'memory',
+            chromaUrl: this.config.langchain?.chromaUrl,
+            collectionName: this.config.langchain?.collectionName,
+            enableTracing: this.config.langchain?.enableTracing,
+            langsmithApiKey: process.env.LANGSMITH_API_KEY,
+            langsmithProject: process.env.LANGSMITH_PROJECT
+          });
+          this.log('info', 'LangChain RAG provider initialized');
+          break;
+          
+        case 'chroma':
+          if (this.config.chroma) {
+            const { ChromaProvider } = await import('./chroma-provider');
+            this.vectorStore = new ChromaProvider(this.config.chroma);
+            this.log('info', 'Chroma provider initialized');
+          }
+          break;
+          
+        case 'vectorize':
+          if (this.config.vectorize) {
+            const { VectorizeProvider } = await import('./vectorize-provider');
+            this.vectorStore = new VectorizeProvider(this.config.vectorize);
+            this.log('info', 'Vectorize provider initialized');
+          }
+          break;
+          
+        default:
+          this.log('warn', `Unknown provider: ${this.config.provider}, falling back to LangChain`);
+          const { LangChainRAGProvider: FallbackProvider } = await import('./langchain-rag-provider');
+          this.vectorStore = new FallbackProvider({
+            vectorStore: 'memory',
+            enableTracing: false
+          });
       }
 
-      // Initialize conversation memory
-      this.conversationMemory = new LangChainMemoryProvider(
-        this.llmProvider,
-        this.config.memory,
-        this.vectorStore
-      );
-      this.log('info', 'LangChain memory provider initialized');
+      // Initialize conversation memory (optional)
+      try {
+        const { LangChainMemoryProvider } = await import('./langchain-memory');
+        this.conversationMemory = new LangChainMemoryProvider(
+          this.llmProvider,
+          this.config.memory,
+          this.vectorStore
+        );
+        this.log('info', 'LangChain memory provider initialized');
+      } catch (error) {
+        this.log('warn', 'Memory provider initialization failed (continuing without memory)');
+      }
 
       // Index default knowledge base
       await this.indexDefaultKnowledge();

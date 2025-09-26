@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Formatter - Word Counters & Case Converters</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
+        .formatter-container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .text-input { width: 100%; min-height: 200px; padding: 15px; border: 1px solid #ccc; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 14px; resize: vertical; }
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { background: white; padding: 15px; border-radius: 6px; text-align: center; border-left: 4px solid #007bff; }
+        .stat-value { font-size: 1.8em; font-weight: bold; color: #007bff; margin: 5px 0; }
+        .stat-label { color: #666; font-size: 0.9em; text-transform: uppercase; }
+        .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0; }
+        .tool-section { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
+        .tool-section h3 { margin: 0 0 15px 0; color: #333; border-bottom: 2px solid #007bff; padding-bottom: 8px; }
+        .button-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+        .format-btn { padding: 10px; border: 1px solid #007bff; background: white; color: #007bff; border-radius: 4px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .format-btn:hover { background: #007bff; color: white; }
+        .output-section { margin: 20px 0; }
+        .output-area { width: 100%; min-height: 150px; padding: 15px; border: 1px solid #28a745; border-radius: 6px; background: #f8fff9; font-family: 'Courier New', monospace; font-size: 14px; resize: vertical; }
+        .copy-btn { background: #28a745; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; margin: 5px 0; }
+        .copy-btn:hover { background: #218838; }
+        .clear-btn { background: #dc3545; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .clear-btn:hover { background: #c82333; }
+        .advanced-tools { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin: 20px 0; }
+        .find-replace { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; margin: 10px 0; }
+        .find-replace input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .regex-tools { margin: 15px 0; }
+        .preset-regex { display: inline-block; background: #17a2b8; color: white; padding: 4px 8px; margin: 2px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .preset-regex:hover { background: #138496; }
+        .analysis-details { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin: 20px 0; }
+        .analysis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .analysis-item { padding: 10px; background: #f8f9fa; border-radius: 4px; }
+        .analysis-item strong { color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="formatter-container">
+        <h2>📝 Text Formatter - Word Counters & Case Converters</h2>
+        <p>Comprehensive text processing tool for writers, developers, and content creators. Real-time analysis and formatting.</p>
+        
+        <div>
+            <textarea class="text-input" id="textInput" 
+                placeholder="Paste or type your text here... Try pasting an article, code snippet, or any text you want to analyze and format!"
+                oninput="analyzeText()">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</textarea>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value" id="charCount">0</div>
+                <div class="stat-label">Characters</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="charCountNoSpaces">0</div>
+                <div class="stat-label">Characters (No Spaces)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="wordCount">0</div>
+                <div class="stat-label">Words</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="sentenceCount">0</div>
+                <div class="stat-label">Sentences</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="paragraphCount">0</div>
+                <div class="stat-label">Paragraphs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="readingTime">0</div>
+                <div class="stat-label">Minutes Read</div>
+            </div>
+        </div>
+
+        <div class="tools-grid">
+            <div class="tool-section">
+                <h3>🔤 Case Conversion</h3>
+                <div class="button-grid">
+                    <button class="format-btn" onclick="transformText('uppercase')">UPPERCASE</button>
+                    <button class="format-btn" onclick="transformText('lowercase')">lowercase</button>
+                    <button class="format-btn" onclick="transformText('title')">Title Case</button>
+                    <button class="format-btn" onclick="transformText('sentence')">Sentence case</button>
+                    <button class="format-btn" onclick="transformText('camel')">camelCase</button>
+                    <button class="format-btn" onclick="transformText('pascal')">PascalCase</button>
+                    <button class="format-btn" onclick="transformText('snake')">snake_case</button>
+                    <button class="format-btn" onclick="transformText('kebab')">kebab-case</button>
+                    <button class="format-btn" onclick="transformText('toggle')">tOGGLE cASE</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>✂️ Text Manipulation</h3>
+                <div class="button-grid">
+                    <button class="format-btn" onclick="transformText('trim')">Trim Spaces</button>
+                    <button class="format-btn" onclick="transformText('reverse')">Reverse Text</button>
+                    <button class="format-btn" onclick="transformText('sort-lines')">Sort Lines</button>
+                    <button class="format-btn" onclick="transformText('remove-duplicates')">Remove Duplicates</button>
+                    <button class="format-btn" onclick="transformText('remove-empty')">Remove Empty Lines</button>
+                    <button class="format-btn" onclick="transformText('add-numbers')">Number Lines</button>
+                    <button class="format-btn" onclick="transformText('remove-numbers')">Remove Numbers</button>
+                    <button class="format-btn" onclick="transformText('extract-emails')">Extract Emails</button>
+                    <button class="format-btn" onclick="transformText('extract-urls')">Extract URLs</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>📊 Text Generation</h3>
+                <div class="button-grid">
+                    <button class="format-btn" onclick="generateText('lorem', 100)">Lorem Ipsum (100w)</button>
+                    <button class="format-btn" onclick="generateText('lorem', 250)">Lorem Ipsum (250w)</button>
+                    <button class="format-btn" onclick="generateText('alphabet')">Alphabet (A-Z)</button>
+                    <button class="format-btn" onclick="generateText('numbers')">Numbers (1-100)</button>
+                    <button class="format-btn" onclick="generateText('random-words')">Random Words</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="advanced-tools">
+            <h3>🔍 Advanced Tools</h3>
+            
+            <div class="find-replace">
+                <input type="text" id="findText" placeholder="Find text...">
+                <input type="text" id="replaceText" placeholder="Replace with...">
+                <button class="format-btn" onclick="findReplace()">Replace All</button>
+            </div>
+            
+            <div style="margin: 10px 0;">
+                <label><input type="checkbox" id="regexMode"> Use Regular Expressions</label>
+                <label style="margin-left: 15px;"><input type="checkbox" id="caseSensitive"> Case Sensitive</label>
+            </div>
+            
+            <div class="regex-tools">
+                <strong>Quick Regex:</strong>
+                <span class="preset-regex" onclick="setRegex('\\d+', 'NUMBERS')">Extract Numbers</span>
+                <span class="preset-regex" onclick="setRegex('[A-Z][a-z]+', 'WORDS')">Capitalized Words</span>
+                <span class="preset-regex" onclick="setRegex('\\b\\w{1,3}\\b', '')">Short Words (1-3 chars)</span>
+                <span class="preset-regex" onclick="setRegex('\\s+', ' ')">Multiple Spaces → Single</span>
+                <span class="preset-regex" onclick="setRegex('[^a-zA-Z0-9\\s]', '')">Remove Special Chars</span>
+            </div>
+        </div>
+
+        <div class="analysis-details">
+            <h3>📈 Detailed Analysis</h3>
+            <div class="analysis-grid" id="analysisGrid">
+                <!-- Analysis details will be populated here -->
+            </div>
+        </div>
+
+        <div class="output-section">
+            <h3>📤 Output</h3>
+            <textarea class="output-area" id="outputArea" readonly placeholder="Transformed text will appear here..."></textarea>
+            <div>
+                <button class="copy-btn" onclick="copyOutput()">📋 Copy Output</button>
+                <button class="format-btn" onclick="useOutput()">⬆️ Use as Input</button>
+                <button class="clear-btn" onclick="clearAll()">🗑️ Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function analyzeText() {
+            const text = document.getElementById('textInput').value;
+            
+            // Basic counts
+            const charCount = text.length;
+            const charCountNoSpaces = text.replace(/\s/g, '').length;
+            const words = text.trim() ? text.trim().split(/\s+/) : [];
+            const wordCount = words.length;
+            const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+            const sentenceCount = sentences.length;
+            const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+            const paragraphCount = paragraphs.length;
+            const readingTime = Math.ceil(wordCount / 200); // 200 words per minute
+            
+            // Update display
+            document.getElementById('charCount').textContent = charCount.toLocaleString();
+            document.getElementById('charCountNoSpaces').textContent = charCountNoSpaces.toLocaleString();
+            document.getElementById('wordCount').textContent = wordCount.toLocaleString();
+            document.getElementById('sentenceCount').textContent = sentenceCount.toLocaleString();
+            document.getElementById('paragraphCount').textContent = paragraphCount.toLocaleString();
+            document.getElementById('readingTime').textContent = readingTime;
+            
+            // Detailed analysis
+            updateDetailedAnalysis(text, words, sentences);
+        }
+
+        function updateDetailedAnalysis(text, words, sentences) {
+            const analysisGrid = document.getElementById('analysisGrid');
+            
+            // Calculate various metrics
+            const avgWordsPerSentence = sentences.length > 0 ? (words.length / sentences.length).toFixed(1) : 0;
+            const avgCharsPerWord = words.length > 0 ? (text.replace(/\s/g, '').length / words.length).toFixed(1) : 0;
+            const uniqueWords = new Set(words.map(w => w.toLowerCase().replace(/[^\w]/g, ''))).size;
+            const duplicateWords = words.length - uniqueWords;
+            
+            // Most common words
+            const wordFreq = {};
+            words.forEach(word => {
+                const clean = word.toLowerCase().replace(/[^\w]/g, '');
+                if (clean.length > 2) {
+                    wordFreq[clean] = (wordFreq[clean] || 0) + 1;
+                }
+            });
+            const commonWords = Object.entries(wordFreq)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5)
+                .map(([word, count]) => `${word} (${count})`)
+                .join(', ') || 'None';
+            
+            // Character analysis
+            const uppercase = (text.match(/[A-Z]/g) || []).length;
+            const lowercase = (text.match(/[a-z]/g) || []).length;
+            const numbers = (text.match(/\d/g) || []).length;
+            const special = text.length - uppercase - lowercase - numbers - (text.match(/\s/g) || []).length;
+            
+            analysisGrid.innerHTML = `
+                <div class="analysis-item">
+                    <strong>Average Words/Sentence:</strong><br>${avgWordsPerSentence}
+                </div>
+                <div class="analysis-item">
+                    <strong>Average Chars/Word:</strong><br>${avgCharsPerWord}
+                </div>
+                <div class="analysis-item">
+                    <strong>Unique Words:</strong><br>${uniqueWords.toLocaleString()}
+                </div>
+                <div class="analysis-item">
+                    <strong>Duplicate Words:</strong><br>${duplicateWords.toLocaleString()}
+                </div>
+                <div class="analysis-item">
+                    <strong>Uppercase Letters:</strong><br>${uppercase.toLocaleString()}
+                </div>
+                <div class="analysis-item">
+                    <strong>Lowercase Letters:</strong><br>${lowercase.toLocaleString()}
+                </div>
+                <div class="analysis-item">
+                    <strong>Numbers:</strong><br>${numbers.toLocaleString()}
+                </div>
+                <div class="analysis-item">
+                    <strong>Special Characters:</strong><br>${special.toLocaleString()}
+                </div>
+                <div class="analysis-item" style="grid-column: 1 / -1;">
+                    <strong>Most Common Words:</strong><br>${commonWords}
+                </div>
+            `;
+        }
+
+        function transformText(operation) {
+            const text = document.getElementById('textInput').value;
+            let result = '';
+            
+            switch (operation) {
+                case 'uppercase':
+                    result = text.toUpperCase();
+                    break;
+                case 'lowercase':
+                    result = text.toLowerCase();
+                    break;
+                case 'title':
+                    result = text.replace(/\w\S*/g, (txt) => 
+                        txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+                    break;
+                case 'sentence':
+                    result = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+                    break;
+                case 'camel':
+                    result = text.replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => 
+                        index === 0 ? word.toLowerCase() : word.toUpperCase()).replace(/\s+/g, '');
+                    break;
+                case 'pascal':
+                    result = text.replace(/(?:^\w|[A-Z]|\b\w)/g, (word) => 
+                        word.toUpperCase()).replace(/\s+/g, '');
+                    break;
+                case 'snake':
+                    result = text.toLowerCase().replace(/\s+/g, '_');
+                    break;
+                case 'kebab':
+                    result = text.toLowerCase().replace(/\s+/g, '-');
+                    break;
+                case 'toggle':
+                    result = text.split('').map(char => 
+                        char === char.toUpperCase() ? char.toLowerCase() : char.toUpperCase()).join('');
+                    break;
+                case 'trim':
+                    result = text.split('\n').map(line => line.trim()).join('\n');
+                    break;
+                case 'reverse':
+                    result = text.split('').reverse().join('');
+                    break;
+                case 'sort-lines':
+                    result = text.split('\n').sort().join('\n');
+                    break;
+                case 'remove-duplicates':
+                    result = [...new Set(text.split('\n'))].join('\n');
+                    break;
+                case 'remove-empty':
+                    result = text.split('\n').filter(line => line.trim()).join('\n');
+                    break;
+                case 'add-numbers':
+                    result = text.split('\n').map((line, index) => `${index + 1}. ${line}`).join('\n');
+                    break;
+                case 'remove-numbers':
+                    result = text.replace(/\d/g, '');
+                    break;
+                case 'extract-emails':
+                    const emails = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+                    result = emails.join('\n');
+                    break;
+                case 'extract-urls':
+                    const urls = text.match(/https?:\/\/[^\s]+/g) || [];
+                    result = urls.join('\n');
+                    break;
+            }
+            
+            document.getElementById('outputArea').value = result;
+        }
+
+        function generateText(type, wordCount = 100) {
+            let result = '';
+            
+            switch (type) {
+                case 'lorem':
+                    const loremWords = ['lorem', 'ipsum', 'dolor', 'sit', 'amet', 'consectetur', 'adipiscing', 'elit', 'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore', 'magna', 'aliqua', 'enim', 'ad', 'minim', 'veniam', 'quis', 'nostrud', 'exercitation', 'ullamco', 'laboris', 'nisi', 'aliquip', 'ex', 'ea', 'commodo', 'consequat', 'duis', 'aute', 'irure', 'in', 'reprehenderit', 'voluptate', 'velit', 'esse', 'cillum', 'fugiat', 'nulla', 'pariatur', 'excepteur', 'sint', 'occaecat', 'cupidatat', 'non', 'proident', 'sunt', 'culpa', 'qui', 'officia', 'deserunt', 'mollit', 'anim', 'id', 'est', 'laborum'];
+                    for (let i = 0; i < wordCount; i++) {
+                        result += loremWords[Math.floor(Math.random() * loremWords.length)] + ' ';
+                    }
+                    break;
+                case 'alphabet':
+                    result = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz';
+                    break;
+                case 'numbers':
+                    for (let i = 1; i <= 100; i++) {
+                        result += i + (i % 10 === 0 ? '\n' : ' ');
+                    }
+                    break;
+                case 'random-words':
+                    const randomWords = ['apple', 'banana', 'cherry', 'dog', 'elephant', 'forest', 'guitar', 'house', 'ice', 'jungle', 'kite', 'lemon', 'mountain', 'ocean', 'piano', 'queen', 'river', 'sun', 'tree', 'umbrella', 'violin', 'water', 'zebra'];
+                    for (let i = 0; i < 50; i++) {
+                        result += randomWords[Math.floor(Math.random() * randomWords.length)] + ' ';
+                    }
+                    break;
+            }
+            
+            document.getElementById('outputArea').value = result.trim();
+        }
+
+        function findReplace() {
+            const text = document.getElementById('textInput').value;
+            const findText = document.getElementById('findText').value;
+            const replaceText = document.getElementById('replaceText').value;
+            const useRegex = document.getElementById('regexMode').checked;
+            const caseSensitive = document.getElementById('caseSensitive').checked;
+            
+            if (!findText) {
+                alert('Please enter text to find');
+                return;
+            }
+            
+            let result;
+            if (useRegex) {
+                try {
+                    const flags = caseSensitive ? 'g' : 'gi';
+                    const regex = new RegExp(findText, flags);
+                    result = text.replace(regex, replaceText);
+                } catch (e) {
+                    alert('Invalid regular expression: ' + e.message);
+                    return;
+                }
+            } else {
+                const flags = caseSensitive ? 'g' : 'gi';
+                const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+                result = text.replace(regex, replaceText);
+            }
+            
+            document.getElementById('outputArea').value = result;
+        }
+
+        function setRegex(pattern, replacement) {
+            document.getElementById('findText').value = pattern;
+            document.getElementById('replaceText').value = replacement;
+            document.getElementById('regexMode').checked = true;
+        }
+
+        function copyOutput() {
+            const output = document.getElementById('outputArea');
+            output.select();
+            document.execCommand('copy');
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '✅ Copied!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        }
+
+        function useOutput() {
+            const output = document.getElementById('outputArea').value;
+            document.getElementById('textInput').value = output;
+            analyzeText();
+        }
+
+        function clearAll() {
+            if (confirm('Clear all text?')) {
+                document.getElementById('textInput').value = '';
+                document.getElementById('outputArea').value = '';
+                document.getElementById('findText').value = '';
+                document.getElementById('replaceText').value = '';
+                analyzeText();
+            }
+        }
+
+        // Initialize
+        analyzeText();
+    </script>
+</body>
+</html>

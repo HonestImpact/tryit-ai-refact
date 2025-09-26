@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Date/Time Pickers - Advanced Scheduling Tools</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 20px auto; padding: 20px; }
+        .picker-container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .picker-section { background: white; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0; padding: 20px; }
+        .section-title { font-size: 1.3em; font-weight: bold; color: #333; margin-bottom: 20px; }
+        .picker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .picker-item { border: 1px solid #e9ecef; border-radius: 6px; padding: 20px; background: #fafafa; }
+        .picker-label { font-weight: bold; margin-bottom: 10px; color: #333; }
+        .picker-description { color: #666; font-size: 0.9em; margin-bottom: 15px; }
+        .calendar-container { max-width: 300px; margin: 0 auto; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #007bff; color: white; padding: 10px; border-radius: 6px; }
+        .calendar-nav { background: none; border: none; color: white; font-size: 1.2em; cursor: pointer; padding: 5px; }
+        .calendar-nav:hover { background: rgba(255,255,255,0.2); border-radius: 3px; }
+        .calendar-title { font-weight: bold; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #dee2e6; border-radius: 6px; overflow: hidden; }
+        .calendar-cell { background: white; padding: 8px; text-align: center; cursor: pointer; min-height: 30px; display: flex; align-items: center; justify-content: center; }
+        .calendar-cell:hover { background: #e3f2fd; }
+        .calendar-cell.header { background: #f8f9fa; font-weight: bold; cursor: default; font-size: 0.8em; }
+        .calendar-cell.header:hover { background: #f8f9fa; }
+        .calendar-cell.other-month { color: #ccc; }
+        .calendar-cell.selected { background: #007bff; color: white; }
+        .calendar-cell.today { background: #28a745; color: white; font-weight: bold; }
+        .calendar-cell.range-start { background: #007bff; color: white; border-radius: 50% 0 0 50%; }
+        .calendar-cell.range-end { background: #007bff; color: white; border-radius: 0 50% 50% 0; }
+        .calendar-cell.range-middle { background: #cce5ff; color: #333; }
+        .time-picker { display: flex; gap: 10px; align-items: center; margin: 15px 0; }
+        .time-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 1.1em; }
+        .time-separator { font-size: 1.2em; font-weight: bold; }
+        .time-controls { display: flex; flex-direction: column; }
+        .time-btn { background: #f8f9fa; border: 1px solid #ccc; padding: 2px 6px; cursor: pointer; font-size: 0.8em; }
+        .time-btn:hover { background: #e9ecef; }
+        .datetime-display { background: #e8f5e8; padding: 15px; border-radius: 6px; text-align: center; margin: 15px 0; }
+        .datetime-value { font-size: 1.2em; font-weight: bold; color: #28a745; }
+        .preset-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 5px; margin: 15px 0; }
+        .preset-btn { background: #17a2b8; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; }
+        .preset-btn:hover { background: #138496; }
+        .timezone-selector { margin: 15px 0; }
+        .timezone-selector select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .recurring-options { margin: 15px 0; }
+        .recurring-option { display: flex; align-items: center; margin: 5px 0; }
+        .recurring-option input[type="radio"] { margin-right: 8px; }
+        .duration-picker { display: flex; gap: 10px; align-items: center; margin: 15px 0; }
+        .duration-input { width: 60px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
+        .results-panel { background: white; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0; padding: 20px; }
+        .result-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 4px; }
+        .result-value { font-weight: bold; color: #007bff; }
+        .templates { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 20px 0; }
+        .template-btn { background: #17a2b8; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; text-align: center; }
+        .template-btn:hover { background: #138496; }
+        .controls { display: flex; gap: 10px; justify-content: center; margin: 20px 0; }
+        .control-btn { padding: 10px 20px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; }
+        .control-btn:hover { background: #f8f9fa; }
+        .primary-btn { background: #007bff; color: white; border-color: #007bff; }
+        .primary-btn:hover { background: #0056b3; }
+        .export-btn { background: #28a745; color: white; border-color: #28a745; }
+        .export-btn:hover { background: #218838; }
+    </style>
+</head>
+<body>
+    <div class="picker-container">
+        <h2>📅 Date/Time Pickers - Advanced Scheduling Tools</h2>
+        <p>Comprehensive date and time selection tools for scheduling, event planning, and time-sensitive applications.</p>
+        
+        <div class="templates">
+            <button class="template-btn" onclick="loadTemplate('meeting')">🤝 Meeting Scheduler</button>
+            <button class="template-btn" onclick="loadTemplate('event')">🎉 Event Planner</button>
+            <button class="template-btn" onclick="loadTemplate('booking')">📋 Appointment Booking</button>
+            <button class="template-btn" onclick="loadTemplate('reminder')">⏰ Reminder Setup</button>
+            <button class="template-btn" onclick="loadTemplate('travel')">✈️ Travel Planning</button>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn primary-btn" onclick="getCurrentDateTime()">📍 Current Time</button>
+            <button class="control-btn" onclick="resetAll()">🔄 Reset All</button>
+            <button class="control-btn export-btn" onclick="exportDates()">📤 Export Dates</button>
+            <button class="control-btn" onclick="clearAll()">🗑️ Clear All</button>
+        </div>
+
+        <div class="picker-grid">
+            <!-- Date Picker -->
+            <div class="picker-item">
+                <div class="picker-label">📅 Single Date Picker</div>
+                <div class="picker-description">Select a specific date</div>
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <button class="calendar-nav" onclick="changeMonth('single', -1)">‹</button>
+                        <div class="calendar-title" id="singleCalendarTitle"></div>
+                        <button class="calendar-nav" onclick="changeMonth('single', 1)">›</button>
+                    </div>
+                    <div class="calendar-grid" id="singleCalendar"></div>
+                </div>
+                <div class="preset-buttons">
+                    <button class="preset-btn" onclick="setPresetDate('single', 'today')">Today</button>
+                    <button class="preset-btn" onclick="setPresetDate('single', 'tomorrow')">Tomorrow</button>
+                    <button class="preset-btn" onclick="setPresetDate('single', 'nextWeek')">Next Week</button>
+                    <button class="preset-btn" onclick="setPresetDate('single', 'nextMonth')">Next Month</button>
+                </div>
+                <div class="datetime-display">
+                    <div class="datetime-value" id="singleDateValue">No date selected</div>
+                </div>
+            </div>
+
+            <!-- Time Picker -->
+            <div class="picker-item">
+                <div class="picker-label">🕐 Time Picker</div>
+                <div class="picker-description">Select a specific time</div>
+                <div class="time-picker">
+                    <div class="time-controls">
+                        <button class="time-btn" onclick="adjustTime('hour', 1)">▲</button>
+                        <input type="number" class="time-input" id="hourInput" value="12" min="1" max="12" onchange="updateTime()">
+                        <button class="time-btn" onclick="adjustTime('hour', -1)">▼</button>
+                    </div>
+                    <span class="time-separator">:</span>
+                    <div class="time-controls">
+                        <button class="time-btn" onclick="adjustTime('minute', 1)">▲</button>
+                        <input type="number" class="time-input" id="minuteInput" value="00" min="0" max="59" onchange="updateTime()">
+                        <button class="time-btn" onclick="adjustTime('minute', -1)">▼</button>
+                    </div>
+                    <div class="time-controls">
+                        <button class="time-btn" onclick="toggleAmPm()">AM</button>
+                        <span class="time-input" id="ampmDisplay">AM</span>
+                        <button class="time-btn" onclick="toggleAmPm()">PM</button>
+                    </div>
+                </div>
+                <div class="preset-buttons">
+                    <button class="preset-btn" onclick="setPresetTime('09:00')">9:00 AM</button>
+                    <button class="preset-btn" onclick="setPresetTime('12:00')">12:00 PM</button>
+                    <button class="preset-btn" onclick="setPresetTime('17:00')">5:00 PM</button>
+                    <button class="preset-btn" onclick="setPresetTime('now')">Now</button>
+                </div>
+                <div class="datetime-display">
+                    <div class="datetime-value" id="timeValue">12:00 AM</div>
+                </div>
+            </div>
+
+            <!-- Date Range Picker -->
+            <div class="picker-item">
+                <div class="picker-label">📅 Date Range Picker</div>
+                <div class="picker-description">Select a date range</div>
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <button class="calendar-nav" onclick="changeMonth('range', -1)">‹</button>
+                        <div class="calendar-title" id="rangeCalendarTitle"></div>
+                        <button class="calendar-nav" onclick="changeMonth('range', 1)">›</button>
+                    </div>
+                    <div class="calendar-grid" id="rangeCalendar"></div>
+                </div>
+                <div class="preset-buttons">
+                    <button class="preset-btn" onclick="setPresetRange('thisWeek')">This Week</button>
+                    <button class="preset-btn" onclick="setPresetRange('nextWeek')">Next Week</button>
+                    <button class="preset-btn" onclick="setPresetRange('thisMonth')">This Month</button>
+                    <button class="preset-btn" onclick="setPresetRange('nextMonth')">Next Month</button>
+                </div>
+                <div class="datetime-display">
+                    <div class="datetime-value" id="rangeValue">No range selected</div>
+                </div>
+            </div>
+
+            <!-- DateTime Picker -->
+            <div class="picker-item">
+                <div class="picker-label">📅🕐 DateTime Picker</div>
+                <div class="picker-description">Combined date and time selection</div>
+                <div style="text-align: center; margin: 15px 0;">
+                    <input type="datetime-local" id="datetimeInput" onchange="updateDateTime()" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em;">
+                </div>
+                <div class="timezone-selector">
+                    <label>Timezone:</label>
+                    <select id="timezoneSelect" onchange="updateDateTime()">
+                        <option value="UTC">UTC</option>
+                        <option value="America/New_York">Eastern Time</option>
+                        <option value="America/Chicago">Central Time</option>
+                        <option value="America/Denver">Mountain Time</option>
+                        <option value="America/Los_Angeles" selected>Pacific Time</option>
+                        <option value="Europe/London">London</option>
+                        <option value="Europe/Paris">Paris</option>
+                        <option value="Asia/Tokyo">Tokyo</option>
+                    </select>
+                </div>
+                <div class="preset-buttons">
+                    <button class="preset-btn" onclick="setPresetDateTime('now')">Now</button>
+                    <button class="preset-btn" onclick="setPresetDateTime('tomorrow9am')">Tomorrow 9 AM</button>
+                    <button class="preset-btn" onclick="setPresetDateTime('nextMonday')">Next Monday 9 AM</button>
+                </div>
+                <div class="datetime-display">
+                    <div class="datetime-value" id="datetimeValue">Select date and time</div>
+                </div>
+            </div>
+
+            <!-- Duration Picker -->
+            <div class="picker-item">
+                <div class="picker-label">⏱️ Duration Picker</div>
+                <div class="picker-description">Set duration for events or tasks</div>
+                <div class="duration-picker">
+                    <input type="number" class="duration-input" id="durationHours" value="1" min="0" max="23" onchange="updateDuration()">
+                    <label>hours</label>
+                    <input type="number" class="duration-input" id="durationMinutes" value="0" min="0" max="59" onchange="updateDuration()">
+                    <label>minutes</label>
+                </div>
+                <div class="preset-buttons">
+                    <button class="preset-btn" onclick="setPresetDuration(0, 15)">15 min</button>
+                    <button class="preset-btn" onclick="setPresetDuration(0, 30)">30 min</button>
+                    <button class="preset-btn" onclick="setPresetDuration(1, 0)">1 hour</button>
+                    <button class="preset-btn" onclick="setPresetDuration(2, 0)">2 hours</button>
+                    <button class="preset-btn" onclick="setPresetDuration(8, 0)">8 hours</button>
+                </div>
+                <div class="datetime-display">
+                    <div class="datetime-value" id="durationValue">1 hour 0 minutes</div>
+                </div>
+            </div>
+
+            <!-- Recurring Event Picker -->
+            <div class="picker-item">
+                <div class="picker-label">🔄 Recurring Events</div>
+                <div class="picker-description">Set up repeating schedules</div>
+                <div class="recurring-options">
+                    <div class="recurring-option">
+                        <input type="radio" name="recurring" value="none" checked onchange="updateRecurring()">
+                        <label>No repeat</label>
+                    </div>
+                    <div class="recurring-option">
+                        <input type="radio" name="recurring" value="daily" onchange="updateRecurring()">
+                        <label>Daily</label>
+                    </div>
+                    <div class="recurring-option">
+                        <input type="radio" name="recurring" value="weekly" onchange="updateRecurring()">
+                        <label>Weekly</label>
+                    </div>
+                    <div class="recurring-option">
+                        <input type="radio" name="recurring" value="monthly" onchange="updateRecurring()">
+                        <label>Monthly</label>
+                    </div>
+                    <div class="recurring-option">
+                        <input type="radio" name="recurring" value="yearly" onchange="updateRecurring()">
+                        <label>Yearly</label>
+                    </div>
+                </div>
+                <div style="margin: 15px 0;">
+                    <label>End after:</label>
+                    <input type="number" id="recurringCount" value="10" min="1" max="100" style="width: 60px; padding: 6px; margin: 0 5px; border: 1px solid #ccc; border-radius: 4px;">
+                    <label>occurrences</label>
+                </div>
+                <div class="datetime-display">
+                    <div class="datetime-value" id="recurringValue">No repeat</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-panel">
+            <h3>📋 Selected Values</h3>
+            <div id="resultsList">
+                <!-- Results will be shown here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedDates = {
+            single: null,
+            time: { hour: 12, minute: 0, ampm: 'AM' },
+            range: { start: null, end: null },
+            datetime: null,
+            duration: { hours: 1, minutes: 0 },
+            recurring: 'none'
+        };
+
+        let currentCalendars = {
+            single: new Date(),
+            range: new Date()
+        };
+
+        function loadTemplate(templateName) {
+            const templates = {
+                meeting: () => {
+                    setPresetDateTime('tomorrow9am');
+                    setPresetDuration(1, 0);
+                    document.querySelector('input[value="none"]').checked = true;
+                },
+                event: () => {
+                    setPresetDate('single', 'nextWeek');
+                    setPresetTime('18:00');
+                    setPresetDuration(3, 0);
+                },
+                booking: () => {
+                    setPresetDate('single', 'tomorrow');
+                    setPresetTime('10:00');
+                    setPresetDuration(0, 30);
+                },
+                reminder: () => {
+                    setPresetDateTime('now');
+                    document.querySelector('input[value="daily"]').checked = true;
+                    updateRecurring();
+                },
+                travel: () => {
+                    setPresetRange('nextWeek');
+                    setPresetTime('06:00');
+                }
+            };
+            
+            if (templates[templateName]) {
+                templates[templateName]();
+                updateResults();
+            }
+        }
+
+        function initializePickers() {
+            renderCalendar('single');
+            renderCalendar('range');
+            updateTime();
+            updateDuration();
+            updateResults();
+            
+            // Set current datetime
+            const now = new Date();
+            const datetimeInput = document.getElementById('datetimeInput');
+            datetimeInput.value = now.toISOString().slice(0, 16);
+            updateDateTime();
+        }
+
+        function renderCalendar(type) {
+            const calendar = document.getElementById(type + 'Calendar');
+            const title = document.getElementById(type + 'CalendarTitle');
+            const currentDate = currentCalendars[type];
+            
+            // Set title
+            title.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            
+            // Clear calendar
+            calendar.innerHTML = '';
+            
+            // Add day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-cell header';
+                cell.textContent = day;
+                calendar.appendChild(cell);
+            });
+            
+            // Get first day of month and number of days
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            // Render 6 weeks
+            for (let week = 0; week < 6; week++) {
+                for (let day = 0; day < 7; day++) {
+                    const cellDate = new Date(startDate);
+                    cellDate.setDate(startDate.getDate() + week * 7 + day);
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'calendar-cell';
+                    cell.textContent = cellDate.getDate();
+                    
+                    // Add classes
+                    if (cellDate.getMonth() !== currentDate.getMonth()) {
+                        cell.classList.add('other-month');
+                    }
+                    
+                    const today = new Date();
+                    if (cellDate.toDateString() === today.toDateString()) {
+                        cell.classList.add('today');
+                    }
+                    
+                    // Handle selection
+                    if (type === 'single') {
+                        if (selectedDates.single && cellDate.toDateString() === selectedDates.single.toDateString()) {
+                            cell.classList.add('selected');
+                        }
+                        cell.addEventListener('click', () => selectSingleDate(cellDate));
+                    } else if (type === 'range') {
+                        const range = selectedDates.range;
+                        if (range.start && cellDate.toDateString() === range.start.toDateString()) {
+                            cell.classList.add('range-start');
+                        }
+                        if (range.end && cellDate.toDateString() === range.end.toDateString()) {
+                            cell.classList.add('range-end');
+                        }
+                        if (range.start && range.end && cellDate > range.start && cellDate < range.end) {
+                            cell.classList.add('range-middle');
+                        }
+                        cell.addEventListener('click', () => selectRangeDate(cellDate));
+                    }
+                    
+                    calendar.appendChild(cell);
+                }
+            }
+        }
+
+        function changeMonth(type, direction) {
+            currentCalendars[type].setMonth(currentCalendars[type].getMonth() + direction);
+            renderCalendar(type);
+        }
+
+        function selectSingleDate(date) {
+            selectedDates.single = new Date(date);
+            renderCalendar('single');
+            updateResults();
+        }
+
+        function selectRangeDate(date) {
+            const range = selectedDates.range;
+            
+            if (!range.start || (range.start && range.end)) {
+                // Start new range
+                range.start = new Date(date);
+                range.end = null;
+            } else if (date < range.start) {
+                // Set as new start
+                range.end = range.start;
+                range.start = new Date(date);
+            } else {
+                // Set as end
+                range.end = new Date(date);
+            }
+            
+            renderCalendar('range');
+            updateResults();
+        }
+
+        function setPresetDate(type, preset) {
+            const today = new Date();
+            let date = new Date(today);
+            
+            switch (preset) {
+                case 'today':
+                    break;
+                case 'tomorrow':
+                    date.setDate(today.getDate() + 1);
+                    break;
+                case 'nextWeek':
+                    date.setDate(today.getDate() + 7);
+                    break;
+                case 'nextMonth':
+                    date.setMonth(today.getMonth() + 1);
+                    break;
+            }
+            
+            if (type === 'single') {
+                selectSingleDate(date);
+            }
+        }
+
+        function setPresetRange(preset) {
+            const today = new Date();
+            const range = { start: null, end: null };
+            
+            switch (preset) {
+                case 'thisWeek':
+                    range.start = new Date(today);
+                    range.start.setDate(today.getDate() - today.getDay());
+                    range.end = new Date(range.start);
+                    range.end.setDate(range.start.getDate() + 6);
+                    break;
+                case 'nextWeek':
+                    range.start = new Date(today);
+                    range.start.setDate(today.getDate() - today.getDay() + 7);
+                    range.end = new Date(range.start);
+                    range.end.setDate(range.start.getDate() + 6);
+                    break;
+                case 'thisMonth':
+                    range.start = new Date(today.getFullYear(), today.getMonth(), 1);
+                    range.end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                    break;
+                case 'nextMonth':
+                    range.start = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+                    range.end = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+                    break;
+            }
+            
+            selectedDates.range = range;
+            renderCalendar('range');
+            updateResults();
+        }
+
+        function updateTime() {
+            const hour = parseInt(document.getElementById('hourInput').value);
+            const minute = parseInt(document.getElementById('minuteInput').value);
+            const ampm = document.getElementById('ampmDisplay').textContent;
+            
+            selectedDates.time = { hour, minute, ampm };
+            document.getElementById('timeValue').textContent = formatTime(hour, minute, ampm);
+            updateResults();
+        }
+
+        function adjustTime(unit, delta) {
+            if (unit === 'hour') {
+                let hour = parseInt(document.getElementById('hourInput').value) + delta;
+                if (hour < 1) hour = 12;
+                if (hour > 12) hour = 1;
+                document.getElementById('hourInput').value = hour;
+            } else if (unit === 'minute') {
+                let minute = parseInt(document.getElementById('minuteInput').value) + delta;
+                if (minute < 0) minute = 59;
+                if (minute > 59) minute = 0;
+                document.getElementById('minuteInput').value = minute.toString().padStart(2, '0');
+            }
+            updateTime();
+        }
+
+        function toggleAmPm() {
+            const display = document.getElementById('ampmDisplay');
+            display.textContent = display.textContent === 'AM' ? 'PM' : 'AM';
+            updateTime();
+        }
+
+        function setPresetTime(preset) {
+            if (preset === 'now') {
+                const now = new Date();
+                let hour = now.getHours();
+                const minute = now.getMinutes();
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                
+                if (hour === 0) hour = 12;
+                if (hour > 12) hour -= 12;
+                
+                document.getElementById('hourInput').value = hour;
+                document.getElementById('minuteInput').value = minute.toString().padStart(2, '0');
+                document.getElementById('ampmDisplay').textContent = ampm;
+            } else {
+                const [hourStr, minuteStr] = preset.split(':');
+                let hour = parseInt(hourStr);
+                const minute = parseInt(minuteStr);
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                
+                if (hour === 0) hour = 12;
+                if (hour > 12) hour -= 12;
+                
+                document.getElementById('hourInput').value = hour;
+                document.getElementById('minuteInput').value = minute.toString().padStart(2, '0');
+                document.getElementById('ampmDisplay').textContent = ampm;
+            }
+            updateTime();
+        }
+
+        function formatTime(hour, minute, ampm) {
+            return `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+        }
+
+        function updateDateTime() {
+            const datetimeInput = document.getElementById('datetimeInput');
+            const timezone = document.getElementById('timezoneSelect').value;
+            
+            if (datetimeInput.value) {
+                selectedDates.datetime = {
+                    value: datetimeInput.value,
+                    timezone: timezone
+                };
+                
+                const date = new Date(datetimeInput.value);
+                document.getElementById('datetimeValue').textContent = 
+                    `${date.toLocaleDateString()} ${date.toLocaleTimeString()} (${timezone})`;
+            }
+            updateResults();
+        }
+
+        function setPresetDateTime(preset) {
+            const now = new Date();
+            let targetDate = new Date(now);
+            
+            switch (preset) {
+                case 'now':
+                    break;
+                case 'tomorrow9am':
+                    targetDate.setDate(now.getDate() + 1);
+                    targetDate.setHours(9, 0, 0, 0);
+                    break;
+                case 'nextMonday':
+                    const daysUntilMonday = (8 - now.getDay()) % 7 || 7;
+                    targetDate.setDate(now.getDate() + daysUntilMonday);
+                    targetDate.setHours(9, 0, 0, 0);
+                    break;
+            }
+            
+            document.getElementById('datetimeInput').value = targetDate.toISOString().slice(0, 16);
+            updateDateTime();
+        }
+
+        function updateDuration() {
+            const hours = parseInt(document.getElementById('durationHours').value);
+            const minutes = parseInt(document.getElementById('durationMinutes').value);
+            
+            selectedDates.duration = { hours, minutes };
+            
+            let display = '';
+            if (hours > 0) display += `${hours} hour${hours > 1 ? 's' : ''}`;
+            if (hours > 0 && minutes > 0) display += ' ';
+            if (minutes > 0) display += `${minutes} minute${minutes > 1 ? 's' : ''}`;
+            if (hours === 0 && minutes === 0) display = '0 minutes';
+            
+            document.getElementById('durationValue').textContent = display;
+            updateResults();
+        }
+
+        function setPresetDuration(hours, minutes) {
+            document.getElementById('durationHours').value = hours;
+            document.getElementById('durationMinutes').value = minutes;
+            updateDuration();
+        }
+
+        function updateRecurring() {
+            const selectedOption = document.querySelector('input[name="recurring"]:checked').value;
+            const count = document.getElementById('recurringCount').value;
+            
+            selectedDates.recurring = selectedOption;
+            
+            let display = 'No repeat';
+            if (selectedOption !== 'none') {
+                display = `Every ${selectedOption}, ${count} occurrences`;
+            }
+            
+            document.getElementById('recurringValue').textContent = display;
+            updateResults();
+        }
+
+        function updateResults() {
+            const container = document.getElementById('resultsList');
+            const results = [];
+            
+            if (selectedDates.single) {
+                results.push({
+                    label: 'Selected Date',
+                    value: selectedDates.single.toLocaleDateString()
+                });
+            }
+            
+            if (selectedDates.time) {
+                results.push({
+                    label: 'Selected Time',
+                    value: formatTime(selectedDates.time.hour, selectedDates.time.minute, selectedDates.time.ampm)
+                });
+            }
+            
+            if (selectedDates.range.start && selectedDates.range.end) {
+                results.push({
+                    label: 'Date Range',
+                    value: `${selectedDates.range.start.toLocaleDateString()} - ${selectedDates.range.end.toLocaleDateString()}`
+                });
+            }
+            
+            if (selectedDates.datetime) {
+                results.push({
+                    label: 'DateTime',
+                    value: `${new Date(selectedDates.datetime.value).toLocaleString()} (${selectedDates.datetime.timezone})`
+                });
+            }
+            
+            if (selectedDates.duration) {
+                const d = selectedDates.duration;
+                let durationText = '';
+                if (d.hours > 0) durationText += `${d.hours}h`;
+                if (d.minutes > 0) durationText += `${d.minutes}m`;
+                if (durationText === '') durationText = '0m';
+                
+                results.push({
+                    label: 'Duration',
+                    value: durationText
+                });
+            }
+            
+            if (selectedDates.recurring !== 'none') {
+                results.push({
+                    label: 'Recurring',
+                    value: selectedDates.recurring
+                });
+            }
+            
+            if (results.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">No dates/times selected</p>';
+                return;
+            }
+            
+            container.innerHTML = results.map(result => `
+                <div class="result-item">
+                    <span>${result.label}</span>
+                    <span class="result-value">${result.value}</span>
+                </div>
+            `).join('');
+        }
+
+        function getCurrentDateTime() {
+            const now = new Date();
+            
+            // Set single date to today
+            selectSingleDate(now);
+            
+            // Set time to now
+            setPresetTime('now');
+            
+            // Set datetime to now
+            document.getElementById('datetimeInput').value = now.toISOString().slice(0, 16);
+            updateDateTime();
+            
+            updateResults();
+        }
+
+        function resetAll() {
+            if (confirm('Reset all date/time selections?')) {
+                selectedDates = {
+                    single: null,
+                    time: { hour: 12, minute: 0, ampm: 'AM' },
+                    range: { start: null, end: null },
+                    datetime: null,
+                    duration: { hours: 1, minutes: 0 },
+                    recurring: 'none'
+                };
+                
+                document.getElementById('hourInput').value = 12;
+                document.getElementById('minuteInput').value = '00';
+                document.getElementById('ampmDisplay').textContent = 'AM';
+                document.getElementById('durationHours').value = 1;
+                document.getElementById('durationMinutes').value = 0;
+                document.querySelector('input[value="none"]').checked = true;
+                document.getElementById('datetimeInput').value = '';
+                
+                renderCalendar('single');
+                renderCalendar('range');
+                updateTime();
+                updateDuration();
+                updateResults();
+            }
+        }
+
+        function clearAll() {
+            resetAll();
+        }
+
+        function exportDates() {
+            const data = {
+                selectedDates: selectedDates,
+                timestamp: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `datetime_selections_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize
+        initializePickers();
+    </script>
+</body>
+</html>

@@ -1,3 +1,17 @@
+##############################################
+## notes for Isak
+##############################################
+
+Noah is a collaborative partner. He's designed to help build tools, but not to do the work for people. 
+
+Eventually offer a short version and a long version. That way people can get an essence, or more information depending on their inclinations
+
+
+##############################################
+## intro
+##############################################
+
+
 # Hi, I'm Noah: A Different Kind of AI
 
 I represent a new approach to AI interaction—one built on honesty, intelligence, and respect for your capability.

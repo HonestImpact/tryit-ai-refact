@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparison Table - Pros & Cons Analysis</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
+        .comparison-container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .controls { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 6px; }
+        .input-row { display: flex; gap: 10px; margin: 10px 0; align-items: center; }
+        .input-row input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex: 1; }
+        .input-row button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .input-row button:hover { background: #0056b3; }
+        .comparison-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin: 20px 0; }
+        .option-card { background: white; border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; }
+        .option-card.winner { border-color: #28a745; background: #f8fff9; }
+        .option-header { display: flex; justify-content: between; align-items: center; margin-bottom: 15px; }
+        .option-title { font-size: 1.3em; font-weight: bold; margin: 0; }
+        .option-score { font-size: 1.5em; font-weight: bold; padding: 8px 15px; background: #e9ecef; border-radius: 20px; }
+        .winner .option-score { background: #d4edda; color: #155724; }
+        .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .pros, .cons { padding: 15px; border-radius: 6px; }
+        .pros { background: #d4edda; border-left: 4px solid #28a745; }
+        .cons { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .pros h4, .cons h4 { margin: 0 0 10px 0; font-size: 1.1em; }
+        .pros h4 { color: #155724; }
+        .cons h4 { color: #721c24; }
+        .item-list { list-style: none; padding: 0; margin: 0; }
+        .item-list li { margin: 8px 0; padding: 8px; background: rgba(255,255,255,0.7); border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .item-input { border: none; background: transparent; flex: 1; padding: 4px; }
+        .score-input { width: 40px; text-align: center; border: 1px solid #ccc; border-radius: 3px; padding: 2px; }
+        .delete-btn { background: #dc3545; color: white; border: none; border-radius: 3px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
+        .delete-btn:hover { background: #c82333; }
+        .add-btn { width: 100%; padding: 8px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        .add-btn:hover { background: #5a6268; }
+        .summary { margin: 20px 0; padding: 15px; background: #e8f5e8; border-radius: 6px; text-align: center; }
+        .clear-all { background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .clear-all:hover { background: #c82333; }
+    </style>
+</head>
+<body>
+    <div class="comparison-container">
+        <h2>Comparison Table - Pros & Cons Analysis</h2>
+        <p>Compare options with weighted pros and cons. Perfect for decisions like job offers, product purchases, or life choices.</p>
+        
+        <div class="controls">
+            <div class="input-row">
+                <input type="text" id="optionInput" placeholder="Enter option name (e.g., 'Job at Company A', 'iPhone 15')">
+                <button onclick="addOption()">Add Option</button>
+                <button class="clear-all" onclick="clearAll()">Clear All</button>
+            </div>
+        </div>
+
+        <div class="comparison-grid" id="comparisonGrid">
+            <!-- Options will be dynamically added here -->
+        </div>
+
+        <div class="summary" id="summary" style="display: none;">
+            <h3>📊 Comparison Summary</h3>
+            <div id="summaryContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let options = [];
+        let optionData = {};
+
+        function addOption() {
+            const input = document.getElementById('optionInput');
+            const optionName = input.value.trim();
+            
+            if (optionName && !options.includes(optionName)) {
+                options.push(optionName);
+                optionData[optionName] = {
+                    pros: [{ text: '', score: 5 }],
+                    cons: [{ text: '', score: 3 }]
+                };
+                input.value = '';
+                updateDisplay();
+            }
+        }
+
+        function removeOption(optionName) {
+            if (confirm(`Remove "${optionName}"?`)) {
+                options = options.filter(name => name !== optionName);
+                delete optionData[optionName];
+                updateDisplay();
+            }
+        }
+
+        function addPro(optionName) {
+            optionData[optionName].pros.push({ text: '', score: 5 });
+            updateDisplay();
+        }
+
+        function addCon(optionName) {
+            optionData[optionName].cons.push({ text: '', score: 3 });
+            updateDisplay();
+        }
+
+        function removePro(optionName, index) {
+            if (optionData[optionName].pros.length > 1) {
+                optionData[optionName].pros.splice(index, 1);
+                updateDisplay();
+            }
+        }
+
+        function removeCon(optionName, index) {
+            if (optionData[optionName].cons.length > 1) {
+                optionData[optionName].cons.splice(index, 1);
+                updateDisplay();
+            }
+        }
+
+        function updateProCon(optionName, type, index, field, value) {
+            optionData[optionName][type][index][field] = value;
+            calculateScores();
+        }
+
+        function calculateScores() {
+            const scores = {};
+            
+            options.forEach(optionName => {
+                const data = optionData[optionName];
+                
+                // Calculate pros score (sum of score * importance)
+                const prosScore = data.pros.reduce((sum, pro) => {
+                    return pro.text.trim() ? sum + parseInt(pro.score || 0) : sum;
+                }, 0);
+                
+                // Calculate cons score (sum of score * impact, but negative)
+                const consScore = data.cons.reduce((sum, con) => {
+                    return con.text.trim() ? sum + parseInt(con.score || 0) : sum;
+                }, 0);
+                
+                // Total score (pros - cons)
+                scores[optionName] = prosScore - consScore;
+                
+                // Update score display
+                const scoreElement = document.getElementById(`score_${optionName.replace(/\s+/g, '_')}`);
+                if (scoreElement) {
+                    scoreElement.textContent = scores[optionName];
+                }
+            });
+            
+            // Find winner and highlight
+            const maxScore = Math.max(...Object.values(scores));
+            options.forEach(optionName => {
+                const card = document.getElementById(`card_${optionName.replace(/\s+/g, '_')}`);
+                if (card) {
+                    if (scores[optionName] === maxScore && maxScore > 0) {
+                        card.classList.add('winner');
+                    } else {
+                        card.classList.remove('winner');
+                    }
+                }
+            });
+            
+            updateSummary(scores);
+        }
+
+        function updateSummary(scores) {
+            const summary = document.getElementById('summary');
+            const content = document.getElementById('summaryContent');
+            
+            if (options.length === 0) {
+                summary.style.display = 'none';
+                return;
+            }
+            
+            // Sort options by score
+            const sortedOptions = options.slice().sort((a, b) => scores[b] - scores[a]);
+            
+            let summaryHTML = '<strong>Rankings:</strong><br>';
+            sortedOptions.forEach((option, index) => {
+                const emoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '📍';
+                const score = scores[option];
+                const scoreText = score > 0 ? `+${score}` : score.toString();
+                summaryHTML += `${emoji} ${option}: ${scoreText}<br>`;
+            });
+            
+            content.innerHTML = summaryHTML;
+            summary.style.display = 'block';
+        }
+
+        function updateDisplay() {
+            const grid = document.getElementById('comparisonGrid');
+            grid.innerHTML = '';
+            
+            options.forEach(optionName => {
+                const safeId = optionName.replace(/\s+/g, '_');
+                const data = optionData[optionName];
+                
+                const card = document.createElement('div');
+                card.className = 'option-card';
+                card.id = `card_${safeId}`;
+                
+                card.innerHTML = `
+                    <div class="option-header">
+                        <h3 class="option-title">${optionName}</h3>
+                        <div class="option-score" id="score_${safeId}">0</div>
+                        <button class="delete-btn" onclick="removeOption('${optionName}')">Remove</button>
+                    </div>
+                    
+                    <div class="pros-cons">
+                        <div class="pros">
+                            <h4>✅ Pros (Benefits)</h4>
+                            <ul class="item-list">
+                                ${data.pros.map((pro, index) => `
+                                    <li>
+                                        <input class="item-input" placeholder="Enter benefit..." 
+                                               value="${pro.text}"
+                                               onchange="updateProCon('${optionName}', 'pros', ${index}, 'text', this.value)">
+                                        <input class="score-input" type="number" min="1" max="10" 
+                                               value="${pro.score}" placeholder="1-10"
+                                               onchange="updateProCon('${optionName}', 'pros', ${index}, 'score', this.value)"
+                                               title="Importance (1-10)">
+                                        <button class="delete-btn" onclick="removePro('${optionName}', ${index})"
+                                                ${data.pros.length <= 1 ? 'disabled' : ''}>×</button>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                            <button class="add-btn" onclick="addPro('${optionName}')">+ Add Pro</button>
+                        </div>
+                        
+                        <div class="cons">
+                            <h4>❌ Cons (Drawbacks)</h4>
+                            <ul class="item-list">
+                                ${data.cons.map((con, index) => `
+                                    <li>
+                                        <input class="item-input" placeholder="Enter drawback..." 
+                                               value="${con.text}"
+                                               onchange="updateProCon('${optionName}', 'cons', ${index}, 'text', this.value)">
+                                        <input class="score-input" type="number" min="1" max="10" 
+                                               value="${con.score}" placeholder="1-10"
+                                               onchange="updateProCon('${optionName}', 'cons', ${index}, 'score', this.value)"
+                                               title="Impact (1-10)">
+                                        <button class="delete-btn" onclick="removeCon('${optionName}', ${index})"
+                                                ${data.cons.length <= 1 ? 'disabled' : ''}>×</button>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                            <button class="add-btn" onclick="addCon('${optionName}')">+ Add Con</button>
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+            
+            calculateScores();
+        }
+
+        function clearAll() {
+            if (confirm('Clear all options? This cannot be undone.')) {
+                options = [];
+                optionData = {};
+                updateDisplay();
+            }
+        }
+
+        // Add sample data
+        options = ['Job at TechCorp', 'Job at StartupXYZ'];
+        optionData = {
+            'Job at TechCorp': {
+                pros: [
+                    { text: 'Higher salary', score: 8 },
+                    { text: 'Good benefits', score: 7 },
+                    { text: 'Stable company', score: 6 }
+                ],
+                cons: [
+                    { text: 'Long commute', score: 5 },
+                    { text: 'Less flexible hours', score: 4 }
+                ]
+            },
+            'Job at StartupXYZ': {
+                pros: [
+                    { text: 'Equity potential', score: 9 },
+                    { text: 'Remote work', score: 8 },
+                    { text: 'Learning opportunities', score: 7 }
+                ],
+                cons: [
+                    { text: 'Lower base salary', score: 6 },
+                    { text: 'Less job security', score: 7 }
+                ]
+            }
+        };
+        updateDisplay();
+    </script>
+</body>
+</html>

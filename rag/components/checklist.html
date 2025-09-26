@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Checklist</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 20px auto; padding: 20px; }
+        .checklist { background: #f5f5f5; padding: 20px; border-radius: 8px; }
+        .add-item { margin: 15px 0; }
+        input[type="text"] { padding: 8px; width: 70%; margin-right: 10px; }
+        button { padding: 8px 16px; cursor: pointer; border: none; border-radius: 4px; }
+        .add-btn { background: #4CAF50; color: white; }
+        .clear-btn { background: #f44336; color: white; margin-left: 10px; }
+        .item { display: flex; align-items: center; padding: 8px; margin: 5px 0; background: white; border-radius: 4px; }
+        .item input[type="checkbox"] { margin-right: 12px; transform: scale(1.2); }
+        .item label { flex: 1; cursor: pointer; }
+        .item.completed label { text-decoration: line-through; color: #888; }
+        .delete-btn { background: #ff9800; color: white; padding: 4px 8px; font-size: 12px; }
+        .stats { text-align: center; margin: 15px 0; font-weight: bold; }
+        .progress { width: 100%; height: 10px; background: #ddd; border-radius: 5px; margin: 10px 0; }
+        .progress-fill { height: 100%; background: #4CAF50; border-radius: 5px; transition: width 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="checklist">
+        <h3>Task Checklist</h3>
+        
+        <div class="add-item">
+            <input type="text" id="newItem" placeholder="Add a new task..." onkeypress="if(event.key==='Enter') addItem()">
+            <button class="add-btn" onclick="addItem()">Add</button>
+            <button class="clear-btn" onclick="clearCompleted()">Clear Done</button>
+        </div>
+        
+        <div class="stats">
+            <span id="completed">0</span> of <span id="total">0</span> tasks completed
+        </div>
+        
+        <div class="progress">
+            <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+        </div>
+        
+        <div id="itemList">
+            <!-- Dynamic items will be added here -->
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="exportList()" style="background: #2196F3; color: white;">Export List</button>
+        </div>
+    </div>
+
+    <script>
+        let items = [];
+        let itemId = 0;
+
+        function addItem() {
+            const input = document.getElementById('newItem');
+            const text = input.value.trim();
+            
+            if (text) {
+                items.push({
+                    id: itemId++,
+                    text: text,
+                    completed: false
+                });
+                input.value = '';
+                renderItems();
+                updateStats();
+            }
+        }
+
+        function toggleItem(id) {
+            const item = items.find(item => item.id === id);
+            if (item) {
+                item.completed = !item.completed;
+                renderItems();
+                updateStats();
+            }
+        }
+
+        function deleteItem(id) {
+            items = items.filter(item => item.id !== id);
+            renderItems();
+            updateStats();
+        }
+
+        function renderItems() {
+            const container = document.getElementById('itemList');
+            container.innerHTML = '';
+            
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `item ${item.completed ? 'completed' : ''}`;
+                div.innerHTML = `
+                    <input type="checkbox" ${item.completed ? 'checked' : ''} 
+                           onchange="toggleItem(${item.id})">
+                    <label onclick="toggleItem(${item.id})">${item.text}</label>
+                    <button class="delete-btn" onclick="deleteItem(${item.id})">Delete</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateStats() {
+            const completed = items.filter(item => item.completed).length;
+            const total = items.length;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            document.getElementById('completed').textContent = completed;
+            document.getElementById('total').textContent = total;
+            document.getElementById('progressFill').style.width = percentage + '%';
+        }
+
+        function clearCompleted() {
+            items = items.filter(item => !item.completed);
+            renderItems();
+            updateStats();
+        }
+
+        function exportList() {
+            const listText = items.map(item => 
+                `${item.completed ? '✓' : '☐'} ${item.text}`
+            ).join('\n');
+            
+            const blob = new Blob([listText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'checklist.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Add some default items
+        items = [
+            { id: itemId++, text: 'Review project goals', completed: false },
+            { id: itemId++, text: 'Schedule team meeting', completed: false },
+            { id: itemId++, text: 'Update documentation', completed: false }
+        ];
+        renderItems();
+        updateStats();
+    </script>
+</body>
+</html>

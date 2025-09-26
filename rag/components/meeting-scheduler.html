@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Scheduler - Availability Grid</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1400px; margin: 20px auto; padding: 20px; }
+        .scheduler-container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin: 20px 0; }
+        .week-navigation { display: flex; align-items: center; gap: 15px; }
+        .nav-btn { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+        .nav-btn:hover { background: #0056b3; }
+        .week-display { font-size: 1.2em; font-weight: bold; color: #333; min-width: 250px; text-align: center; }
+        .controls { display: flex; gap: 10px; }
+        .control-btn { padding: 8px 15px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; }
+        .control-btn:hover { background: #f8f9fa; }
+        .add-btn { background: #28a745; color: white; border: none; }
+        .add-btn:hover { background: #218838; }
+        .participants-section { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ddd; }
+        .participants-header { display: flex; justify-content: between; align-items: center; margin-bottom: 15px; }
+        .participants-list { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
+        .participant-tag { background: #e9ecef; padding: 5px 10px; border-radius: 15px; display: flex; align-items: center; gap: 5px; }
+        .participant-color { width: 12px; height: 12px; border-radius: 50%; }
+        .remove-participant { color: #dc3545; cursor: pointer; margin-left: 5px; }
+        .remove-participant:hover { color: #c82333; }
+        .add-participant { display: flex; gap: 10px; margin: 10px 0; }
+        .add-participant input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .add-participant button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .availability-grid { background: white; border-radius: 8px; overflow-x: auto; border: 1px solid #ddd; }
+        .grid-table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        .grid-header { background: #f8f9fa; }
+        .grid-header th { padding: 15px 10px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: bold; }
+        .time-header { width: 80px; }
+        .day-header { min-width: 120px; }
+        .time-row { border-bottom: 1px solid #e9ecef; }
+        .time-cell { padding: 8px; text-align: center; background: #f8f9fa; font-weight: bold; border-right: 1px solid #e9ecef; }
+        .availability-cell { width: 120px; height: 40px; border-right: 1px solid #e9ecef; position: relative; cursor: pointer; transition: background-color 0.2s; }
+        .availability-cell:hover { background: #f0f8ff; }
+        .availability-slot { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+        .slot-free { background: #d4edda; }
+        .slot-busy { background: #f8d7da; }
+        .slot-tentative { background: #fff3cd; }
+        .slot-meeting { background: #cce5ff; border: 2px solid #007bff; }
+        .slot-overlap { background: linear-gradient(45deg, #d4edda 25%, #f8d7da 25%, #f8d7da 50%, #d4edda 50%, #d4edda 75%, #f8d7da 75%); }
+        .meeting-info { position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px; display: flex; align-items: center; justify-content: center; font-size: 0.8em; font-weight: bold; color: #333; background: rgba(255,255,255,0.9); border-radius: 2px; }
+        .legend { display: flex; gap: 20px; margin: 20px 0; justify-content: center; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-color { width: 20px; height: 20px; border-radius: 3px; border: 1px solid #ccc; }
+        .meeting-suggestions { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ddd; }
+        .suggestions-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin: 15px 0; }
+        .suggestion-card { background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #28a745; cursor: pointer; }
+        .suggestion-card:hover { background: #e9ecef; }
+        .suggestion-time { font-weight: bold; color: #333; }
+        .suggestion-attendees { color: #666; font-size: 0.9em; margin: 5px 0; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 5% auto; padding: 20px; width: 90%; max-width: 500px; border-radius: 8px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-modal { background: none; border: none; font-size: 1.5em; cursor: pointer; }
+        .form-row { margin: 15px 0; }
+        .form-row label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        .form-row input, .form-row textarea, .form-row select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; }
+        .form-row textarea { height: 60px; resize: vertical; }
+        .form-row.time-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .form-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .form-btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .form-btn.save { background: #28a745; color: white; }
+        .form-btn.cancel { background: #6c757d; color: white; }
+        .form-btn:hover { opacity: 0.8; }
+        .export-controls { text-align: center; margin: 20px 0; }
+        .export-btn { background: #6f42c1; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 0 5px; }
+        .export-btn:hover { background: #5a32a3; }
+        .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { background: white; padding: 15px; border-radius: 6px; text-align: center; border-left: 4px solid #007bff; }
+        .stat-value { font-size: 1.3em; font-weight: bold; color: #007bff; }
+        .stat-label { color: #666; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="scheduler-container">
+        <h2>📅 Meeting Scheduler - Availability Grid</h2>
+        <p>Coordinate team schedules and find optimal meeting times with visual availability tracking and smart suggestions.</p>
+        
+        <div class="header">
+            <div class="week-navigation">
+                <button class="nav-btn" onclick="changeWeek(-1)">‹ Previous Week</button>
+                <div class="week-display" id="weekDisplay"></div>
+                <button class="nav-btn" onclick="changeWeek(1)">Next Week ›</button>
+                <button class="nav-btn" onclick="goToCurrentWeek()">This Week</button>
+            </div>
+            <div class="controls">
+                <button class="control-btn add-btn" onclick="showAddMeetingForm()">+ Schedule Meeting</button>
+                <button class="control-btn" onclick="findMeetingTimes()">🔍 Find Times</button>
+                <button class="control-btn" onclick="exportSchedule()">📤 Export</button>
+                <button class="control-btn" onclick="clearWeek()">🗑️ Clear Week</button>
+            </div>
+        </div>
+
+        <div class="participants-section">
+            <div class="participants-header">
+                <h3>👥 Team Members</h3>
+            </div>
+            <div class="add-participant">
+                <input type="text" id="participantName" placeholder="Add team member name..." onkeypress="if(event.key==='Enter') addParticipant()">
+                <button onclick="addParticipant()">Add Member</button>
+            </div>
+            <div class="participants-list" id="participantsList">
+                <!-- Participants will be added here -->
+            </div>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-value" id="totalParticipants">0</div>
+                <div class="stat-label">Team Members</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalMeetings">0</div>
+                <div class="stat-label">Scheduled Meetings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="availableSlots">0</div>
+                <div class="stat-label">Available Slots</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="conflictSlots">0</div>
+                <div class="stat-label">Conflicts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="optimalSlots">0</div>
+                <div class="stat-label">Optimal Slots</div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color slot-free"></div>
+                <span>Available</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color slot-busy"></div>
+                <span>Busy</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color slot-tentative"></div>
+                <span>Tentative</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color slot-meeting"></div>
+                <span>Meeting</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color slot-overlap"></div>
+                <span>Mixed Availability</span>
+            </div>
+        </div>
+
+        <div class="availability-grid">
+            <table class="grid-table">
+                <thead class="grid-header">
+                    <tr id="headerRow">
+                        <th class="time-header">Time</th>
+                        <!-- Day headers will be generated -->
+                    </tr>
+                </thead>
+                <tbody id="gridBody">
+                    <!-- Time slots will be generated -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="meeting-suggestions">
+            <h3>💡 Suggested Meeting Times</h3>
+            <p>Times when all selected participants are available:</p>
+            <div class="suggestions-list" id="suggestionsList">
+                <!-- Suggestions will be generated -->
+            </div>
+        </div>
+
+        <div class="export-controls">
+            <button class="export-btn" onclick="exportCalendar()">📅 Export Calendar</button>
+            <button class="export-btn" onclick="shareAvailability()">🔗 Share Availability</button>
+            <button class="export-btn" onclick="saveData()">💾 Save Data</button>
+            <button class="export-btn" onclick="loadData()">📁 Load Data</button>
+        </div>
+    </div>
+
+    <!-- Add Meeting Modal -->
+    <div id="meetingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Schedule Meeting</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="meetingForm">
+                <div class="form-row">
+                    <label>Meeting Title:</label>
+                    <input type="text" id="meetingTitle" required placeholder="Enter meeting title">
+                </div>
+                <div class="form-row">
+                    <label>Description:</label>
+                    <textarea id="meetingDescription" placeholder="Optional description"></textarea>
+                </div>
+                <div class="form-row">
+                    <label>Date:</label>
+                    <input type="date" id="meetingDate" required>
+                </div>
+                <div class="form-row time-inputs">
+                    <div>
+                        <label>Start Time:</label>
+                        <input type="time" id="meetingStartTime" required>
+                    </div>
+                    <div>
+                        <label>End Time:</label>
+                        <input type="time" id="meetingEndTime" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>Participants:</label>
+                    <div id="participantCheckboxes">
+                        <!-- Participant checkboxes will be generated -->
+                    </div>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="form-btn cancel" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="form-btn save">Schedule Meeting</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentWeekStart = new Date();
+        let participants = [];
+        let availability = {}; // participant -> date -> time -> status
+        let meetings = [];
+        let editingMeetingId = null;
+
+        const participantColors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', 
+            '#FFD93D', '#6BCF7F', '#DDA0DD', '#87CEEB', '#F0E68C'
+        ];
+
+        class Participant {
+            constructor(name) {
+                this.id = Date.now() + Math.random();
+                this.name = name;
+                this.color = participantColors[participants.length % participantColors.length];
+            }
+        }
+
+        class Meeting {
+            constructor(title, description, date, startTime, endTime, participantIds) {
+                this.id = Date.now() + Math.random();
+                this.title = title;
+                this.description = description;
+                this.date = date;
+                this.startTime = startTime;
+                this.endTime = endTime;
+                this.participantIds = participantIds;
+            }
+        }
+
+        function initializeScheduler() {
+            setCurrentWeek();
+            generateGrid();
+            updateDisplay();
+            
+            // Add sample participants
+            addParticipantByName('Alice Johnson');
+            addParticipantByName('Bob Smith');
+            addParticipantByName('Carol Davis');
+            
+            // Add some sample availability
+            generateSampleAvailability();
+        }
+
+        function setCurrentWeek() {
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            currentWeekStart = new Date(today);
+            currentWeekStart.setDate(today.getDate() - dayOfWeek);
+        }
+
+        function updateWeekDisplay() {
+            const endOfWeek = new Date(currentWeekStart);
+            endOfWeek.setDate(currentWeekStart.getDate() + 6);
+            
+            const options = { month: 'short', day: 'numeric' };
+            const startStr = currentWeekStart.toLocaleDateString('en-US', options);
+            const endStr = endOfWeek.toLocaleDateString('en-US', options);
+            
+            document.getElementById('weekDisplay').textContent = 
+                `${startStr} - ${endStr}, ${currentWeekStart.getFullYear()}`;
+        }
+
+        function changeWeek(direction) {
+            currentWeekStart.setDate(currentWeekStart.getDate() + (direction * 7));
+            updateWeekDisplay();
+            generateGrid();
+            updateDisplay();
+        }
+
+        function goToCurrentWeek() {
+            setCurrentWeek();
+            updateWeekDisplay();
+            generateGrid();
+            updateDisplay();
+        }
+
+        function addParticipant() {
+            const name = document.getElementById('participantName').value.trim();
+            if (name && !participants.find(p => p.name === name)) {
+                addParticipantByName(name);
+                document.getElementById('participantName').value = '';
+            }
+        }
+
+        function addParticipantByName(name) {
+            const participant = new Participant(name);
+            participants.push(participant);
+            availability[participant.id] = {};
+            updateParticipantsList();
+            updateParticipantCheckboxes();
+            generateGrid();
+            updateDisplay();
+        }
+
+        function removeParticipant(participantId) {
+            participants = participants.filter(p => p.id !== participantId);
+            delete availability[participantId];
+            meetings = meetings.filter(m => !m.participantIds.includes(participantId));
+            updateParticipantsList();
+            updateParticipantCheckboxes();
+            generateGrid();
+            updateDisplay();
+        }
+
+        function updateParticipantsList() {
+            const container = document.getElementById('participantsList');
+            container.innerHTML = participants.map(participant => `
+                <div class="participant-tag">
+                    <div class="participant-color" style="background: ${participant.color};"></div>
+                    <span>${participant.name}</span>
+                    <span class="remove-participant" onclick="removeParticipant(${participant.id})">×</span>
+                </div>
+            `).join('');
+        }
+
+        function updateParticipantCheckboxes() {
+            const container = document.getElementById('participantCheckboxes');
+            container.innerHTML = participants.map(participant => `
+                <label style="display: block; margin: 5px 0;">
+                    <input type="checkbox" value="${participant.id}" checked>
+                    <span style="margin-left: 5px;">${participant.name}</span>
+                </label>
+            `).join('');
+        }
+
+        function generateGrid() {
+            generateHeaders();
+            generateTimeSlots();
+        }
+
+        function generateHeaders() {
+            const headerRow = document.getElementById('headerRow');
+            headerRow.innerHTML = '<th class="time-header">Time</th>';
+            
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(currentWeekStart.getDate() + i);
+                
+                const th = document.createElement('th');
+                th.className = 'day-header';
+                th.innerHTML = `
+                    <div>${days[i]}</div>
+                    <div>${date.getMonth() + 1}/${date.getDate()}</div>
+                `;
+                headerRow.appendChild(th);
+            }
+        }
+
+        function generateTimeSlots() {
+            const gridBody = document.getElementById('gridBody');
+            gridBody.innerHTML = '';
+            
+            for (let hour = 8; hour < 18; hour++) {
+                const tr = document.createElement('tr');
+                tr.className = 'time-row';
+                
+                // Time cell
+                const timeCell = document.createElement('td');
+                timeCell.className = 'time-cell';
+                timeCell.textContent = `${hour.toString().padStart(2, '0')}:00`;
+                tr.appendChild(timeCell);
+                
+                // Day cells
+                for (let day = 0; day < 7; day++) {
+                    const date = new Date(currentWeekStart);
+                    date.setDate(currentWeekStart.getDate() + day);
+                    const dateStr = date.toISOString().split('T')[0];
+                    const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
+                    
+                    const cell = document.createElement('td');
+                    cell.className = 'availability-cell';
+                    cell.setAttribute('data-date', dateStr);
+                    cell.setAttribute('data-time', timeSlot);
+                    
+                    const slot = document.createElement('div');
+                    slot.className = 'availability-slot';
+                    
+                    // Determine slot status
+                    const status = getSlotStatus(dateStr, timeSlot);
+                    slot.className += ` slot-${status}`;
+                    
+                    // Check for meetings
+                    const meeting = getMeetingAtTime(dateStr, timeSlot);
+                    if (meeting) {
+                        slot.className += ' slot-meeting';
+                        const info = document.createElement('div');
+                        info.className = 'meeting-info';
+                        info.textContent = meeting.title;
+                        slot.appendChild(info);
+                    }
+                    
+                    slot.addEventListener('click', () => toggleAvailability(dateStr, timeSlot));
+                    cell.appendChild(slot);
+                    tr.appendChild(cell);
+                }
+                
+                gridBody.appendChild(tr);
+            }
+        }
+
+        function getSlotStatus(date, time) {
+            const participantStatuses = participants.map(p => {
+                return availability[p.id]?.[date]?.[time] || 'free';
+            });
+            
+            if (participantStatuses.length === 0) return 'free';
+            
+            const uniqueStatuses = [...new Set(participantStatuses)];
+            
+            if (uniqueStatuses.length === 1) {
+                return uniqueStatuses[0];
+            } else {
+                return 'overlap'; // Mixed availability
+            }
+        }
+
+        function getMeetingAtTime(date, time) {
+            return meetings.find(m => {
+                if (m.date !== date) return false;
+                const meetingStart = timeToMinutes(m.startTime);
+                const meetingEnd = timeToMinutes(m.endTime);
+                const slotTime = timeToMinutes(time);
+                return slotTime >= meetingStart && slotTime < meetingEnd;
+            });
+        }
+
+        function timeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        function toggleAvailability(date, time) {
+            // For simplicity, toggle availability for all participants
+            // In a real app, you'd select which participant to update
+            participants.forEach(participant => {
+                if (!availability[participant.id]) availability[participant.id] = {};
+                if (!availability[participant.id][date]) availability[participant.id][date] = {};
+                
+                const current = availability[participant.id][date][time] || 'free';
+                const next = current === 'free' ? 'busy' : 
+                           current === 'busy' ? 'tentative' : 'free';
+                availability[participant.id][date][time] = next;
+            });
+            
+            generateGrid();
+            updateDisplay();
+        }
+
+        function showAddMeetingForm() {
+            editingMeetingId = null;
+            document.getElementById('modalTitle').textContent = 'Schedule Meeting';
+            document.getElementById('meetingForm').reset();
+            
+            // Set default date to today or next weekday
+            const today = new Date();
+            document.getElementById('meetingDate').value = today.toISOString().split('T')[0];
+            
+            updateParticipantCheckboxes();
+            document.getElementById('meetingModal').style.display = 'block';
+        }
+
+        function scheduleAtTime(date, time) {
+            showAddMeetingForm();
+            document.getElementById('meetingDate').value = date;
+            document.getElementById('meetingStartTime').value = time;
+            
+            // Set end time 1 hour later
+            const startMinutes = timeToMinutes(time);
+            const endMinutes = startMinutes + 60;
+            const endHours = Math.floor(endMinutes / 60);
+            const endMins = endMinutes % 60;
+            document.getElementById('meetingEndTime').value = 
+                `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+        }
+
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+
+        document.getElementById('meetingForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('meetingTitle').value.trim();
+            const description = document.getElementById('meetingDescription').value.trim();
+            const date = document.getElementById('meetingDate').value;
+            const startTime = document.getElementById('meetingStartTime').value;
+            const endTime = document.getElementById('meetingEndTime').value;
+            
+            // Get selected participants
+            const selectedParticipants = Array.from(
+                document.querySelectorAll('#participantCheckboxes input:checked')
+            ).map(cb => parseInt(cb.value));
+            
+            if (!title || !date || !startTime || !endTime || selectedParticipants.length === 0) {
+                alert('Please fill in all required fields and select participants');
+                return;
+            }
+            
+            if (startTime >= endTime) {
+                alert('End time must be after start time');
+                return;
+            }
+            
+            const meeting = new Meeting(title, description, date, startTime, endTime, selectedParticipants);
+            meetings.push(meeting);
+            
+            generateGrid();
+            updateDisplay();
+            closeModal();
+        });
+
+        function findMeetingTimes() {
+            const suggestions = [];
+            
+            // Find times when all participants are available
+            for (let day = 0; day < 7; day++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(currentWeekStart.getDate() + day);
+                const dateStr = date.toISOString().split('T')[0];
+                
+                for (let hour = 8; hour < 17; hour++) {
+                    const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
+                    
+                    // Check if all participants are available
+                    const allAvailable = participants.every(p => {
+                        const status = availability[p.id]?.[dateStr]?.[timeSlot] || 'free';
+                        return status === 'free';
+                    });
+                    
+                    // Check if there's no meeting scheduled
+                    const noMeeting = !getMeetingAtTime(dateStr, timeSlot);
+                    
+                    if (allAvailable && noMeeting && participants.length > 0) {
+                        suggestions.push({
+                            date: dateStr,
+                            time: timeSlot,
+                            day: date.toLocaleDateString('en-US', { weekday: 'long' }),
+                            formattedDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        });
+                    }
+                }
+            }
+            
+            displaySuggestions(suggestions);
+        }
+
+        function displaySuggestions(suggestions) {
+            const container = document.getElementById('suggestionsList');
+            
+            if (suggestions.length === 0) {
+                container.innerHTML = '<p style="color: #666; text-align: center;">No available time slots found for all participants.</p>';
+                return;
+            }
+            
+            container.innerHTML = suggestions.slice(0, 8).map(suggestion => `
+                <div class="suggestion-card" onclick="scheduleAtTime('${suggestion.date}', '${suggestion.time}')">
+                    <div class="suggestion-time">${suggestion.day}, ${suggestion.formattedDate}</div>
+                    <div class="suggestion-time">${suggestion.time}</div>
+                    <div class="suggestion-attendees">All ${participants.length} participants available</div>
+                </div>
+            `).join('');
+        }
+
+        function updateDisplay() {
+            updateStats();
+            findMeetingTimes();
+        }
+
+        function updateStats() {
+            const totalParticipants = participants.length;
+            const totalMeetings = meetings.filter(m => {
+                const meetingDate = new Date(m.date);
+                const weekEnd = new Date(currentWeekStart);
+                weekEnd.setDate(currentWeekStart.getDate() + 6);
+                return meetingDate >= currentWeekStart && meetingDate <= weekEnd;
+            }).length;
+            
+            // Calculate available and conflict slots for the week
+            let availableSlots = 0;
+            let conflictSlots = 0;
+            let optimalSlots = 0;
+            
+            for (let day = 0; day < 7; day++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(currentWeekStart.getDate() + day);
+                const dateStr = date.toISOString().split('T')[0];
+                
+                for (let hour = 8; hour < 18; hour++) {
+                    const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
+                    const status = getSlotStatus(dateStr, timeSlot);
+                    
+                    if (status === 'free') {
+                        availableSlots++;
+                        if (participants.length > 0) optimalSlots++;
+                    } else if (status === 'overlap') {
+                        conflictSlots++;
+                    }
+                }
+            }
+            
+            document.getElementById('totalParticipants').textContent = totalParticipants;
+            document.getElementById('totalMeetings').textContent = totalMeetings;
+            document.getElementById('availableSlots').textContent = availableSlots;
+            document.getElementById('conflictSlots').textContent = conflictSlots;
+            document.getElementById('optimalSlots').textContent = optimalSlots;
+        }
+
+        function generateSampleAvailability() {
+            participants.forEach(participant => {
+                for (let day = 0; day < 7; day++) {
+                    const date = new Date(currentWeekStart);
+                    date.setDate(currentWeekStart.getDate() + day);
+                    const dateStr = date.toISOString().split('T')[0];
+                    
+                    if (!availability[participant.id]) availability[participant.id] = {};
+                    if (!availability[participant.id][dateStr]) availability[participant.id][dateStr] = {};
+                    
+                    // Add some random busy periods
+                    for (let hour = 8; hour < 18; hour++) {
+                        const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
+                        if (Math.random() < 0.3) { // 30% chance of being busy
+                            availability[participant.id][dateStr][timeSlot] = 'busy';
+                        } else if (Math.random() < 0.1) { // 10% chance of being tentative
+                            availability[participant.id][dateStr][timeSlot] = 'tentative';
+                        }
+                    }
+                }
+            });
+        }
+
+        function clearWeek() {
+            if (confirm('Clear all meetings and availability for this week?')) {
+                const weekEnd = new Date(currentWeekStart);
+                weekEnd.setDate(currentWeekStart.getDate() + 6);
+                
+                meetings = meetings.filter(m => {
+                    const meetingDate = new Date(m.date);
+                    return meetingDate < currentWeekStart || meetingDate > weekEnd;
+                });
+                
+                participants.forEach(participant => {
+                    for (let day = 0; day < 7; day++) {
+                        const date = new Date(currentWeekStart);
+                        date.setDate(currentWeekStart.getDate() + day);
+                        const dateStr = date.toISOString().split('T')[0];
+                        
+                        if (availability[participant.id]?.[dateStr]) {
+                            delete availability[participant.id][dateStr];
+                        }
+                    }
+                });
+                
+                generateGrid();
+                updateDisplay();
+            }
+        }
+
+        function exportCalendar() {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(currentWeekStart.getDate() + 6);
+            
+            let calendar = `Meeting Schedule - ${currentWeekStart.toLocaleDateString()} to ${weekEnd.toLocaleDateString()}\n`;
+            calendar += '='.repeat(80) + '\n\n';
+            
+            const weekMeetings = meetings.filter(m => {
+                const meetingDate = new Date(m.date);
+                return meetingDate >= currentWeekStart && meetingDate <= weekEnd;
+            });
+            
+            weekMeetings.sort((a, b) => new Date(a.date + 'T' + a.startTime) - new Date(b.date + 'T' + b.startTime));
+            
+            weekMeetings.forEach(meeting => {
+                const attendees = meeting.participantIds.map(id => 
+                    participants.find(p => p.id === id)?.name || 'Unknown'
+                ).join(', ');
+                
+                calendar += `📅 ${new Date(meeting.date).toLocaleDateString()}\n`;
+                calendar += `🕒 ${meeting.startTime} - ${meeting.endTime}\n`;
+                calendar += `📋 ${meeting.title}\n`;
+                if (meeting.description) calendar += `📝 ${meeting.description}\n`;
+                calendar += `👥 ${attendees}\n\n`;
+            });
+            
+            const blob = new Blob([calendar], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `meeting_schedule_${currentWeekStart.toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function shareAvailability() {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(currentWeekStart.getDate() + 6);
+            
+            let shareText = `📅 Team Availability - ${currentWeekStart.toLocaleDateString()} to ${weekEnd.toLocaleDateString()}\n\n`;
+            shareText += `👥 ${participants.length} team members\n`;
+            shareText += `📊 ${document.getElementById('optimalSlots').textContent} optimal meeting slots available\n\n`;
+            shareText += 'Use our meeting scheduler to find the best times for everyone!';
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Team Meeting Availability',
+                    text: shareText,
+                });
+            } else {
+                navigator.clipboard.writeText(shareText).then(() => {
+                    alert('Availability info copied to clipboard!');
+                });
+            }
+        }
+
+        function saveData() {
+            const data = {
+                participants: participants,
+                availability: availability,
+                meetings: meetings,
+                currentWeekStart: currentWeekStart.toISOString()
+            };
+            localStorage.setItem('meeting_scheduler_data', JSON.stringify(data));
+            alert('Data saved locally!');
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('meeting_scheduler_data');
+            if (saved) {
+                if (confirm('Load saved data? This will replace current data.')) {
+                    const data = JSON.parse(saved);
+                    participants = data.participants || [];
+                    availability = data.availability || {};
+                    meetings = data.meetings || [];
+                    if (data.currentWeekStart) {
+                        currentWeekStart = new Date(data.currentWeekStart);
+                    }
+                    updateWeekDisplay();
+                    updateParticipantsList();
+                    generateGrid();
+                    updateDisplay();
+                    alert('Data loaded!');
+                }
+            } else {
+                alert('No saved data found');
+            }
+        }
+
+        // Close modals when clicking outside
+        window.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                closeModal();
+            }
+        });
+
+        // Initialize
+        initializeScheduler();
+        updateWeekDisplay();
+    </script>
+</body>
+</html>
