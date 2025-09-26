@@ -9,6 +9,8 @@ import { CacheManager } from '@/lib/cache/memory-cache';
 import KnowledgeServiceSingleton from '@/lib/knowledge/knowledge-singleton';
 import { createLogger } from '@/lib/logger';
 
+const logger = createLogger('chat-api');
+
 interface ChatResponse {
   content: string;
   artifact?: {
@@ -55,11 +57,11 @@ async function getRAGContext(userMessage: string): Promise<string[]> {
   } catch (error) {
     // GRACEFUL: Handle build-time or initialization errors
     if (error instanceof Error && error.message.includes('not available during build')) {
-      createLogger('chat-api').info('RAG not available during build phase - using basic Noah');
+      logger.info('RAG not available during build phase - using basic Noah');
       return [];
     }
     
-    console.warn('RAG context retrieval failed (falling back to basic Noah):', error);
+    logger.warn('RAG context retrieval failed (falling back to basic Noah)', { error });
     return [];
   }
 }
@@ -131,7 +133,7 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
           context.sessionId,
           {
             conversationHistory,
-            userPreferences: { trustLevel, skepticMode }
+            userPreferences: {}
           }
         );
 
@@ -162,9 +164,9 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
         return NextResponse.json(response);
       }
       } catch (multiAgentError) {
-        console.warn('Multi-agent system failed, falling back to single agent:', multiAgentError);
+        logger.warn('Multi-agent system failed, falling back to single agent', { error: multiAgentError });
         // Log this as a system health issue for monitoring
-        console.error('SYSTEM DEGRADATION: Multi-agent system unavailable', {
+        logger.error('SYSTEM DEGRADATION: Multi-agent system unavailable', {
           error: multiAgentError,
           sessionId: context.sessionId,
           fallbackActivated: true
@@ -288,7 +290,7 @@ What aspects of your current approach are you most interested in examining?`;
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('CRITICAL ERROR: All chat systems failed', error);
+    logger.error('CRITICAL ERROR: All chat systems failed', { error });
     
     // EMERGENCY FALLBACK: Static response to ensure user always gets something
     const emergencyResponse = {
