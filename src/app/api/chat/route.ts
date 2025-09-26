@@ -5,6 +5,9 @@ import { generateText } from 'ai';
 import { AI_CONFIG } from '@/lib/ai-config';
 import { ArtifactService } from '@/lib/artifact-service';
 import { contentFilter } from '@/lib/safety/content-filter';
+import { CacheManager } from '@/lib/cache/memory-cache';
+import KnowledgeServiceSingleton from '@/lib/knowledge/knowledge-singleton';
+import { createLogger } from '@/lib/logger';
 
 interface ChatResponse {
   content: string;
@@ -50,6 +53,12 @@ async function getRAGContext(userMessage: string): Promise<string[]> {
     });
 
   } catch (error) {
+    // GRACEFUL: Handle build-time or initialization errors
+    if (error instanceof Error && error.message.includes('not available during build')) {
+      createLogger('chat-api').info('RAG not available during build phase - using basic Noah');
+      return [];
+    }
+    
     console.warn('RAG context retrieval failed (falling back to basic Noah):', error);
     return [];
   }
