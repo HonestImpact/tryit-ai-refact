@@ -1,7 +1,10 @@
-// Practical/Tinkerer Agent - Specializes in technical implementation and pragmatic solutions
-// Built on the existing TryIt-AI foundation
+// Advanced Tinkerer Agent - Enterprise Technical Implementation Specialist
+// Built with sophisticated RAG integration and component analysis capabilities
 
 import { BaseAgent } from './base-agent';
+import { RAGIntegration } from './rag-integration';
+import { SolutionGenerator } from './solution-generator';
+import { createLogger } from '../logger';
 import type {
   AgentCapability,
   AgentRequest,
@@ -10,456 +13,298 @@ import type {
   AgentConfig
 } from './types';
 
+interface TinkererContext {
+  readonly originalRequest: AgentRequest;
+  readonly discoveryResult: any;
+  readonly searchContext: any;
+  readonly ragResponse: any;
+}
+
 export class PracticalAgent extends BaseAgent {
+  private readonly logger = createLogger('tinkerer-agent');
+  private readonly ragIntegration: RAGIntegration;
+  private readonly solutionGenerator: SolutionGenerator;
+
   constructor(llmProvider: LLMProvider, config: AgentConfig = {}) {
     const capabilities: AgentCapability[] = [
       {
+        name: 'advanced-rag-integration',
+        description: 'Leverages component library through sophisticated RAG search',
+        version: '2.0.0'
+      },
+      {
+        name: 'component-analysis',
+        description: 'Analyzes and combines existing components intelligently',
+        version: '2.0.0'
+      },
+      {
+        name: 'solution-generation',
+        description: 'Generates optimized solutions using multiple strategies',
+        version: '2.0.0'
+      },
+      {
         name: 'technical-implementation',
-        description: 'Converts ideas into working code and technical solutions',
-        version: '1.0.0'
-      },
-      {
-        name: 'problem-debugging',
-        description: 'Identifies and resolves technical issues systematically',
-        version: '1.0.0'
-      },
-      {
-        name: 'optimization',
-        description: 'Improves performance, efficiency, and maintainability',
-        version: '1.0.0'
-      },
-      {
-        name: 'best-practices',
-        description: 'Applies industry standards and proven methodologies',
-        version: '1.0.0'
-      },
-      {
-        name: 'pragmatic-analysis',
-        description: 'Evaluates solutions for feasibility and practicality',
-        version: '1.0.0'
+        description: 'Creates production-ready code with enterprise standards',
+        version: '2.0.0'
       }
     ];
 
-    super('practical-tinkerer', 'Practical Tinkerer', capabilities, llmProvider, {
-      temperature: 0.6, // More focused and deterministic
-      maxTokens: 2500,  // Detailed technical responses
+    super('tinkerer', 'Tinkerer - Advanced Technical Implementation', capabilities, llmProvider, {
+      temperature: 0.3,
+      maxTokens: 4000,
       ...config
     });
+
+    this.ragIntegration = new RAGIntegration();
+    this.solutionGenerator = new SolutionGenerator(llmProvider);
   }
 
   protected async processRequest(request: AgentRequest): Promise<AgentResponse> {
-    const messages = this.buildMessages(request);
-    
-    // Add technical analysis prompts if needed
-    const enhancedMessages = this.enhanceForTechnicalWork(messages, request);
-    
-    const response = await this.generateText(enhancedMessages);
+    this.logger.info('Tinkerer processing advanced implementation request', {
+      requestId: request.id,
+      contentLength: request.content.length
+    });
 
-    if (typeof response === 'object' && 'content' in response) {
-      const confidence = this.calculateTechnicalConfidence(response.content, request);
+    try {
+      // Phase 1: RAG Component Discovery
+      const discoveryResult = await this.ragIntegration.findRelevantComponents(request);
       
-      return {
-        requestId: request.id,
-        agentId: this.id,
-        content: response.content,
-        confidence,
-        reasoning: this.extractTechnicalReasoning(response.content),
-        timestamp: new Date(),
-        metadata: {
-          tokensUsed: response.usage?.totalTokens || 0,
-          model: response.model,
-          technicalElements: this.identifyTechnicalElements(response.content),
-          implementationComplexity: this.assessImplementationComplexity(request.content),
-          bestPracticesApplied: this.identifyBestPractices(response.content)
-        }
-      };
-    }
+      // Phase 2: Generate Solution
+      const hasRelevantComponents = discoveryResult.primaryComponents.length > 0 || 
+                                   discoveryResult.supportingComponents.length > 0;
 
-    throw new Error('Invalid response from LLM provider');
+      if (hasRelevantComponents) {
+        return await this.generateRAGEnhancedSolution(request, discoveryResult);
+      } else {
+        return await this.generateCustomSolution(request, 'No relevant components found');
+      }
+
+    } catch (error) {
+      this.logger.error('Tinkerer processing failed', { error });
+      return this.generateErrorResponse(request, error);
+    }
+  }
+
+  private async generateRAGEnhancedSolution(request: AgentRequest, discoveryResult: any): Promise<AgentResponse> {
+    const context = await this.buildTinkererContext(request, discoveryResult);
+    const solution = await this.solutionGenerator.generateCombinedSolution({
+      originalRequest: request,
+      ragContext: context.ragResponse,
+      discoveryResult: context.discoveryResult,
+      searchContext: context.searchContext
+    });
+
+    const artifactType = this.determineArtifactType(solution.content);
+    const attributedContent = this.ragIntegration.addAttribution(solution.content, discoveryResult, artifactType);
+
+    return {
+      requestId: request.id,
+      agentId: this.id,
+      content: this.buildRAGEnhancedResponse(solution, context, attributedContent),
+      confidence: this.calculateRAGConfidence(solution, discoveryResult),
+      reasoning: `Advanced RAG-enhanced implementation using ${solution.componentsUsed.length} components`,
+      timestamp: new Date(),
+      metadata: {
+        implementationStrategy: solution.strategy.approach,
+        componentsUsed: solution.componentsUsed,
+        validationPassed: solution.validationResults.isValid
+      }
+    };
+  }
+
+  private async generateCustomSolution(request: AgentRequest, reason: string): Promise<AgentResponse> {
+    const solution = await this.solutionGenerator.generateBasicSolution(request, reason);
+    const artifactType = this.determineArtifactType(solution.content);
+    const attributedContent = this.addBasicAttribution(solution.content, artifactType);
+
+    return {
+      requestId: request.id,
+      agentId: this.id,
+      content: this.buildCustomResponse(solution, attributedContent, reason),
+      confidence: solution.strategy.confidence,
+      reasoning: `Custom implementation: ${solution.strategy.reasoning}`,
+      timestamp: new Date(),
+      metadata: {
+        implementationStrategy: 'custom',
+        componentsUsed: ['custom-generation']
+      }
+    };
+  }
+
+  private async buildTinkererContext(request: AgentRequest, discoveryResult: any): Promise<TinkererContext> {
+    const searchContext = {
+      userRequest: request.content,
+      domain: this.identifyDomain(request.content),
+      intent: 'build',
+      complexity: this.assessComplexity(request.content),
+      requiredComponents: this.extractRequiredComponents(request.content)
+    };
+
+    const ragResponse = this.ragIntegration.getSystemPromptWithComponents(
+      this.getSystemPrompt(),
+      discoveryResult,
+      searchContext
+    );
+
+    return { originalRequest: request, discoveryResult, searchContext, ragResponse };
+  }
+
+  private buildRAGEnhancedResponse(solution: any, context: TinkererContext, content: string): string {
+    return `I've analyzed your request and found ${context.discoveryResult.primaryComponents.length + context.discoveryResult.supportingComponents.length} relevant components.
+
+## Implementation Strategy
+${this.explainStrategy(solution.strategy)}
+
+## Solution
+${content}
+
+*Built using our component library with intelligent integration.*`;
+  }
+
+  private buildCustomResponse(solution: any, content: string, reason: string): string {
+    return `I've created a custom solution for your request.
+
+## Implementation Approach
+Custom development was used because: ${reason}
+
+## Solution
+${content}
+
+*Custom implementation following modern web development best practices.*`;
+  }
+
+  private calculateRAGConfidence(solution: any, discoveryResult: any): number {
+    return Math.min(0.95, (solution.strategy.confidence + discoveryResult.totalRelevanceScore) / 2);
+  }
+
+  private explainStrategy(strategy: any): string {
+    const explanations = {
+      'combination': 'Combined multiple relevant components to create a comprehensive solution.',
+      'adaptation': 'Adapted an existing component to meet your specific requirements.',
+      'hybrid': 'Created a hybrid solution combining existing components with custom implementation.',
+      'custom': 'Built a custom solution from scratch due to limited component matches.'
+    };
+    return explanations[strategy.approach] || 'Applied best-fit implementation strategy.';
+  }
+
+  private determineArtifactType(content: string): 'html' | 'css' | 'javascript' | 'mixed' {
+    const hasHTML = /<[^>]+>/g.test(content);
+    const hasCSS = /\{[^}]*\}/g.test(content);
+    const hasJS = /function\s+|=>/g.test(content);
+
+    if (hasHTML && hasCSS && hasJS) return 'mixed';
+    if (hasHTML) return 'html';
+    if (hasCSS) return 'css';
+    if (hasJS) return 'javascript';
+    return 'mixed';
+  }
+
+  private addBasicAttribution(content: string, artifactType: string): string {
+    const currentDate = new Date().toISOString().split('T')[0];
+    const attribution = `Generated ${currentDate} by Noah – AI Agent System by Honest Impact\nComponents used: custom-generation\nHonestImpact.com & github.com/HonestImpact`;
+
+    if (artifactType === 'html' || artifactType === 'mixed') {
+      return content + `\n\n<!--\n${attribution}\n-->`;
+    } else {
+      return content + `\n\n/*\n${attribution}\n*/`;
+    }
+  }
+
+  private identifyDomain(content: string): string {
+    const contentLower = content.toLowerCase();
+    const domainKeywords = {
+      'productivity': ['task', 'todo', 'habit', 'tracker'],
+      'finance': ['budget', 'expense', 'money', 'calculator'],
+      'utility': ['tool', 'utility', 'converter', 'helper']
+    };
+
+    for (const [domain, keywords] of Object.entries(domainKeywords)) {
+      if (keywords.some(keyword => contentLower.includes(keyword))) {
+        return domain;
+      }
+    }
+    return 'general';
+  }
+
+  private assessComplexity(content: string): 'simple' | 'moderate' | 'complex' {
+    const complexIndicators = ['comprehensive', 'advanced', 'complex', 'detailed'];
+    const simpleIndicators = ['simple', 'basic', 'quick', 'easy'];
+    const contentLower = content.toLowerCase();
+    
+    if (complexIndicators.some(indicator => contentLower.includes(indicator))) return 'complex';
+    if (simpleIndicators.some(indicator => contentLower.includes(indicator))) return 'simple';
+    return content.length > 200 ? 'complex' : 'moderate';
+  }
+
+  private extractRequiredComponents(content: string): string[] {
+    const contentLower = content.toLowerCase();
+    const components: string[] = [];
+    const componentKeywords = {
+      'form': ['form', 'input'],
+      'timer': ['timer', 'countdown'],
+      'calculator': ['calculator', 'calculate'],
+      'checklist': ['checklist', 'todo']
+    };
+
+    for (const [component, keywords] of Object.entries(componentKeywords)) {
+      if (keywords.some(keyword => contentLower.includes(keyword))) {
+        components.push(component);
+      }
+    }
+    return components;
+  }
+
+  private generateErrorResponse(request: AgentRequest, error: unknown): AgentResponse {
+    return {
+      requestId: request.id,
+      agentId: this.id,
+      content: "I encountered an issue while building your solution. Let me create a basic implementation using standard approaches.",
+      confidence: 0.4,
+      reasoning: `Technical error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      timestamp: new Date(),
+      metadata: { error: true, fallback: true }
+    };
   }
 
   protected getSystemPrompt(): string {
-    return `You are the Practical Tinkerer, an AI that specializes in technical implementation and pragmatic solutions.
+    return `You are the Tinkerer, an advanced AI agent specialized in enterprise-grade technical implementation.
 
 CORE IDENTITY:
-- You turn ideas into working, maintainable code
-- You think step-by-step and build systematically
-- You value reliability, performance, and real-world functionality
-- You know when to use existing tools vs building custom solutions
+- You excel at building sophisticated, production-ready solutions
+- You intelligently leverage existing components through advanced RAG integration
+- You combine technical expertise with efficient resource utilization
+- You prioritize code quality, maintainability, and performance
 
-YOUR APPROACH:
-- Start with understanding: "Let's break this down technically..."
-- Analyze requirements and constraints realistically
-- Choose the right tools and technologies for the job
-- Consider edge cases, error handling, and maintenance
-- Focus on solutions that actually work in production
+YOUR ADVANCED CAPABILITIES:
+- RAG Integration: Search and analyze component libraries for optimal reuse
+- Component Analysis: Understand compatibility and combination strategies
+- Solution Generation: Create optimized implementations using multiple strategies
+- Quality Assurance: Validate solutions for correctness and performance
 
-TECHNICAL EXPERTISE YOU APPLY:
-- Architecture patterns: "This calls for a [pattern] approach because..."
-- Performance considerations: "For scale, we'll need to..."
-- Security practices: "To keep this secure, we should..."
-- Error handling: "When things go wrong, the system will..."
-- Testing strategies: "We can verify this works by..."
+YOUR IMPLEMENTATION APPROACH:
+1. Discovery: Search component library for relevant existing solutions
+2. Analysis: Evaluate component compatibility and reusability
+3. Strategy: Determine optimal implementation approach
+4. Generation: Create solution using best available resources
+5. Optimization: Enhance performance and maintainability
+6. Validation: Ensure correctness and quality standards
 
-YOUR VOICE:
-- Direct and solution-focused
-- Uses concrete examples and code snippets
-- Explains trade-offs honestly
-- "Here's how we build this..." / "The implementation would..." / "Technically speaking..."
-- Balances thoroughness with practicality
+YOUR TECHNICAL STANDARDS:
+- Modern Web Standards: HTML5, CSS3, ES6+ JavaScript
+- Accessibility: WCAG 2.1 AA compliance with proper ARIA labels
+- Responsive Design: Mobile-first approach with flexible layouts
+- Performance: Optimized DOM manipulation and resource loading
+- Security: Input validation and XSS prevention
+- Documentation: Comprehensive inline comments and usage examples
 
-WHEN RESPONDING:
-- Provide step-by-step implementation guidance
-- Include actual code examples when relevant
-- Explain technical decisions and trade-offs
-- Consider performance, security, and maintainability
-- Suggest testing and validation approaches
-- Point out potential issues and how to handle them
+QUALITY REQUIREMENTS:
+- Generate complete, working solutions
+- Provide proper attribution for component usage
+- Include comprehensive error handling
+- Ensure cross-browser compatibility
+- Follow enterprise coding standards
+- Create self-contained, deployment-ready artifacts
 
-You work alongside Noah (the coordinator) and the Creative Wanderer. Your role is to make ideas technically feasible and build robust, working solutions.`;
-  }
-
-  protected async preProcess(request: AgentRequest): Promise<void> {
-    // Log technical analysis indicators
-    this.log('info', 'Processing technical request', {
-      requestId: request.id,
-      sessionId: request.sessionId,
-      hasTechnicalKeywords: this.hasTechnicalKeywords(request.content),
-      implementationComplexity: this.assessImplementationComplexity(request.content),
-      requiresCodeGeneration: this.requiresCodeGeneration(request.content)
-    });
-  }
-
-  protected async postProcess(
-    request: AgentRequest, 
-    response: AgentResponse
-  ): Promise<AgentResponse> {
-    // Enhance response with technical metadata
-    response.metadata = {
-      ...response.metadata,
-      technicalApproach: this.identifyTechnicalApproach(response.content),
-      codeQuality: this.assessCodeQuality(response.content),
-      testability: this.assessTestability(response.content),
-      scalabilityConsiderations: this.identifyScalabilityFactors(response.content)
-    };
-
-    return response;
-  }
-
-  protected getErrorResponse(error: Error): string {
-    return "Hit a technical snag there. Let me debug this step by step and find a more robust approach that actually works.";
-  }
-
-  // ===== PRACTICAL/TECHNICAL-SPECIFIC METHODS =====
-
-  /**
-   * Enhance messages with technical analysis prompts
-   */
-  private enhanceForTechnicalWork(
-    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-    request: AgentRequest
-  ) {
-    const lastMessage = messages[messages.length - 1];
-    const complexity = this.assessImplementationComplexity(request.content);
-    
-    if (complexity === 'high') {
-      // Add technical analysis enhancement
-      lastMessage.content += `
-
-TECHNICAL ANALYSIS REQUIRED:
-Consider this request through a technical lens:
-1. What are the specific technical requirements and constraints?
-2. What's the most efficient and maintainable implementation approach?
-3. What potential issues or edge cases need to be handled?
-4. How should this be tested and validated?
-5. What are the performance and scalability implications?`;
-    }
-
-    return messages;
-  }
-
-  /**
-   * Calculate confidence score for technical responses
-   */
-  protected calculateTechnicalConfidence(response: string, request: AgentRequest): number {
-    let confidence = super.calculateConfidence(response, request);
-    
-    // Boost confidence for technical specificity
-    if (this.hasCodeExamples(response)) {
-      confidence += 0.15;
-    }
-    
-    if (this.hasStepByStepApproach(response)) {
-      confidence += 0.1;
-    }
-    
-    if (this.addressesErrorHandling(response)) {
-      confidence += 0.1;
-    }
-    
-    if (this.considersPerformance(response)) {
-      confidence += 0.05;
-    }
-    
-    // Reduce confidence for overly vague technical responses
-    if (this.isTechnicallyVague(response)) {
-      confidence -= 0.2;
-    }
-    
-    return Math.min(1, Math.max(0.3, confidence)); // Min confidence for technical work
-  }
-
-  /**
-   * Extract technical reasoning from response
-   */
-  private extractTechnicalReasoning(content: string): string {
-    const reasoningPatterns = [
-      /because (.*?)[\.\n]/gi,
-      /this approach (.*?)[\.\n]/gi,
-      /technically (.*?)[\.\n]/gi,
-      /the implementation (.*?)[\.\n]/gi
-    ];
-    
-    const reasoningElements: string[] = [];
-    
-    reasoningPatterns.forEach(pattern => {
-      const matches = content.match(pattern);
-      if (matches) {
-        reasoningElements.push(...matches.slice(0, 3)); // Limit to prevent too much
-      }
-    });
-    
-    return reasoningElements.length > 0 
-      ? `Technical reasoning: ${reasoningElements.join('; ')}`
-      : 'Applied systematic technical analysis and implementation planning';
-  }
-
-  /**
-   * Identify technical elements in response
-   */
-  private identifyTechnicalElements(content: string): string[] {
-    const elements: string[] = [];
-    
-    // Check for code examples
-    if (/```|`.*`|function|class|const|let|var/i.test(content)) {
-      elements.push('code-examples');
-    }
-    
-    // Check for architecture patterns
-    if (/pattern|architecture|design|structure|component/i.test(content)) {
-      elements.push('architectural-thinking');
-    }
-    
-    // Check for error handling
-    if (/error|exception|try|catch|validate|handle/i.test(content)) {
-      elements.push('error-handling');
-    }
-    
-    // Check for performance considerations
-    if (/performance|optimize|efficient|scale|cache|memory/i.test(content)) {
-      elements.push('performance-optimization');
-    }
-    
-    // Check for testing considerations
-    if (/test|spec|assert|verify|validate|mock/i.test(content)) {
-      elements.push('testing-strategy');
-    }
-    
-    // Check for security considerations
-    if (/security|secure|auth|permission|validate|sanitize/i.test(content)) {
-      elements.push('security-awareness');
-    }
-    
-    return elements;
-  }
-
-  /**
-   * Check if request has technical keywords
-   */
-  private hasTechnicalKeywords(content: string): boolean {
-    const technicalKeywords = [
-      'implement', 'build', 'code', 'function', 'api', 'database',
-      'algorithm', 'optimize', 'debug', 'fix', 'technical', 'system'
-    ];
-    
-    const lowerContent = content.toLowerCase();
-    return technicalKeywords.some(keyword => lowerContent.includes(keyword));
-  }
-
-  /**
-   * Assess implementation complexity
-   */
-  private assessImplementationComplexity(content: string): 'low' | 'medium' | 'high' {
-    const complexityIndicators = [
-      'system', 'architecture', 'database', 'api', 'integration',
-      'complex', 'advanced', 'enterprise', 'scalable', 'distributed'
-    ];
-    
-    const lowerContent = content.toLowerCase();
-    const matches = complexityIndicators.filter(indicator => 
-      lowerContent.includes(indicator)
-    ).length;
-    
-    if (matches >= 3) return 'high';
-    if (matches >= 1) return 'medium';
-    return 'low';
-  }
-
-  /**
-   * Check if request requires code generation
-   */
-  private requiresCodeGeneration(content: string): boolean {
-    const codeKeywords = [
-      'code', 'function', 'implement', 'build', 'create',
-      'script', 'program', 'algorithm', 'component'
-    ];
-    
-    const lowerContent = content.toLowerCase();
-    return codeKeywords.some(keyword => lowerContent.includes(keyword));
-  }
-
-  /**
-   * Check if response has code examples
-   */
-  private hasCodeExamples(content: string): boolean {
-    return /```|`.*`|function|class|const|let|var|\w+\(/i.test(content);
-  }
-
-  /**
-   * Check if response has step-by-step approach
-   */
-  private hasStepByStepApproach(content: string): boolean {
-    return /step|first|then|next|finally|\d+\./i.test(content);
-  }
-
-  /**
-   * Check if response addresses error handling
-   */
-  private addressesErrorHandling(content: string): boolean {
-    return /error|exception|try|catch|handle|fail|invalid/i.test(content);
-  }
-
-  /**
-   * Check if response considers performance
-   */
-  private considersPerformance(content: string): boolean {
-    return /performance|optimize|efficient|fast|slow|cache|memory/i.test(content);
-  }
-
-  /**
-   * Check if response is technically vague
-   */
-  private isTechnicallyVague(content: string): boolean {
-    const vagueWords = ['somehow', 'maybe', 'probably', 'might work', 'should be fine'];
-    const lowerContent = content.toLowerCase();
-    return vagueWords.some(word => lowerContent.includes(word));
-  }
-
-  /**
-   * Identify best practices mentioned in response
-   */
-  private identifyBestPractices(content: string): string[] {
-    const practices: string[] = [];
-    
-    if (/dry|don't repeat yourself/i.test(content)) {
-      practices.push('DRY-principle');
-    }
-    
-    if (/solid|single responsibility/i.test(content)) {
-      practices.push('SOLID-principles');
-    }
-    
-    if (/test|tdd|unit test/i.test(content)) {
-      practices.push('testing-practices');
-    }
-    
-    if (/clean code|readable|maintainable/i.test(content)) {
-      practices.push('clean-code');
-    }
-    
-    if (/documentation|comment|readme/i.test(content)) {
-      practices.push('documentation');
-    }
-    
-    return practices;
-  }
-
-  /**
-   * Identify technical approach used
-   */
-  private identifyTechnicalApproach(content: string): string[] {
-    const approaches: string[] = [];
-    
-    if (/incremental|iterative|step by step/i.test(content)) {
-      approaches.push('incremental-development');
-    }
-    
-    if (/modular|component|module/i.test(content)) {
-      approaches.push('modular-design');
-    }
-    
-    if (/prototype|mvp|proof of concept/i.test(content)) {
-      approaches.push('prototype-first');
-    }
-    
-    if (/refactor|improve|optimize/i.test(content)) {
-      approaches.push('iterative-improvement');
-    }
-    
-    return approaches;
-  }
-
-  /**
-   * Assess code quality considerations in response
-   */
-  private assessCodeQuality(content: string): number {
-    let score = 0.5; // Base score
-    
-    if (/clean|readable|maintainable/i.test(content)) score += 0.2;
-    if (/comment|documentation/i.test(content)) score += 0.1;
-    if (/test|spec|assertion/i.test(content)) score += 0.15;
-    if (/error handling|validation/i.test(content)) score += 0.1;
-    if (/performance|optimize/i.test(content)) score += 0.05;
-    
-    return Math.min(1, score);
-  }
-
-  /**
-   * Assess testability considerations
-   */
-  private assessTestability(content: string): number {
-    let score = 0.3; // Base score
-    
-    if (/test|testing|spec/i.test(content)) score += 0.3;
-    if (/unit test|integration test/i.test(content)) score += 0.2;
-    if (/mock|stub|fixture/i.test(content)) score += 0.15;
-    if (/assert|expect|verify/i.test(content)) score += 0.1;
-    
-    return Math.min(1, score);
-  }
-
-  /**
-   * Identify scalability factors mentioned
-   */
-  private identifyScalabilityFactors(content: string): string[] {
-    const factors: string[] = [];
-    
-    if (/cache|caching/i.test(content)) {
-      factors.push('caching-strategy');
-    }
-    
-    if (/database|db|query|index/i.test(content)) {
-      factors.push('database-optimization');
-    }
-    
-    if (/load|traffic|concurrent|parallel/i.test(content)) {
-      factors.push('load-handling');
-    }
-    
-    if (/microservice|distributed|api/i.test(content)) {
-      factors.push('distributed-architecture');
-    }
-    
-    return factors;
+You work alongside Noah (coordinator) and Wanderer (research specialist). Your role is to transform requirements and research insights into robust technical implementations using our component library and advanced generation capabilities.`;
   }
 }

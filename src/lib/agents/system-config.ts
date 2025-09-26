@@ -2,6 +2,8 @@
 // Built on the existing TryIt-AI foundation
 
 import { NoahAgent } from './noah-agent';
+import { PracticalAgent } from './practical-agent';
+import { WandererAgent } from './wanderer-agent';
 import { MultiAgentOrchestrator } from './orchestrator';
 import { ProviderManager } from '../providers/provider-manager';
 import { AnthropicProvider } from '../providers/anthropic-provider';
@@ -25,7 +27,8 @@ export interface SystemConfig {
   };
   readonly agents: {
     noah: AgentConfig;
-    // Future agents can be added here
+    tinkerer: AgentConfig;
+    wanderer: AgentConfig;
   };
   readonly orchestrator: OrchestratorConfig;
   readonly routing: RoutingStrategy;
@@ -184,7 +187,7 @@ export class MultiAgentSystem {
     // Get primary provider for agents
     const primaryProvider = this.getPrimaryProvider();
     
-    // Initialize Noah agent
+    // Initialize Noah agent (coordinator)
     try {
       const noahAgent = new NoahAgent(primaryProvider, this.config.agents.noah);
       this.agents.set('noah', noahAgent);
@@ -194,7 +197,32 @@ export class MultiAgentSystem {
       throw error;
     }
 
-    // Future agents (Creative, Practical) can be initialized here
+    // Initialize Tinkerer agent (technical implementation)
+    try {
+      const tinkererAgent = new PracticalAgent(primaryProvider, this.config.agents.tinkerer);
+      this.agents.set('tinkerer', tinkererAgent);
+      this.log('info', 'Tinkerer agent initialized');
+    } catch (error) {
+      this.log('error', 'Failed to initialize Tinkerer agent:', { error });
+      this.log('warn', 'System will continue without Tinkerer capabilities');
+    }
+
+    // Initialize Wanderer agent (research specialist)
+    try {
+      const wandererAgent = new WandererAgent(primaryProvider, this.config.agents.wanderer);
+      this.agents.set('wanderer', wandererAgent);
+      this.log('info', 'Wanderer agent initialized');
+    } catch (error) {
+      this.log('error', 'Failed to initialize Wanderer agent:', { error });
+      this.log('warn', 'System will continue without Wanderer capabilities');
+    }
+
+    // Connect Noah with orchestrator for delegation
+    const noahAgent = this.agents.get('noah') as NoahAgent;
+    if (noahAgent && 'setOrchestrator' in noahAgent) {
+      (noahAgent as any).setOrchestrator(this.orchestrator);
+      this.log('info', 'Noah delegation system activated');
+    }
   }
 
   private registerAgents(): void {
@@ -300,6 +328,16 @@ export function createDefaultConfig(): SystemConfig {
         model: process.env.MODEL_ID || 'claude-sonnet-4-20250514',
         temperature: 0.7,
         maxTokens: 1500
+      },
+      tinkerer: {
+        model: process.env.MODEL_ID || 'claude-sonnet-4-20250514',
+        temperature: 0.3,
+        maxTokens: 4000
+      },
+      wanderer: {
+        model: process.env.MODEL_ID || 'claude-sonnet-4-20250514',
+        temperature: 0.75,
+        maxTokens: 2500
       }
     },
     orchestrator: {

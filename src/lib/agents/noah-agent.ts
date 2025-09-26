@@ -8,10 +8,13 @@ import type {
   AgentRequest,
   AgentResponse,
   LLMProvider,
-  AgentConfig
+  AgentConfig,
+  AgentOrchestrator
 } from './types';
 
 export class NoahAgent extends BaseAgent {
+  private orchestrator?: AgentOrchestrator;
+
   constructor(llmProvider: LLMProvider, config: AgentConfig = {}) {
     const capabilities: AgentCapability[] = [
       {
@@ -43,7 +46,64 @@ export class NoahAgent extends BaseAgent {
     });
   }
 
+  // Method to set orchestrator reference for delegation
+  public setOrchestrator(orchestrator: AgentOrchestrator): void {
+    this.orchestrator = orchestrator;
+  }
+
   protected async processRequest(request: AgentRequest): Promise<AgentResponse> {
+    // Check if this request should be delegated to a specialist agent
+    const delegationDecision = this.shouldDelegate(request);
+    
+    if (delegationDecision.shouldDelegate && this.orchestrator) {
+      try {
+        // Check if this is a workflow (research → build)
+        if (delegationDecision.isWorkflow && delegationDecision.nextAgent) {
+          return await this.handleWorkflow(request, delegationDecision);
+        }
+        
+        // Standard single-agent delegation
+        this.log('info', `Noah delegating to ${delegationDecision.targetAgent}`, { 
+          requestId: request.id,
+          reason: delegationDecision.reason 
+        });
+        
+        // Create a new request for the specialist agent
+        const delegatedRequest: AgentRequest = {
+          ...request,
+          id: `${request.id}-delegated`,
+          content: delegationDecision.enhancedPrompt || request.content
+        };
+        
+        // Route to the specialist agent
+        const specialistResponse = await this.orchestrator.routeRequest(delegatedRequest);
+        
+        // Noah adds his coordination wrapper
+        return {
+          requestId: request.id,
+          agentId: this.id,
+          content: this.wrapSpecialistResponse(specialistResponse, delegationDecision),
+          confidence: specialistResponse.confidence,
+          reasoning: `Delegated to ${delegationDecision.targetAgent}: ${specialistResponse.reasoning}`,
+          timestamp: new Date(),
+          metadata: {
+            delegated: true,
+            targetAgent: delegationDecision.targetAgent,
+            specialistRequestId: specialistResponse.requestId,
+            delegationReason: delegationDecision.reason,
+            tokensUsed: (specialistResponse.metadata?.tokensUsed || 0)
+          }
+        };
+      } catch (delegationError) {
+        this.log('warn', 'Delegation failed, handling directly', { 
+          error: delegationError, 
+          requestId: request.id 
+        });
+        // Fall through to handle directly
+      }
+    }
+
+    // Handle directly with Noah's full capabilities
     const messages = this.buildMessages(request);
     const response = await this.generateText(messages);
 
@@ -216,4 +276,117 @@ export class NoahAgent extends BaseAgent {
     
     return Math.min(1, confidence);
   }
+
+  // ===== ADVANCED DELEGATION SYSTEM =====
+
+  private shouldDelegate(request: AgentRequest): DelegationDecision {
+    const content = request.content.toLowerCase();
+    const keywords = this.extractKeywords(content);
+    
+    // Detect research → build workflows (prioritize research first)
+    const needsResearch = this.detectResearchNeeds(content, keywords);
+    const needsBuilding = this.detectBuildingNeeds(content, keywords);
+    
+    if (needsResearch && needsBuilding) {
+      return {
+        shouldDelegate: true,
+        targetAgent: 'wanderer',
+        isWorkflow: true,
+        nextAgent: 'tinkerer',
+        reason: 'Research → Build workflow detected',
+        enhancedPrompt: this.createResearchPrompt(content),
+        confidence: 0.9
+      };
+    }
+    
+    // Single-agent delegations
+    if (needsResearch && !needsBuilding) {
+      return {
+        shouldDelegate: true,
+        targetAgent: 'wanderer',
+        isWorkflow: false,
+        reason: 'Research expertise needed',
+        enhancedPrompt: this.createResearchPrompt(content),
+        confidence: 0.8
+      };
+    }
+    
+    if (needsBuilding && !needsResearch) {
+      return {
+        shouldDelegate: true,
+        targetAgent: 'tinkerer',
+        isWorkflow: false,
+        reason: 'Technical implementation needed',
+        enhancedPrompt: this.createTinkererPrompt(content),
+        confidence: 0.8
+      };
+    }
+    
+    // Handle with Noah directly
+    return {
+      shouldDelegate: false,
+      reason: 'Conversation/coordination suitable for Noah'
+    };
+  }
+
+  private detectResearchNeeds(content: string, keywords: string[]): boolean {
+    const researchIndicators = [
+      'research', 'analyze', 'compare', 'evaluate', 'study', 'investigate',
+      'best practices', 'trends', 'market', 'competitors', 'options',
+      'what are', 'how do', 'tell me about', 'explain', 'overview'
+    ];
+    
+    return researchIndicators.some(indicator => 
+      content.includes(indicator) || keywords.includes(indicator)
+    );
+  }
+
+  private detectBuildingNeeds(content: string, keywords: string[]): boolean {
+    const buildIndicators = [
+      'build', 'create', 'make', 'implement', 'develop', 'code',
+      'tool', 'component', 'feature', 'app', 'calculator', 'tracker',
+      'form', 'dashboard', 'system', 'solution'
+    ];
+    
+    return buildIndicators.some(indicator => 
+      content.includes(indicator) || keywords.includes(indicator)
+    );
+  }
+
+  private extractKeywords(content: string): string[] {
+    return content
+      .toLowerCase()
+      .split(/[\s,\.!?]+/)
+      .filter(word => word.length > 2)
+      .slice(0, 20); // First 20 words for efficiency
+  }
+
+  private createResearchPrompt(content: string): string {
+    return `Research Request: ${content}\n\nPlease conduct thorough research on this topic, synthesize findings, and provide actionable insights.`;
+  }
+
+  private createTinkererPrompt(content: string): string {
+    return `Technical Implementation Request: ${content}\n\nPlease build a working solution using available components and best practices.`;
+  }
+
+  private wrapSpecialistResponse(specialistResponse: AgentResponse, delegationDecision: DelegationDecision): string {
+    const agentName = delegationDecision.targetAgent === 'wanderer' ? 'Research Specialist' : 'Technical Implementation';
+    
+    return `I worked with our ${agentName} on this:
+
+${specialistResponse.content}
+
+*Working together to build exactly what you need.*`;
+  }
+}
+
+// Define DelegationDecision interface
+interface DelegationDecision {
+  shouldDelegate: boolean;
+  targetAgent?: string;
+  isWorkflow?: boolean;
+  nextAgent?: string;
+  reason: string;
+  enhancedPrompt?: string;
+  confidence?: number;
 }

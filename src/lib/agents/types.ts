@@ -78,6 +78,7 @@ export interface KnowledgeItem {
 
 export interface KnowledgeResult {
   readonly item: KnowledgeItem;
+  readonly score: number; // Renamed for consistency with implementation
   readonly relevanceScore: number;
   readonly context?: string;
 }
@@ -321,4 +322,46 @@ export interface AgentOrchestrator {
   getAllAgents(): Agent[];
   configure(config: OrchestratorConfig): void;
   shutdown(): Promise<void>;
+}
+
+// ===== ADVANCED TINKERER TYPES =====
+
+export interface ComponentDiscoveryResult {
+  readonly primaryComponents: readonly KnowledgeResult[];
+  readonly supportingComponents: readonly KnowledgeResult[];
+  readonly relatedPatterns: readonly KnowledgeResult[];
+  readonly totalRelevanceScore: number;
+  readonly recommendations: readonly string[];
+}
+
+export interface RAGSearchContext {
+  readonly userRequest: string;
+  readonly domain: string;
+  readonly intent: 'build' | 'enhance' | 'research' | 'troubleshoot';
+  readonly complexity: 'simple' | 'moderate' | 'complex';
+  readonly requiredComponents: readonly string[];
+}
+
+export interface FormattedRAGResponse {
+  readonly systemPromptEnhancement: string;
+  readonly componentLibrary: string;
+  readonly implementationGuidance: string;
+  readonly availableAssets: string;
+  readonly constraints: readonly string[];
+}
+
+export interface GeneratedSolution {
+  readonly content: string;
+  readonly strategy: SolutionStrategy;
+  readonly componentsUsed: readonly string[];
+  readonly optimizations: readonly string[];
+  readonly validationResults: ValidationResult;
+}
+
+export interface SolutionStrategy {
+  readonly approach: 'combination' | 'adaptation' | 'custom' | 'hybrid';
+  readonly reasoning: string;
+  readonly confidence: number;
+  readonly estimatedComplexity: 'low' | 'medium' | 'high';
+  readonly requiredSteps: readonly string[];
 }
