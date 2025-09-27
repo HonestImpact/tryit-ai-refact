@@ -3,8 +3,8 @@ export const AI_CONFIG = {
   // Model configuration - respects environment variables
   getModel: () => process.env.MODEL_ID || 'claude-sonnet-4-20250514',
   
-  // RAG configuration
-  RAG_ENABLED: process.env.RAG_ENABLED === 'true' || process.env.NODE_ENV === 'production',
+  // RAG configuration - TEMPORARILY DISABLED to fix memory issues
+  RAG_ENABLED: false, // process.env.RAG_ENABLED === 'true' || process.env.NODE_ENV === 'production',
   RAG_CONTEXT_LIMIT: 3, // Number of relevant components to include in context
   RAG_RELEVANCE_THRESHOLD: 0.7, // Minimum similarity score for inclusion
   
