@@ -10,6 +10,12 @@ import { sharedResourceManager } from '@/lib/agents/shared-resources';
 
 const logger = createLogger('noah-chat');
 
+// 🚀 MODULE-LEVEL AGENT CACHING - Initialize ONCE, reuse forever
+let wandererInstance: WandererAgent | null = null;
+let tinkererInstance: PracticalAgent | null = null;
+let sharedResourcesCache: any = null;
+let agentInitializationPromise: Promise<void> | null = null;
+
 // Timeout configuration for Noah Direct
 const NOAH_TIMEOUT = 30000; // 30 seconds max for Noah responses
 
@@ -91,31 +97,101 @@ function analyzeRequest(content: string): {
 }
 
 /**
- * Initialize and call Wanderer agent for research
+ * 🚀 SMART AGENT INITIALIZATION - Initialize once, reuse forever
+ * This eliminates the 5s+ initialization overhead on every request
+ */
+async function ensureAgentsInitialized(): Promise<void> {
+  // If already initialized, return immediately
+  if (wandererInstance && tinkererInstance && sharedResourcesCache) {
+    return;
+  }
+
+  // If initialization is in progress, wait for it
+  if (agentInitializationPromise) {
+    return agentInitializationPromise;
+  }
+
+  // Start initialization (only happens once per module load)
+  agentInitializationPromise = (async () => {
+    try {
+      logger.info('🚀 Initializing agents (one-time setup)...');
+      const startTime = Date.now();
+      
+      const llmProvider = createLLMProvider();
+      
+      // Initialize shared resources once
+      if (!sharedResourcesCache) {
+        sharedResourcesCache = await withTimeout(
+          sharedResourceManager.initializeResources(llmProvider),
+          8000 // Longer timeout for one-time initialization
+        );
+        logger.info('✅ Shared resources cached');
+      }
+
+      // Initialize Wanderer once
+      if (!wandererInstance) {
+        wandererInstance = new WandererAgent(
+          llmProvider,
+          {
+            model: AI_CONFIG.getModel(),
+            temperature: 0.75,
+            maxTokens: 2500
+          },
+          {
+            knowledgeService: sharedResourcesCache.knowledgeService
+          }
+        );
+        logger.info('✅ Wanderer agent cached');
+      }
+
+      // Initialize Tinkerer once
+      if (!tinkererInstance) {
+        tinkererInstance = new PracticalAgent(
+          llmProvider,
+          {
+            model: AI_CONFIG.getModel(),
+            temperature: 0.3,
+            maxTokens: 4000
+          },
+          {
+            ragIntegration: sharedResourcesCache.ragIntegration,
+            solutionGenerator: sharedResourcesCache.solutionGenerator
+          }
+        );
+        logger.info('✅ Tinkerer agent cached');
+      }
+
+      const initTime = Date.now() - startTime;
+      logger.info('🎉 All agents initialized and cached', { initTime });
+      
+    } catch (error) {
+      logger.error('💥 Agent initialization failed', { error });
+      // Reset so next request can try again
+      wandererInstance = null;
+      tinkererInstance = null;
+      sharedResourcesCache = null;
+      agentInitializationPromise = null;
+      throw error;
+    }
+  })();
+
+  return agentInitializationPromise;
+}
+
+/**
+ * 🔬 Cached Wanderer research - uses pre-initialized instance
  */
 async function wandererResearch(messages: any[], context: LoggingContext): Promise<{ content: string }> {
-  logger.info('🔬 Initializing Wanderer for research...');
+  await ensureAgentsInitialized();
   
-  const llmProvider = createLLMProvider();
-  const sharedResources = await withTimeout(
-    sharedResourceManager.initializeResources(llmProvider),
-    5000
-  );
+  if (!wandererInstance) {
+    throw new Error('Wanderer agent not initialized');
+  }
 
-  const wandererAgent = new WandererAgent(
-    llmProvider,
-    {
-      model: AI_CONFIG.getModel(),
-      temperature: 0.75,
-      maxTokens: 2500
-    },
-    {
-      knowledgeService: (sharedResources as any).knowledgeService
-    }
-  );
-
+  logger.info('🔬 Using cached Wanderer for research...');
   const lastMessage = messages[messages.length - 1]?.content || '';
-  const research = await wandererAgent.process({
+  
+  const research = await wandererInstance.process({
     id: `research_${Date.now()}`,
     sessionId: context.sessionId,
     content: lastMessage,
@@ -126,36 +202,22 @@ async function wandererResearch(messages: any[], context: LoggingContext): Promi
 }
 
 /**
- * Initialize and call Tinkerer agent for building
+ * 🔧 Cached Tinkerer build - uses pre-initialized instance
  */
 async function tinkererBuild(messages: any[], research: { content: string } | null, context: LoggingContext): Promise<{ content: string }> {
-  logger.info('🔧 Initializing Tinkerer for building...');
+  await ensureAgentsInitialized();
   
-  const llmProvider = createLLMProvider();
-  const sharedResources = await withTimeout(
-    sharedResourceManager.initializeResources(llmProvider),
-    5000
-  );
+  if (!tinkererInstance) {
+    throw new Error('Tinkerer agent not initialized');
+  }
 
-  const tinkererAgent = new PracticalAgent(
-    llmProvider,
-    {
-      model: AI_CONFIG.getModel(),
-      temperature: 0.3,
-      maxTokens: 4000
-    },
-    {
-      ragIntegration: sharedResources.ragIntegration,
-      solutionGenerator: sharedResources.solutionGenerator
-    }
-  );
-
+  logger.info('🔧 Using cached Tinkerer for building...');
   const lastMessage = messages[messages.length - 1]?.content || '';
   const buildContent = research 
     ? `${lastMessage}\n\nResearch Context:\n${research.content}`
     : lastMessage;
 
-  const tool = await tinkererAgent.process({
+  const tool = await tinkererInstance.process({
     id: `build_${Date.now()}`,
     sessionId: context.sessionId,
     content: buildContent,
@@ -224,20 +286,39 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
 
     let result: { content: string };
 
-    if (analysis.needsResearch) {
-      const research = await wandererResearch(messages, context);
-      if (analysis.needsBuilding) {
-        const tool = await tinkererBuild(messages, research, context);
+    try {
+      if (analysis.needsResearch) {
+        logger.info('🔬 Noah delegating to Wanderer for research...');
+        const research = await withTimeout(wandererResearch(messages, context), 25000);
+        if (analysis.needsBuilding) {
+          logger.info('🔧 Noah chaining to Tinkerer for building...');
+          const tool = await withTimeout(tinkererBuild(messages, research, context), 30000);
+          result = { content: tool.content };
+        } else {
+          result = { content: research.content };
+        }
+      } else if (analysis.needsBuilding) {
+        logger.info('🔧 Noah delegating to Tinkerer for building...');
+        const tool = await withTimeout(tinkererBuild(messages, null, context), 30000);
         result = { content: tool.content };
       } else {
-        result = { content: research.content };
+        // Noah handles directly
+        logger.info('🦉 Noah handling directly...');
+        const llmProvider = createLLMProvider();
+        const generatePromise = llmProvider.generateText({
+          messages: messages.map((msg: any) => ({ 
+            role: msg.role, 
+            content: msg.content 
+          })),
+          system: AI_CONFIG.CHAT_SYSTEM_PROMPT,
+          model: AI_CONFIG.getModel(),
+          temperature: 0.7
+        });
+        result = await withTimeout(generatePromise, NOAH_TIMEOUT);
       }
-    } else if (analysis.needsBuilding) {
-      const tool = await tinkererBuild(messages, null, context);
-      result = { content: tool.content };
-    } else {
-      // Noah handles directly
-      logger.info('🦉 Noah handling directly...');
+    } catch (agentError) {
+      logger.error('🚨 Agent orchestration failed, Noah handling directly', { error: agentError });
+      // Fallback to Noah Direct if orchestration fails
       const llmProvider = createLLMProvider();
       const generatePromise = llmProvider.generateText({
         messages: messages.map((msg: any) => ({ 
