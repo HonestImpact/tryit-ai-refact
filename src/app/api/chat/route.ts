@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withLogging, LoggingContext } from '@/lib/logging-middleware';
+import { LoggingContext } from '@/lib/logging-middleware';
+import { withCORSAndLogging } from '@/lib/cors-middleware';
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { AI_CONFIG } from '@/lib/ai-config';
@@ -305,4 +306,9 @@ Want to try refreshing and asking again? Sometimes these issues resolve quickly.
   }
 }
 
-export const POST = withLogging(chatHandler);
+export const POST = withCORSAndLogging(chatHandler);
+
+// Export OPTIONS handler for explicit CORS preflight support
+export const OPTIONS = withCORSAndLogging(async () => {
+  return new NextResponse(null, { status: 204 });
+});

@@ -2,7 +2,8 @@
 // Built on the existing TryIt-AI foundation
 
 import { NextRequest, NextResponse } from 'next/server';
-import { withLogging, LoggingContext } from '@/lib/logging-middleware';
+import { LoggingContext } from '@/lib/logging-middleware';
+import { withCORSAndLogging } from '@/lib/cors-middleware';
 import { getMultiAgentSystem } from '@/lib/agents/system-config';
 import { ArtifactService } from '@/lib/artifact-service';
 
@@ -209,4 +210,9 @@ What would be most valuable to explore together?`;
   });
 }
 
-export const POST = withLogging(chatV2Handler);
+export const POST = withCORSAndLogging(chatV2Handler);
+
+// Export OPTIONS handler for explicit CORS preflight support
+export const OPTIONS = withCORSAndLogging(async () => {
+  return new NextResponse(null, { status: 204 });
+});
