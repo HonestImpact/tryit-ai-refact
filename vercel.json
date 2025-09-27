@@ -9,6 +9,9 @@
     }
   },
   "regions": ["iad1"],
+  "deploymentProtection": {
+    "enabled": false
+  },
   "headers": [
     {
       "source": "/api/(.*)",
