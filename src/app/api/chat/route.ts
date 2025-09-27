@@ -4,6 +4,9 @@ import { createLogger } from '@/lib/logger';
 import { ArtifactService } from '@/lib/artifact-service';
 import { withLogging, LoggingContext } from '@/lib/logging-middleware';
 import { createLLMProvider } from '@/lib/providers/provider-factory';
+import { WandererAgent } from '@/lib/agents/wanderer-agent';
+import { PracticalAgent } from '@/lib/agents/practical-agent';
+import { sharedResourceManager } from '@/lib/agents/shared-resources';
 
 const logger = createLogger('noah-chat');
 
@@ -37,6 +40,129 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
   });
   
   return Promise.race([promise, timeoutPromise]);
+}
+
+/**
+ * Noah's internal analysis - determines if he needs help from other agents
+ * Following the exact pattern suggested by user
+ */
+function analyzeRequest(content: string): {
+  needsResearch: boolean;
+  needsBuilding: boolean;
+  confidence: number;
+  reasoning: string;
+} {
+  const contentLower = content.toLowerCase();
+  
+  // Research indicators
+  const researchKeywords = [
+    'research', 'investigate', 'analyze', 'study', 'explore', 'compare',
+    'what are the best', 'how do I choose', 'pros and cons', 'options',
+    'best practices', 'state of the art', 'current trends', 'approaches'
+  ];
+  
+  // Building indicators  
+  const buildingKeywords = [
+    'build', 'create', 'make', 'develop', 'implement', 'code', 'write',
+    'app', 'website', 'component', 'tool', 'system', 'solution',
+    'react', 'python', 'javascript', 'html', 'css', 'database'
+  ];
+  
+  const needsResearch = researchKeywords.some(keyword => contentLower.includes(keyword));
+  const needsBuilding = buildingKeywords.some(keyword => contentLower.includes(keyword));
+  
+  // Calculate confidence based on keyword matches
+  const researchMatches = researchKeywords.filter(keyword => contentLower.includes(keyword)).length;
+  const buildingMatches = buildingKeywords.filter(keyword => contentLower.includes(keyword)).length;
+  const confidence = Math.min(0.9, (researchMatches + buildingMatches) * 0.2 + 0.3);
+  
+  let reasoning = '';
+  if (needsResearch && needsBuilding) {
+    reasoning = 'Complex request requiring research then implementation';
+  } else if (needsResearch) {
+    reasoning = 'Research and analysis needed';
+  } else if (needsBuilding) {
+    reasoning = 'Direct implementation requested';
+  } else {
+    reasoning = 'Simple conversation or tool creation';
+  }
+  
+  return { needsResearch, needsBuilding, confidence, reasoning };
+}
+
+/**
+ * Initialize and call Wanderer agent for research
+ */
+async function wandererResearch(messages: any[], context: LoggingContext): Promise<{ content: string }> {
+  logger.info('🔬 Initializing Wanderer for research...');
+  
+  const llmProvider = createLLMProvider();
+  const sharedResources = await withTimeout(
+    sharedResourceManager.initializeResources(llmProvider),
+    5000
+  );
+
+  const wandererAgent = new WandererAgent(
+    llmProvider,
+    {
+      model: AI_CONFIG.getModel(),
+      temperature: 0.75,
+      maxTokens: 2500
+    },
+    {
+      knowledgeService: (sharedResources as any).knowledgeService
+    }
+  );
+
+  const lastMessage = messages[messages.length - 1]?.content || '';
+  const research = await wandererAgent.process({
+    id: `research_${Date.now()}`,
+    sessionId: context.sessionId,
+    content: lastMessage,
+    timestamp: new Date()
+  });
+
+  return { content: (research as any).content };
+}
+
+/**
+ * Initialize and call Tinkerer agent for building
+ */
+async function tinkererBuild(messages: any[], research: { content: string } | null, context: LoggingContext): Promise<{ content: string }> {
+  logger.info('🔧 Initializing Tinkerer for building...');
+  
+  const llmProvider = createLLMProvider();
+  const sharedResources = await withTimeout(
+    sharedResourceManager.initializeResources(llmProvider),
+    5000
+  );
+
+  const tinkererAgent = new PracticalAgent(
+    llmProvider,
+    {
+      model: AI_CONFIG.getModel(),
+      temperature: 0.3,
+      maxTokens: 4000
+    },
+    {
+      ragIntegration: sharedResources.ragIntegration,
+      solutionGenerator: sharedResources.solutionGenerator
+    }
+  );
+
+  const lastMessage = messages[messages.length - 1]?.content || '';
+  const buildContent = research 
+    ? `${lastMessage}\n\nResearch Context:\n${research.content}`
+    : lastMessage;
+
+  const tool = await tinkererAgent.process({
+    id: `build_${Date.now()}`,
+    sessionId: context.sessionId,
+    content: buildContent,
+    timestamp: new Date()
+  });
+
+  return { content: (tool as any).content };
 }
 
 /**
@@ -87,20 +213,43 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
       messageLength: lastMessage.length 
     });
 
-    // Call LLM provider (respects LLM environment variable)
-    logger.info('🧠 Calling LLM provider...');
-    const llmProvider = createLLMProvider();
-    const generatePromise = llmProvider.generateText({
-      messages: messages.map((msg: any) => ({ 
-        role: msg.role, 
-        content: msg.content 
-      })),
-      system: AI_CONFIG.CHAT_SYSTEM_PROMPT,
-      model: AI_CONFIG.getModel(), // Use configured model
-      temperature: 0.7
+    // Noah analyzes and decides internally - following user's exact pattern
+    const analysis = analyzeRequest(lastMessage);
+    logger.info('🧠 Noah analysis complete', { 
+      needsResearch: analysis.needsResearch,
+      needsBuilding: analysis.needsBuilding,
+      reasoning: analysis.reasoning,
+      confidence: analysis.confidence
     });
 
-    const result = await withTimeout(generatePromise, NOAH_TIMEOUT);
+    let result: { content: string };
+
+    if (analysis.needsResearch) {
+      const research = await wandererResearch(messages, context);
+      if (analysis.needsBuilding) {
+        const tool = await tinkererBuild(messages, research, context);
+        result = { content: tool.content };
+      } else {
+        result = { content: research.content };
+      }
+    } else if (analysis.needsBuilding) {
+      const tool = await tinkererBuild(messages, null, context);
+      result = { content: tool.content };
+    } else {
+      // Noah handles directly
+      logger.info('🦉 Noah handling directly...');
+      const llmProvider = createLLMProvider();
+      const generatePromise = llmProvider.generateText({
+        messages: messages.map((msg: any) => ({ 
+          role: msg.role, 
+          content: msg.content 
+        })),
+        system: AI_CONFIG.CHAT_SYSTEM_PROMPT,
+        model: AI_CONFIG.getModel(),
+        temperature: 0.7
+      });
+      result = await withTimeout(generatePromise, NOAH_TIMEOUT);
+    }
     
     const responseTime = Date.now() - startTime;
     logger.info('✅ Noah response generated', { 
