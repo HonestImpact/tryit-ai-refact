@@ -4,6 +4,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, streamText } from 'ai';
 import { BaseLLMProvider } from './base-llm-provider';
+import { AI_CONFIG } from '../ai-config';
 import type {
   LLMCapability,
   TextGenerationRequest,
@@ -54,8 +55,11 @@ export class AnthropicProvider extends BaseLLMProvider {
     await this.applyRateLimit();
 
     try {
+      // Use environment-configured model as default
+      const modelToUse = request.model || AI_CONFIG.getModel();
+      
       const response = await generateText({
-        model: anthropic(request.model),
+        model: anthropic(modelToUse),
         messages: request.messages.map(msg => ({
           role: msg.role,
           content: msg.content

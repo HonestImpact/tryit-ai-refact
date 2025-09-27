@@ -522,8 +522,8 @@ Please create a solution that optimally combines existing components with custom
       const response = await this.llmProvider.generateText({
         messages,
         temperature: 0.7,
-        maxTokens: 4000,
-        model: 'claude-3-5-sonnet-20241022'
+        maxTokens: 4000
+        // Model selection handled by LLMProvider based on environment config
       });
 
       if (typeof response === 'object' && 'content' in response) {

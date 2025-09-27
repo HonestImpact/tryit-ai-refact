@@ -6,6 +6,7 @@ import { NoahAgent } from '@/lib/agents/noah-agent';
 import { WandererAgent } from '@/lib/agents/wanderer-agent';
 import { PracticalAgent } from '@/lib/agents/practical-agent';
 import { sharedResourceManager } from '@/lib/agents/shared-resources';
+import { createLLMProvider } from '@/lib/providers/provider-factory';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('workflow-endpoint');
@@ -157,31 +158,11 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
     try {
       logger.info('🏗️ Initializing full agent orchestration...');
       
-      // Create mock provider for all agents
-      const mockProvider = {
-        name: 'anthropic',
-        capabilities: [],
-        generateText: async (request: unknown) => {
-          const result = await generateText(request as Parameters<typeof generateText>[0]);
-          return {
-            content: result.text,
-            model: 'claude-sonnet-4-20250514',
-            usage: { 
-              promptTokens: (result.usage as { promptTokens?: number })?.promptTokens || 0, 
-              completionTokens: (result.usage as { completionTokens?: number })?.completionTokens || 0, 
-              totalTokens: (result.usage as { totalTokens?: number })?.totalTokens || 0 
-            },
-            finishReason: result.finishReason || 'stop'
-          };
-        },
-        streamText: () => { throw new Error('Streaming not implemented'); },
-        getCosts: () => ({ promptCostPerToken: 0, completionCostPerToken: 0, currency: 'USD' }),
-        getStatus: () => ({ isAvailable: true, responseTime: 0, errorRate: 0, rateLimitRemaining: 100, lastChecked: new Date() }),
-        shutdown: async () => {}
-      };
+      // Use environment-driven LLM provider (respects LLM and MODEL_ID env vars)
+      const llmProvider = createLLMProvider();
 
       // Initialize Noah (orchestrator)
-      noahAgent = new NoahAgent(mockProvider, {
+      noahAgent = new NoahAgent(llmProvider, {
         model: AI_CONFIG.getModel(),
         temperature: 0.7,
         maxTokens: 3000
@@ -189,12 +170,12 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
 
       // Initialize Wanderer (research) - using shared knowledge service
       const sharedResources = await withTimeout(
-        sharedResourceManager.initializeResources(mockProvider),
+        sharedResourceManager.initializeResources(llmProvider),
         5000 // 5s timeout for initialization
       );
 
       wandererAgent = new WandererAgent(
-        mockProvider,
+        llmProvider,
         {
           model: AI_CONFIG.getModel(),
           temperature: 0.75,
@@ -205,15 +186,18 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
         }
       );
 
-      // Initialize Tinkerer (implementation) - using fallback mode for speed
+      // Initialize Tinkerer (implementation) - using shared resources
       tinkererAgent = new PracticalAgent(
-        mockProvider,
+        llmProvider,
         {
           model: AI_CONFIG.getModel(),
           temperature: 0.3,
           maxTokens: 4000
+        },
+        {
+          ragIntegration: sharedResources.ragIntegration,
+          solutionGenerator: sharedResources.solutionGenerator
         }
-        // No shared resources - fallback mode for speed
       );
 
       logger.info('✅ Full agent orchestration initialized');

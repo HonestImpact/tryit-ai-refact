@@ -4,6 +4,7 @@ import { generateText } from 'ai';
 import { AI_CONFIG } from '@/lib/ai-config';
 import { WandererAgent } from '@/lib/agents/wanderer-agent';
 import { sharedResourceManager } from '@/lib/agents/shared-resources';
+import { createLLMProvider } from '@/lib/providers/provider-factory';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('research-endpoint');
@@ -140,37 +141,17 @@ async function researchHandler(req: NextRequest): Promise<NextResponse<ResearchR
     try {
       logger.info('🏗️ Initializing research capabilities...');
       
-      // Get shared resources (memory efficient)
-      const mockProvider = {
-        name: 'anthropic',
-        capabilities: [],
-        generateText: async (request: unknown) => {
-          const result = await generateText(request as Parameters<typeof generateText>[0]);
-          return {
-            content: result.text,
-            model: 'claude-sonnet-4-20250514',
-            usage: { 
-              promptTokens: (result.usage as { promptTokens?: number })?.promptTokens || 0, 
-              completionTokens: (result.usage as { completionTokens?: number })?.completionTokens || 0, 
-              totalTokens: (result.usage as { totalTokens?: number })?.totalTokens || 0 
-            },
-            finishReason: result.finishReason || 'stop'
-          };
-        },
-        streamText: () => { throw new Error('Streaming not implemented'); },
-        getCosts: () => ({ promptCostPerToken: 0, completionCostPerToken: 0, currency: 'USD' }),
-        getStatus: () => ({ isAvailable: true, responseTime: 0, errorRate: 0, rateLimitRemaining: 100, lastChecked: new Date() }),
-        shutdown: async () => {}
-      };
+      // Use environment-driven LLM provider (respects LLM and MODEL_ID env vars)
+      const llmProvider = createLLMProvider();
 
       const sharedResources = await withTimeout(
-        sharedResourceManager.initializeResources(mockProvider),
+        sharedResourceManager.initializeResources(llmProvider),
         5000 // 5s timeout for initialization
       );
 
       // Create Wanderer with shared resources
       wandererAgent = new WandererAgent(
-        mockProvider,
+        llmProvider,
         {
           model: AI_CONFIG.getModel(),
           temperature: 0.75,

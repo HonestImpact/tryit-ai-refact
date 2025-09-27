@@ -4,6 +4,7 @@ import { generateText } from 'ai';
 import { AI_CONFIG } from '@/lib/ai-config';
 import { PracticalAgent } from '@/lib/agents/practical-agent';
 import { sharedResourceManager } from '@/lib/agents/shared-resources';
+import { createLLMProvider } from '@/lib/providers/provider-factory';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('build-endpoint');
@@ -126,46 +127,35 @@ async function buildHandler(req: NextRequest): Promise<NextResponse<BuildRespons
       messageLength: lastMessage.length
     });
 
-    // Initialize Tinkerer agent (fallback mode for now)
+    // Initialize Tinkerer agent with shared resources (memory-efficient)
     let tinkererAgent: PracticalAgent;
     try {
       logger.info('🏗️ Initializing build capabilities...');
       
-      // Create mock provider for Tinkerer
-      const mockProvider = {
-        name: 'anthropic',
-        capabilities: [],
-        generateText: async (request: unknown) => {
-          const result = await generateText(request as Parameters<typeof generateText>[0]);
-          return {
-            content: result.text,
-            model: 'claude-sonnet-4-20250514',
-            usage: { 
-              promptTokens: (result.usage as { promptTokens?: number })?.promptTokens || 0, 
-              completionTokens: (result.usage as { completionTokens?: number })?.completionTokens || 0, 
-              totalTokens: (result.usage as { totalTokens?: number })?.totalTokens || 0 
-            },
-            finishReason: result.finishReason || 'stop'
-          };
-        },
-        streamText: () => { throw new Error('Streaming not implemented'); },
-        getCosts: () => ({ promptCostPerToken: 0, completionCostPerToken: 0, currency: 'USD' }),
-        getStatus: () => ({ isAvailable: true, responseTime: 0, errorRate: 0, rateLimitRemaining: 100, lastChecked: new Date() }),
-        shutdown: async () => {}
-      };
+      // Use environment-driven LLM provider (respects LLM and MODEL_ID env vars)
+      const llmProvider = createLLMProvider();
 
-      // Create Tinkerer without shared resources (fallback mode)
+      // Initialize shared resources (memory-efficient architecture)
+      const sharedResources = await withTimeout(
+        sharedResourceManager.initializeResources(llmProvider),
+        5000 // 5s timeout for initialization
+      );
+
+      // Create Tinkerer with shared resources (optimal performance)
       tinkererAgent = new PracticalAgent(
-        mockProvider,
+        llmProvider,
         {
           model: AI_CONFIG.getModel(),
           temperature: 0.3,
           maxTokens: 4000
+        },
+        {
+          ragIntegration: sharedResources.ragIntegration,
+          solutionGenerator: sharedResources.solutionGenerator
         }
-        // No shared resources - will use fallback mode
       );
 
-      logger.info('✅ Tinkerer agent initialized in fallback mode');
+      logger.info('✅ Tinkerer agent initialized with shared resources');
 
     } catch (initError) {
       logger.warn('⚠️ Build system initialization failed, falling back to Noah', { error: initError });
