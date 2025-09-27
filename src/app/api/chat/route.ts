@@ -24,15 +24,18 @@ interface ChatResponse {
 // Helper function to get RAG context for Noah
 async function getRAGContext(userMessage: string): Promise<string[]> {
   if (!AI_CONFIG.RAG_ENABLED) {
+    logger.info('📚 RAG disabled, skipping context retrieval');
     return [];
   }
 
   try {
+    logger.info('🔍 Searching knowledge base with singleton...');
     // Use the singleton to avoid initialization overhead
     const results = await KnowledgeServiceSingleton.search(userMessage, {
       maxResults: AI_CONFIG.RAG_CONTEXT_LIMIT,
       minRelevanceScore: AI_CONFIG.RAG_RELEVANCE_THRESHOLD
     });
+    logger.info('✅ Knowledge base search complete', { resultCount: results.length });
 
     // Format results for context
     return results.map(result => {
@@ -78,19 +81,39 @@ function shouldUseMultiAgent(lastMessage: string, allMessages: any[]): boolean {
 }
 
 async function chatHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<ChatResponse>> {
+  const startTime = Date.now();
+  logger.info('🚀 Chat handler started', { sessionId: context.sessionId });
+  
   try {
+    logger.info('📥 Parsing request body...');
     const { messages, trustLevel, skepticMode } = await req.json();
+    logger.info('✅ Request body parsed', { 
+      messageCount: messages?.length, 
+      trustLevel, 
+      skepticMode,
+      elapsed: Date.now() - startTime 
+    });
     
     // Store the parsed body in context for logging
     context.requestBody = { messages, trustLevel, skepticMode };
 
     // Get the last user message for artifact context
     const lastUserMessage = messages[messages.length - 1]?.content || '';
+    logger.info('📝 Processing message', { 
+      messageLength: lastUserMessage.length,
+      elapsed: Date.now() - startTime 
+    });
 
     // SAFETY FILTER: Check content before processing
+    logger.info('🛡️ Running safety filter...');
     const safetyResult = contentFilter.filterContent(lastUserMessage, context.sessionId);
+    logger.info('✅ Safety filter complete', { 
+      allowed: safetyResult.allowed,
+      elapsed: Date.now() - startTime 
+    });
     
     if (!safetyResult.allowed) {
+      logger.info('🚫 Content blocked by safety filter');
       // Return safety response (blank lines + tag, or complete silence)
       return NextResponse.json({
         content: safetyResult.response || ''
@@ -98,38 +121,73 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
     }
 
     // ROUTE LOGIC: Use single-agent Noah for simple conversations, multi-agent for complex requests
+    logger.info('🤖 Determining routing strategy...');
     const isComplexRequest = shouldUseMultiAgent(lastUserMessage, messages);
+    logger.info('📊 Routing decision made', { 
+      isComplexRequest,
+      elapsed: Date.now() - startTime 
+    });
     
     // TRY MULTI-AGENT SYSTEM FOR COMPLEX REQUESTS ONLY
     if (isComplexRequest) {
+      logger.info('🔄 Attempting multi-agent system...');
       try {
+        logger.info('📦 Importing multi-agent system...');
         const { getMultiAgentSystem } = await import('@/lib/agents/system-config');
+        logger.info('✅ Multi-agent system imported', { elapsed: Date.now() - startTime });
+        
+        logger.info('🏗️ Getting multi-agent system instance...');
         const multiAgentSystem = await getMultiAgentSystem();
+        logger.info('✅ Multi-agent system instance obtained', { elapsed: Date.now() - startTime });
+        
+        logger.info('🔍 Checking system status...');
         const systemStatus = multiAgentSystem.getSystemStatus();
+        logger.info('📊 System status checked', { 
+          status: systemStatus.status,
+          isHealthy: systemStatus.isHealthy,
+          elapsed: Date.now() - startTime 
+        });
         
         // If multi-agent system is healthy, use it for complex requests
         if (systemStatus.status === 'initialized' && systemStatus.isHealthy) {
-        const conversationHistory = messages.slice(0, -1).map((msg: { role: string; content: string }) => ({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content,
-          timestamp: new Date()
-        }));
+          logger.info('✅ Multi-agent system is healthy, processing request...');
+          
+          const conversationHistory = messages.slice(0, -1).map((msg: { role: string; content: string }) => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+            timestamp: new Date()
+          }));
+          logger.info('📚 Conversation history prepared', { 
+            historyLength: conversationHistory.length,
+            elapsed: Date.now() - startTime 
+          });
 
-        const agentResponse = await multiAgentSystem.processRequest(
-          lastUserMessage,
-          context.sessionId,
-          {
-            conversationHistory,
-            userPreferences: {}
-          }
-        );
+          logger.info('🎯 Sending request to multi-agent system...');
+          const agentResponse = await multiAgentSystem.processRequest(
+            lastUserMessage,
+            context.sessionId,
+            {
+              conversationHistory,
+              userPreferences: {}
+            }
+          );
+          logger.info('✅ Multi-agent response received', { 
+            agentId: agentResponse.agentId,
+            contentLength: agentResponse.content?.length,
+            elapsed: Date.now() - startTime 
+          });
 
         // Process response for artifacts using existing system
+        logger.info('🔧 Processing artifacts...');
         const parsed = await ArtifactService.handleArtifactWorkflow(
           agentResponse.content,
           lastUserMessage,
           context.sessionId
         );
+        logger.info('✅ Artifacts processed', { 
+          hasArtifact: parsed.hasArtifact,
+          elapsed: Date.now() - startTime 
+        });
 
         const response: ChatResponse = {
           content: parsed.cleanContent || agentResponse.content
@@ -148,10 +206,19 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
           }
         }
 
+        logger.info('🎉 Multi-agent response ready', { elapsed: Date.now() - startTime });
         return NextResponse.json(response);
-      }
+        } else {
+          logger.warn('❌ Multi-agent system not healthy, falling back to single agent', { 
+            status: systemStatus.status,
+            isHealthy: systemStatus.isHealthy 
+          });
+        }
       } catch (multiAgentError) {
-        logger.warn('Multi-agent system failed, falling back to single agent', { error: multiAgentError });
+        logger.error('💥 Multi-agent system failed, falling back to single agent', { 
+          error: multiAgentError,
+          elapsed: Date.now() - startTime 
+        });
         // Log this as a system health issue for monitoring
         logger.error('SYSTEM DEGRADATION: Multi-agent system unavailable', {
           error: multiAgentError,
@@ -162,8 +229,11 @@ async function chatHandler(req: NextRequest, context: LoggingContext): Promise<N
     }
 
     // FALLBACK: Use original single-agent system
+    logger.info('🦉 Using single-agent Noah fallback...');
+    
     // Check if we should use fake responses for testing
     if (process.env.LOCAL_FAKE_LLM === 'true') {
+      logger.info('🧪 Using fake LLM responses for testing');
       const userQuery = lastUserMessage.toLowerCase();
       let fakeResponse = '';
       
@@ -237,18 +307,32 @@ What aspects of your current approach are you most interested in examining?`;
     }
 
     // Get RAG context for enhanced responses
+    logger.info('🔍 Getting RAG context for Noah...');
     const ragContext = await getRAGContext(lastUserMessage);
+    logger.info('✅ RAG context retrieved', { 
+      contextItems: ragContext.length,
+      elapsed: Date.now() - startTime 
+    });
     
     // Use RAG-enhanced system prompt if we have relevant context
     const systemPrompt = ragContext.length > 0 
       ? AI_CONFIG.RAG_SYSTEM_PROMPT(ragContext)
       : AI_CONFIG.CHAT_SYSTEM_PROMPT;
+    logger.info('📝 System prompt prepared', { 
+      hasRAGContext: ragContext.length > 0,
+      elapsed: Date.now() - startTime 
+    });
 
     // Call the actual Anthropic API
+    logger.info('🧠 Calling Anthropic API...');
     const result = await generateText({
       model: anthropic(AI_CONFIG.getModel()),
       messages: messages,
       system: systemPrompt,
+    });
+    logger.info('✅ Anthropic API response received', { 
+      responseLength: result.text.length,
+      elapsed: Date.now() - startTime 
     });
 
     // Process response for artifacts
@@ -275,9 +359,17 @@ What aspects of your current approach are you most interested in examining?`;
       }
     }
 
+    logger.info('🎉 Final response ready', { 
+      totalElapsed: Date.now() - startTime,
+      hasArtifact: !!response.artifact 
+    });
     return NextResponse.json(response);
   } catch (error) {
-    logger.error('CRITICAL ERROR: All chat systems failed', { error });
+    logger.error('💥 CRITICAL ERROR: All chat systems failed', { 
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      elapsed: Date.now() - startTime 
+    });
     
     // EMERGENCY FALLBACK: Static response to ensure user always gets something
     const emergencyResponse = {
