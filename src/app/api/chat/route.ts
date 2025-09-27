@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { anthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
 import { AI_CONFIG } from '@/lib/ai-config';
 import { createLogger } from '@/lib/logger';
 import { ArtifactService } from '@/lib/artifact-service';
 import { withLogging, LoggingContext } from '@/lib/logging-middleware';
+import { createLLMProvider } from '@/lib/providers/provider-factory';
 
 const logger = createLogger('noah-chat');
 
@@ -174,11 +173,11 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
       logger.info('🦉 Tinkerer delegation failed, Noah handling directly');
     }
 
-    // Call Anthropic API with timeout protection
-    logger.info('🧠 Calling Anthropic API...');
-    const generatePromise = generateText({
-      model: anthropic(AI_CONFIG.getModel()),
-      messages: messages,
+    // Call LLM provider (respects LLM environment variable)
+    logger.info('🧠 Calling LLM provider...');
+    const llmProvider = createLLMProvider();
+    const generatePromise = llmProvider.generateText({
+      messages: messages.map((msg: any) => ({ role: msg.role, content: msg.content })),
       system: AI_CONFIG.CHAT_SYSTEM_PROMPT, // Noah's full persona
       temperature: 0.7
     });
@@ -187,19 +186,19 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
     
     const responseTime = Date.now() - startTime;
     logger.info('✅ Noah response generated', { 
-      responseLength: result.text.length,
+      responseLength: result.content.length,
       responseTime 
     });
 
     // Process response for artifacts using existing system
     const parsed = await ArtifactService.handleArtifactWorkflow(
-      result.text,
+      result.content,
       lastMessage,
       context.sessionId
     );
 
     const response: ChatResponse = {
-      content: parsed.cleanContent || result.text,
+      content: parsed.cleanContent || result.content,
       status: 'success',
       agent: 'noah'
     };
@@ -236,9 +235,9 @@ async function healthCheck(): Promise<NextResponse<HealthResponse>> {
   const startTime = Date.now();
   
   try {
-    // Quick test of Anthropic API
-    const testPromise = generateText({
-      model: anthropic(AI_CONFIG.getModel()),
+    // Quick test of LLM provider
+    const llmProvider = createLLMProvider();
+    const testPromise = llmProvider.generateText({
       messages: [{ role: 'user', content: 'test' }],
       system: 'Respond with just "ok"'
     });
