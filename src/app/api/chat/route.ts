@@ -251,12 +251,15 @@ function getErrorMessage(error: unknown): string {
  */
 async function noahChatHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<ChatResponse>> {
   const startTime = Date.now();
+  console.log("🚀 API call started");
   logger.info('🦉 Noah-only handler started');
   
   try {
     // Parse request with timeout protection
+    console.log("⏱️ Starting request parsing");
     const parsePromise = req.json();
     const { messages, skepticMode } = await withTimeout(parsePromise, 2000); // 2s timeout for parsing
+    console.log("✅ Request parsed successfully");
     
     // Store parsed body in context for logging middleware
     context.requestBody = { messages, skepticMode };
@@ -270,6 +273,7 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
     }
 
     const lastMessage = messages[messages.length - 1]?.content || '';
+    console.log("⏱️ Starting message analysis");
     logger.info('📝 Processing Noah request', { 
       messageCount: messages.length,
       messageLength: lastMessage.length 
@@ -277,6 +281,7 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
 
     // Noah analyzes and decides internally - following user's exact pattern
     const analysis = analyzeRequest(lastMessage);
+    console.log("✅ Analysis complete", analysis);
     logger.info('🧠 Noah analysis complete', { 
       needsResearch: analysis.needsResearch,
       needsBuilding: analysis.needsBuilding,
@@ -288,21 +293,28 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
 
     try {
       if (analysis.needsResearch) {
+        console.log("⏱️ Starting agent check for research");
         logger.info('🔬 Noah delegating to Wanderer for research...');
         const research = await withTimeout(wandererResearch(messages, context), 25000);
+        console.log("✅ Research complete");
         if (analysis.needsBuilding) {
+          console.log("⏱️ Starting agent check for building");
           logger.info('🔧 Noah chaining to Tinkerer for building...');
           const tool = await withTimeout(tinkererBuild(messages, research, context), 30000);
+          console.log("✅ Building complete");
           result = { content: tool.content };
         } else {
           result = { content: research.content };
         }
       } else if (analysis.needsBuilding) {
+        console.log("⏱️ Starting agent check for building");
         logger.info('🔧 Noah delegating to Tinkerer for building...');
         const tool = await withTimeout(tinkererBuild(messages, null, context), 30000);
+        console.log("✅ Building complete");
         result = { content: tool.content };
       } else {
         // Noah handles directly
+        console.log("⏱️ Starting LLM call");
         logger.info('🦉 Noah handling directly...');
         const llmProvider = createLLMProvider();
         const generatePromise = llmProvider.generateText({
@@ -315,10 +327,14 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
           temperature: 0.7
         });
         result = await withTimeout(generatePromise, NOAH_TIMEOUT);
+        console.log("✅ LLM response received");
       }
     } catch (agentError) {
+      console.log("❌ Agent orchestration failed, falling back to Noah direct");
+      console.error("Agent error details:", agentError);
       logger.error('🚨 Agent orchestration failed, Noah handling directly', { error: agentError });
       // Fallback to Noah Direct if orchestration fails
+      console.log("⏱️ Starting fallback LLM call");
       const llmProvider = createLLMProvider();
       const generatePromise = llmProvider.generateText({
         messages: messages.map((msg: any) => ({ 
@@ -330,9 +346,11 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
         temperature: 0.7
       });
       result = await withTimeout(generatePromise, NOAH_TIMEOUT);
+      console.log("✅ Fallback LLM response received");
     }
     
     const responseTime = Date.now() - startTime;
+    console.log("⏱️ Starting artifact processing");
     logger.info('✅ Noah response generated', { 
       responseLength: result.content.length,
       responseTime 
@@ -344,6 +362,7 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
       lastMessage,
       context.sessionId
     );
+    console.log("✅ Artifact processing complete");
 
     let noahContent = result.content;
     
@@ -374,10 +393,13 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
       };
     }
 
+    console.log("✅ Response ready, sending to client");
     return NextResponse.json(response);
 
   } catch (error) {
     const responseTime = Date.now() - startTime;
+    console.log("❌ FATAL ERROR in Noah handler");
+    console.error("Fatal error details:", error);
     logger.error('💥 Noah handler error', { 
       error: error instanceof Error ? error.message : error,
       responseTime 
