@@ -3,6 +3,8 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { AI_CONFIG } from '@/lib/ai-config';
 import { createLogger } from '@/lib/logger';
+import { ArtifactService } from '@/lib/artifact-service';
+import { withLogging, LoggingContext } from '@/lib/logging-middleware';
 
 const logger = createLogger('noah-chat');
 
@@ -13,6 +15,10 @@ interface ChatResponse {
   content: string;
   status?: string;
   agent?: string;
+  artifact?: {
+    title: string;
+    content: string;
+  };
 }
 
 interface HealthResponse {
@@ -56,17 +62,20 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
- * Rock-solid Noah-only chat handler
- * Minimal dependencies, maximum reliability
+ * Rock-solid Noah-only chat handler with full logging and artifact support
+ * Preserves all established functionality while maintaining reliability
  */
-async function noahChatHandler(req: NextRequest): Promise<NextResponse<ChatResponse>> {
+async function noahChatHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<ChatResponse>> {
   const startTime = Date.now();
   logger.info('🦉 Noah-only handler started');
   
   try {
     // Parse request with timeout protection
     const parsePromise = req.json();
-    const { messages } = await withTimeout(parsePromise, 2000); // 2s timeout for parsing
+    const { messages, skepticMode } = await withTimeout(parsePromise, 2000); // 2s timeout for parsing
+    
+    // Store parsed body in context for logging middleware
+    context.requestBody = { messages, skepticMode };
     
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({
@@ -99,11 +108,28 @@ async function noahChatHandler(req: NextRequest): Promise<NextResponse<ChatRespo
       responseTime 
     });
 
-    return NextResponse.json({
-      content: result.text,
+    // Process response for artifacts using existing system
+    const parsed = await ArtifactService.handleArtifactWorkflow(
+      result.text,
+      lastMessage,
+      context.sessionId
+    );
+
+    const response: ChatResponse = {
+      content: parsed.cleanContent || result.text,
       status: 'success',
       agent: 'noah'
-    });
+    };
+
+    // Add artifact if detected
+    if (parsed.hasArtifact && parsed.title && parsed.content) {
+      response.artifact = {
+        title: parsed.title,
+        content: parsed.content
+      };
+    }
+
+    return NextResponse.json(response);
 
   } catch (error) {
     const responseTime = Date.now() - startTime;
@@ -159,8 +185,8 @@ async function healthCheck(): Promise<NextResponse<HealthResponse>> {
   }
 }
 
-// Export handlers - simple and reliable
-export const POST = noahChatHandler;
+// Export handlers with logging middleware to restore Supabase logging
+export const POST = withLogging(noahChatHandler);
 export const GET = healthCheck;
 
 // Simple OPTIONS handler for CORS
