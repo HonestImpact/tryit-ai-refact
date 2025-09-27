@@ -10,6 +10,10 @@ import type {
   ProviderCosts,
   ProviderStatus
 } from '../agents/types';
+import { createLogger } from '@/lib/logger';
+
+// Re-export LLMProvider for external use
+export type { LLMProvider };
 
 export abstract class BaseLLMProvider implements LLMProvider {
   public readonly name: string;
@@ -20,6 +24,7 @@ export abstract class BaseLLMProvider implements LLMProvider {
   protected errorCount: number = 0;
   protected lastChecked: Date = new Date();
   protected isShutdown: boolean = false;
+  protected logger = createLogger('BaseLLMProvider');
 
   constructor(name: string, capabilities: LLMCapability[]) {
     this.name = name;
@@ -155,7 +160,7 @@ export abstract class BaseLLMProvider implements LLMProvider {
       ...metadata
     };
 
-    console.log(`[${level.toUpperCase()}] Provider ${this.name}:`, logData);
+    this.logger[level](message, metadata);
   }
 
   /**

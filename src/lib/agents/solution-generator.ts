@@ -519,9 +519,11 @@ Please create a solution that optimally combines existing components with custom
     ];
 
     try {
-      const response = await this.llmProvider.generateText(messages, {
+      const response = await this.llmProvider.generateText({
+        messages,
         temperature: 0.7,
-        maxTokens: 4000
+        maxTokens: 4000,
+        model: 'claude-3-5-sonnet-20241022'
       });
 
       if (typeof response === 'object' && 'content' in response) {

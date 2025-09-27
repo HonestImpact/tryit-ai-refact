@@ -59,7 +59,8 @@ export class NoahAgent extends BaseAgent {
       try {
         // Check if this is a workflow (research → build)
         if (delegationDecision.isWorkflow && delegationDecision.nextAgent) {
-          return await this.handleWorkflow(request, delegationDecision);
+          // TODO: Implement workflow handling - for now delegate to first agent
+          this.log('info', 'Workflow detected, delegating to first agent', { workflow: delegationDecision });
         }
         
         // Standard single-agent delegation

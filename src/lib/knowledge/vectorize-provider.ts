@@ -10,6 +10,7 @@ import type {
   DocumentFilter,
   VectorStoreStats
 } from './types';
+import { createLogger } from '@/lib/logger';
 
 interface VectorizeConfig {
   readonly accountId: string;
@@ -36,6 +37,7 @@ export class VectorizeProvider implements VectorStore {
   public readonly name = 'vectorize';
   private config: VectorizeConfig;
   private baseUrl: string;
+  private logger = createLogger('VectorizeProvider');
 
   constructor(config: VectorizeConfig) {
     this.config = {
@@ -474,6 +476,6 @@ export class VectorizeProvider implements VectorStore {
   }
 
   private logError(message: string, error: Error): void {
-    console.error(`[VectorizeProvider] ${message}:`, error);
+    this.logger.error(message, { error });
   }
 }

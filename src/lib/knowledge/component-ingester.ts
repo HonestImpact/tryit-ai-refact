@@ -6,6 +6,7 @@ import path from 'path';
 import { Document } from "@langchain/core/documents";
 import type { KnowledgeService } from './knowledge-service';
 import type { DocumentMetadata } from './types';
+import { createLogger } from '@/lib/logger';
 
 interface ComponentMetadata extends DocumentMetadata {
   component_type: string;
@@ -20,6 +21,7 @@ interface ComponentMetadata extends DocumentMetadata {
 export class ComponentIngester {
   private knowledgeService: KnowledgeService;
   private componentsDir: string;
+  private logger = createLogger('ComponentIngester');
 
   constructor(knowledgeService: KnowledgeService) {
     this.knowledgeService = knowledgeService;
@@ -28,12 +30,12 @@ export class ComponentIngester {
 
   async ingestAllComponents(): Promise<void> {
     try {
-      console.log('🚀 Starting component ingestion using TryIt-AI Knowledge Service...');
+      this.logger.info('Starting component ingestion using TryIt-AI Knowledge Service...');
       
       const documents = await this.loadComponentFiles();
       
       if (documents.length === 0) {
-        console.log('⚠️ No HTML components found to ingest');
+        this.logger.warn('No HTML components found to ingest');
         return;
       }
 
@@ -45,11 +47,11 @@ export class ComponentIngester {
         }))
       );
 
-      console.log(`✅ Successfully ingested ${results.length} components`);
+      this.logger.info(`Successfully ingested ${results.length} components`);
       this.logComponentSummary(documents);
       
     } catch (error) {
-      console.error('❌ Component ingestion failed:', error);
+      this.logger.error('Component ingestion failed', { error });
       throw error;
     }
   }
@@ -61,7 +63,7 @@ export class ComponentIngester {
       const files = fs.readdirSync(this.componentsDir);
       const htmlFiles = files.filter(file => file.endsWith('.html'));
       
-      console.log(`📁 Found ${htmlFiles.length} HTML component files`);
+      this.logger.info(`Found ${htmlFiles.length} HTML component files`);
       
       for (const file of htmlFiles) {
         const filePath = path.join(this.componentsDir, file);
@@ -83,12 +85,12 @@ export class ComponentIngester {
         });
         
         documents.push(doc);
-        console.log(`📄 Processed component: ${metadata.title || file}`);
+        this.logger.info(`Processed component: ${metadata.title || file}`);
       }
       
       return documents;
     } catch (error) {
-      console.error('❌ Error loading component files:', error);
+      this.logger.error('Error loading component files', { error });
       throw error;
     }
   }
@@ -244,15 +246,15 @@ export class ComponentIngester {
   }
 
   private logComponentSummary(documents: Document[]): void {
-    console.log('📋 Component Ingestion Summary:');
+    this.logger.info('Component Ingestion Summary:');
     
     documents.forEach(doc => {
       const metadata = doc.metadata as ComponentMetadata;
-      console.log(`  • ${metadata.title} (${metadata.component_type})`);
-      console.log(`    Features: ${metadata.features.join(', ')}`);
-      console.log(`    Use cases: ${metadata.use_cases.join(', ')}`);
-      console.log(`    Complexity: ${metadata.complexity}`);
-      console.log('');
+      this.logger.info(`  • ${metadata.title} (${metadata.component_type})`);
+      this.logger.info(`    Features: ${metadata.features.join(', ')}`);
+      this.logger.info(`    Use cases: ${metadata.use_cases.join(', ')}`);
+      this.logger.info(`    Complexity: ${metadata.complexity}`);
+      this.logger.info('');
     });
   }
 }

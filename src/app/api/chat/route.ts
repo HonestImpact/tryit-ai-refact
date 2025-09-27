@@ -32,11 +32,9 @@ async function getRAGContext(userMessage: string): Promise<string[]> {
     const { AnthropicProvider } = await import('@/lib/providers/anthropic-provider');
 
     // Initialize knowledge service if RAG is enabled
-    const llmProvider = new AnthropicProvider({
-      apiKey: process.env.ANTHROPIC_API_KEY!,
-      model: 'claude-3-5-sonnet-20241022',
-      maxTokens: 4000
-    });
+    const llmProvider = new AnthropicProvider(
+      process.env.ANTHROPIC_API_KEY!
+    );
 
     const knowledgeService = new KnowledgeService(llmProvider);
     await knowledgeService.initialize();

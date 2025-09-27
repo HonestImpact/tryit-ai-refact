@@ -1,5 +1,6 @@
 // Unified artifact detection, parsing, and management service
 import { getArchiver } from './archiver-provider';
+import { createLogger } from '@/lib/logger';
 
 export interface ParsedArtifact {
   title: string;
@@ -16,6 +17,8 @@ export interface ArtifactCreationRequest {
 }
 
 export class ArtifactService {
+  private static logger = createLogger('ArtifactService');
+  
   // Intelligent artifact detection based on content patterns
   static detectArtifact(content: string): boolean {
     // Legacy format support
@@ -330,7 +333,7 @@ export class ArtifactService {
         generationTime: 0 // Will be calculated by the archiver
       });
     } catch (error) {
-      console.error('Failed to log artifact:', error);
+      this.logger.error('Failed to log artifact', { error });
       throw error;
     }
   }

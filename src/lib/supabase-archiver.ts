@@ -7,6 +7,7 @@ import {
   identifyConversationPattern, 
   identifyArtifactType 
 } from './message-analyzer';
+import { createLogger } from '@/lib/logger';
 
 export interface ConversationData {
   sessionId: string;
@@ -30,6 +31,7 @@ export interface ArtifactData {
 
 class SupabaseArchiver {
   private environment: 'development' | 'preview' | 'production';
+  private logger = createLogger('SupabaseArchiver');
 
   constructor() {
     this.environment = getEnvironment();
@@ -38,12 +40,12 @@ class SupabaseArchiver {
   async logConversation(data: ConversationData): Promise<string> {
     try {
       if (!supabaseAdmin) {
-        console.log('Supabase admin client not available, skipping conversation logging');
+        this.logger.warn('Supabase admin client not available, skipping conversation logging');
         return 'supabase-unavailable';
       }
 
-      console.log(`📝 Logging conversation to Supabase (${this.environment})`);
-      console.log('📝 Conversation data:', { 
+      this.logger.info(`Logging conversation to Supabase (${this.environment})`);
+      this.logger.debug('Conversation data:', { 
         sessionId: data.sessionId, 
         messageCount: data.messages.length,
         trustLevel: data.trustLevel,
@@ -107,7 +109,7 @@ class SupabaseArchiver {
         .single();
 
       if (convError) {
-        console.error('Error inserting conversation:', convError);
+        this.logger.error('Error inserting conversation', { error: convError });
         throw convError;
       }
 
@@ -129,15 +131,15 @@ class SupabaseArchiver {
         .insert(messagesToInsert);
 
       if (msgError) {
-        console.error('Error inserting messages:', msgError);
+        this.logger.error('Error inserting messages', { error: msgError });
         throw msgError;
       }
 
-      console.log(`📝 Logged conversation ${conversation.id} to Supabase (${this.environment})`);
+      this.logger.info(`Logged conversation ${conversation.id} to Supabase (${this.environment})`);
       return conversation.id;
 
     } catch (error) {
-      console.error('Failed to log conversation to Supabase:', error);
+      this.logger.error('Failed to log conversation to Supabase', { error });
       throw error;
     }
   }
@@ -145,11 +147,11 @@ class SupabaseArchiver {
   async logArtifact(data: ArtifactData, conversationId?: string): Promise<string> {
     try {
       if (!supabaseAdmin) {
-        console.log('Supabase admin client not available, skipping artifact logging');
+        this.logger.warn('Supabase admin client not available, skipping artifact logging');
         return 'supabase-unavailable';
       }
       
-      console.log('🔧 logArtifact called with:', { 
+      this.logger.debug('logArtifact called with:', { 
         sessionId: data.sessionId, 
         contentLength: data.artifactContent.length,
         hasSignalPhrase: data.artifactContent.includes("Here's a tool for you to consider:")
@@ -203,7 +205,7 @@ class SupabaseArchiver {
           lines.slice(reasoningStart + 1).join('\n').trim() : '';
       }
 
-      console.log('🔧 Parsed artifact:', { title, contentLength: content.length, reasoning });
+      this.logger.debug('Parsed artifact:', { title, contentLength: content.length, reasoning });
       
       const toolType = identifyArtifactType(content);
 
@@ -223,7 +225,7 @@ class SupabaseArchiver {
       }
 
       if (!convId) {
-        console.log('No existing conversation found, creating one for artifact logging');
+        this.logger.info('No existing conversation found, creating one for artifact logging');
         
         // Create a minimal conversation for this artifact
         const { data: newConv, error: convError } = await supabaseAdmin
@@ -250,7 +252,7 @@ class SupabaseArchiver {
         }
         
         convId = newConv.id;
-        console.log('Created new conversation for artifact:', convId);
+        this.logger.info('Created new conversation for artifact', { conversationId: convId });
       }
 
       // Insert micro-tool
@@ -272,15 +274,15 @@ class SupabaseArchiver {
         .single();
 
       if (artifactError) {
-        console.error('Error inserting artifact:', artifactError);
+        this.logger.error('Error inserting artifact', { error: artifactError });
         throw artifactError;
       }
 
-      console.log(`🔧 Logged artifact ${artifact.id} to Supabase (${this.environment})`);
+      this.logger.info(`Logged artifact ${artifact.id} to Supabase (${this.environment})`);
       return artifact.id;
 
     } catch (error) {
-      console.error('Failed to log artifact to Supabase:', error);
+      this.logger.error('Failed to log artifact to Supabase', { error });
       throw error;
     }
   }
@@ -288,7 +290,7 @@ class SupabaseArchiver {
   async getConversationAnalytics(days: number = 7): Promise<unknown> {
     try {
       if (!supabaseAdmin) {
-        console.log('Supabase admin client not available, returning empty analytics');
+        this.logger.warn('Supabase admin client not available, returning empty analytics');
         return {};
       }
 
@@ -302,13 +304,13 @@ class SupabaseArchiver {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching conversation analytics:', error);
+        this.logger.error('Error fetching conversation analytics', { error });
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Failed to get conversation analytics:', error);
+      this.logger.error('Failed to get conversation analytics', { error });
       throw error;
     }
   }
@@ -316,7 +318,7 @@ class SupabaseArchiver {
   async getRecentLogs(days: number = 7): Promise<{ conversations: unknown[]; artifacts: unknown[] }> {
     try {
       if (!supabaseAdmin) {
-        console.log('Supabase admin client not available, returning empty logs');
+        this.logger.warn('Supabase admin client not available, returning empty logs');
         return { conversations: [], artifacts: [] };
       }
 
@@ -335,7 +337,7 @@ class SupabaseArchiver {
         .order('created_at', { ascending: false });
 
       if (convError) {
-        console.error('Error fetching conversations:', convError);
+        this.logger.error('Error fetching conversations', { error: convError });
         throw convError;
       }
 
@@ -347,7 +349,7 @@ class SupabaseArchiver {
         .order('created_at', { ascending: false });
 
       if (artError) {
-        console.error('Error fetching artifacts:', artError);
+        this.logger.error('Error fetching artifacts', { error: artError });
         throw artError;
       }
 
@@ -356,7 +358,7 @@ class SupabaseArchiver {
         artifacts: artifacts || []
       };
     } catch (error) {
-      console.error('Failed to get recent logs:', error);
+      this.logger.error('Failed to get recent logs', { error });
       throw error;
     }
   }
@@ -364,7 +366,7 @@ class SupabaseArchiver {
   async getTrackEffectiveness(): Promise<unknown> {
     try {
       if (!supabaseAdmin) {
-        console.log('Supabase admin client not available, returning empty track effectiveness');
+        this.logger.warn('Supabase admin client not available, returning empty track effectiveness');
         return [];
       }
 
@@ -374,13 +376,13 @@ class SupabaseArchiver {
         .order('total_conversations', { ascending: false });
 
       if (error) {
-        console.error('Error fetching track effectiveness:', error);
+        this.logger.error('Error fetching track effectiveness', { error });
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Failed to get track effectiveness:', error);
+      this.logger.error('Failed to get track effectiveness', { error });
       throw error;
     }
   }
@@ -388,7 +390,7 @@ class SupabaseArchiver {
   async getMicroToolEffectiveness(): Promise<unknown> {
     try {
       if (!supabaseAdmin) {
-        console.log('Supabase admin client not available, returning empty micro-tool effectiveness');
+        this.logger.warn('Supabase admin client not available, returning empty micro-tool effectiveness');
         return [];
       }
 
@@ -398,13 +400,13 @@ class SupabaseArchiver {
         .order('adoption_rate', { ascending: false });
 
       if (error) {
-        console.error('Error fetching micro-tool effectiveness:', error);
+        this.logger.error('Error fetching micro-tool effectiveness', { error });
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Failed to get micro-tool effectiveness:', error);
+      this.logger.error('Failed to get micro-tool effectiveness', { error });
       throw error;
     }
   }

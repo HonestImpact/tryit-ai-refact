@@ -18,6 +18,7 @@ import type {
   SearchResult,
   VectorStoreStats
 } from './types';
+import { createLogger } from '@/lib/logger';
 
 interface LangChainRAGConfig {
   // Vector store options
@@ -52,6 +53,7 @@ export class LangChainRAGProvider implements VectorStore {
   private llm: ChatAnthropic;
   private config: LangChainRAGConfig;
   private isInitialized = false;
+  private logger = createLogger('LangChainRAGProvider');
   
   // RAG Chain
   private ragChain: RunnableSequence<any, string> | null = null;
@@ -103,24 +105,24 @@ export class LangChainRAGProvider implements VectorStore {
           collectionName: this.config.collectionName!,
           url: this.config.chromaUrl,
         });
-        console.log(`✅ LangChain Chroma initialized: ${this.config.chromaUrl}`);
+        this.logger.info(`LangChain Chroma initialized: ${this.config.chromaUrl}`);
       } catch (error) {
-        console.warn('⚠️ Chroma connection failed, falling back to memory store:', error);
+        this.logger.warn('Chroma connection failed, falling back to memory store', { error });
         this.vectorStore = new MemoryVectorStore(this.embeddings);
-        console.log('✅ LangChain Memory vector store initialized (fallback)');
+        this.logger.info('LangChain Memory vector store initialized (fallback)');
       }
     } else {
       this.vectorStore = new MemoryVectorStore(this.embeddings);
-      console.log('✅ LangChain Memory vector store initialized');
+      this.logger.info('LangChain Memory vector store initialized');
     }
 
       // Initialize RAG chain
       await this.initializeRAGChain();
 
       this.isInitialized = true;
-      console.log('✅ LangChain RAG provider initialized');
+      this.logger.info('LangChain RAG provider initialized');
     } catch (error) {
-      console.error('❌ LangChain RAG initialization failed:', error);
+      this.logger.error('LangChain RAG initialization failed', { error });
       throw error;
     }
   }
@@ -157,7 +159,7 @@ Response:`);
       new StringOutputParser(),
     ]);
 
-    console.log('✅ RAG chain initialized');
+    this.logger.info('RAG chain initialized');
   }
 
   // ===== VECTOR STORE INTERFACE IMPLEMENTATION =====
@@ -175,11 +177,11 @@ Response:`);
       }));
 
       await this.vectorStore!.addDocuments(langchainDocs);
-      console.log(`✅ Added ${documents.length} documents to LangChain vector store`);
+      this.logger.info(`Added ${documents.length} documents to LangChain vector store`);
       
       return documents.map(doc => doc.id);
     } catch (error) {
-      console.error('❌ Failed to add documents:', error);
+      this.logger.error('Failed to add documents', { error });
       throw error;
     }
   }
@@ -193,7 +195,7 @@ Response:`);
         await this.addDocuments([document as VectorizedDocument]);
       }
     } catch (error) {
-      console.error(`❌ Failed to update document ${id}:`, error);
+      this.logger.error(`Failed to update document ${id}`, { error });
       throw error;
     }
   }
@@ -206,11 +208,11 @@ Response:`);
         await this.vectorStore.delete({ filter: { id } });
       } else {
         // Memory vector store doesn't support delete by ID directly
-        console.warn('Memory vector store does not support document deletion');
+        this.logger.warn('Memory vector store does not support document deletion');
       }
-      console.log(`✅ Deleted document: ${id}`);
+      this.logger.info(`Deleted document: ${id}`);
     } catch (error) {
-      console.error(`❌ Failed to delete document ${id}:`, error);
+      this.logger.error(`Failed to delete document ${id}`, { error });
       throw error;
     }
   }
@@ -252,7 +254,7 @@ Response:`);
         }));
         
     } catch (error) {
-      console.error('❌ LangChain similarity search failed:', error);
+      this.logger.error('LangChain similarity search failed', { error });
       throw error;
     }
   }
@@ -268,7 +270,7 @@ Response:`);
       const response = await this.ragChain.invoke(query);
       return response;
     } catch (error) {
-      console.error('❌ RAG response generation failed:', error);
+      this.logger.error('RAG response generation failed', { error });
       throw error;
     }
   }
@@ -320,7 +322,7 @@ Response:`);
         averageQueryTime: 0 // Would need to track separately
       };
     } catch (error) {
-      console.error('❌ Failed to get LangChain stats:', error);
+      this.logger.error('Failed to get LangChain stats', { error });
       return {
         totalDocuments: 0,
         totalChunks: 0,

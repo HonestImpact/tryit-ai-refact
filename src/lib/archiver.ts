@@ -2,9 +2,11 @@ import fs from 'fs/promises';
 import path from 'path';
 import { ArchiveStats, ArtifactLog, ConversationLog, SanitizedMessage } from './types';
 import { analyzeMessage, determineTrack, identifyArtifactType, sanitizeContent } from './message-analyzer';
+import { createLogger } from '@/lib/logger';
 
 class ConversationArchiver {
   private logsDir: string;
+  private logger = createLogger('ConversationArchiver');
 
   constructor() {
     this.logsDir = path.join(process.cwd(), 'logs');
@@ -88,7 +90,7 @@ class ConversationArchiver {
       existingLogs.push(conversationLog);
       await fs.writeFile(filepath, JSON.stringify(existingLogs, null, 2));
     } catch (error) {
-      console.error('Failed to log conversation:', error);
+      this.logger.error('Failed to log conversation', { error });
     }
   }
 
@@ -135,7 +137,7 @@ class ConversationArchiver {
       existingLogs.push(artifactLog);
       await fs.writeFile(filepath, JSON.stringify(existingLogs, null, 2));
     } catch (error) {
-      console.error('Failed to log artifact:', error);
+      this.logger.error('Failed to log artifact', { error });
     }
   }
 
@@ -193,7 +195,7 @@ class ConversationArchiver {
         artifactSuccessRate: totalArtifacts > 0 ? successfulArtifacts / totalArtifacts : 0
       };
     } catch (error) {
-      console.error('Failed to get archive stats:', error);
+      this.logger.error('Failed to get archive stats', { error });
       return {
         totalConversations: 0,
         totalArtifacts: 0,
@@ -229,7 +231,7 @@ class ConversationArchiver {
         }
       }
     } catch (error) {
-      console.error('Failed to get recent logs:', error);
+      this.logger.error('Failed to get recent logs', { error });
     }
     return { conversations, artifacts };
   }

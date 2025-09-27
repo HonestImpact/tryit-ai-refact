@@ -11,6 +11,7 @@ import type {
   VectorStore
 } from './types';
 import type { LLMProvider } from '../agents/types';
+import { createLogger } from '@/lib/logger';
 
 interface MemoryConfig {
   readonly maxMessages?: number;
@@ -25,6 +26,7 @@ export class LangChainMemoryProvider implements ConversationMemory {
   private vectorStore?: VectorStore;
   private llmProvider: LLMProvider;
   private config: MemoryConfig;
+  private logger = createLogger('LangChainMemoryProvider');
 
   constructor(
     llmProvider: LLMProvider,
@@ -448,6 +450,6 @@ Summary:`;
   }
 
   private log(level: 'info' | 'warn' | 'error', message: string): void {
-    console.log(`[LangChainMemory] ${level.toUpperCase()}: ${message}`);
+    this.logger[level](message);
   }
 }

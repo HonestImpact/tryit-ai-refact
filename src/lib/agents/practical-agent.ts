@@ -135,7 +135,7 @@ export class PracticalAgent extends BaseAgent {
     const searchContext = {
       userRequest: request.content,
       domain: this.identifyDomain(request.content),
-      intent: 'build',
+      intent: 'build' as const,
       complexity: this.assessComplexity(request.content),
       requiredComponents: this.extractRequiredComponents(request.content)
     };
@@ -184,7 +184,7 @@ ${content}
       'hybrid': 'Created a hybrid solution combining existing components with custom implementation.',
       'custom': 'Built a custom solution from scratch due to limited component matches.'
     };
-    return explanations[strategy.approach] || 'Applied best-fit implementation strategy.';
+    return explanations[strategy.approach as keyof typeof explanations] || 'Applied best-fit implementation strategy.';
   }
 
   private determineArtifactType(content: string): 'html' | 'css' | 'javascript' | 'mixed' {

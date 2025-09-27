@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getArchiver } from './archiver-provider';
+import { createLogger } from '@/lib/logger';
 
 export interface LoggingContext {
   sessionId: string;
@@ -15,12 +16,14 @@ export interface LoggingContext {
   };
 }
 
+const logger = createLogger('LoggingMiddleware');
+
 // Middleware to wrap API routes with logging
 export function withLogging<T = unknown>(
   handler: (req: NextRequest, context: LoggingContext) => Promise<NextResponse<T>>
 ) {
   return async (req: NextRequest): Promise<NextResponse<T>> => {
-    console.log('🔍 withLogging middleware called for:', req.url);
+    logger.info('withLogging middleware called', { url: req.url });
     
     const sessionId = req.headers.get('x-session-id') || 
                      req.cookies.get('session-id')?.value || 
@@ -28,7 +31,7 @@ export function withLogging<T = unknown>(
     
     const startTime = Date.now();
     
-    console.log('🔍 Logging context created:', { sessionId, url: req.url });
+    logger.debug('Logging context created', { sessionId, url: req.url });
     
     // We'll pass the original request to logging functions
     const context: LoggingContext = {
@@ -47,13 +50,13 @@ export function withLogging<T = unknown>(
       
       return response;
     } catch (error) {
-      console.error('API Error with logging context:', error);
+      logger.error('API Error with logging context', { error });
       
       // Still try to log the error case
       try {
         await logError(req, error as Error, context);
       } catch (logError) {
-        console.error('Failed to log error:', logError);
+        logger.error('Failed to log error', { error: logError });
       }
       
       throw error;
@@ -76,7 +79,7 @@ async function logInteraction(
       await logArtifactInteraction(req, response, context);
     }
   } catch (error) {
-    console.error('Failed to log interaction:', error);
+    logger.error('Failed to log interaction', { error });
   }
 }
 
@@ -142,13 +145,13 @@ async function logChatInteraction(
           }),
           generationTime: context.startTime ? Date.now() - context.startTime : 0
         });
-        console.log('✅ Artifact logged to micro_tools table');
+        logger.info('Artifact logged to micro_tools table');
       } catch (artifactError) {
-        console.error('❌ Failed to log artifact to micro_tools:', artifactError);
+        logger.error('Failed to log artifact to micro_tools', { error: artifactError });
       }
     }
   } catch (error) {
-    console.error('Failed to log chat interaction:', error);
+    logger.error('Failed to log chat interaction', { error });
   }
 }
 
@@ -163,7 +166,7 @@ async function logArtifactInteraction(
       try {
         body = await req.json();
       } catch (error) {
-        console.warn('Could not read request body for artifact logging:', error);
+        logger.warn('Could not read request body for artifact logging', { error });
         body = { userInput: '' };
       }
     }
@@ -180,7 +183,7 @@ async function logArtifactInteraction(
       generationTime
     });
   } catch (error) {
-    console.error('Failed to log artifact interaction:', error);
+    logger.error('Failed to log artifact interaction', { error });
   }
 }
 
@@ -202,9 +205,9 @@ async function logError(
     };
     
     // Log to console for now, could be extended to file logging
-    console.error('🚨 API Error logged:', errorLog);
+    logger.error('API Error logged', errorLog);
   } catch (logError) {
-    console.error('Failed to log error:', logError);
+    logger.error('Failed to log error', { error: logError });
   }
 }
 

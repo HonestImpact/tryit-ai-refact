@@ -13,6 +13,7 @@ import type {
   ToolTemplate,
   ToolAsset
 } from './types';
+import { createLogger } from '@/lib/logger';
 
 export abstract class BaseToolGenerator implements ToolGenerator {
   public readonly type: ToolType;
@@ -22,6 +23,7 @@ export abstract class BaseToolGenerator implements ToolGenerator {
   protected templates: Map<string, ToolTemplate> = new Map();
   protected generationCount: number = 0;
   protected errorCount: number = 0;
+  protected logger = createLogger('BaseToolGenerator');
 
   constructor(type: ToolType, name: string, version: string = '1.0.0') {
     this.type = type;
@@ -485,6 +487,6 @@ ${tool.code}
       ...metadata
     };
 
-    console.log(`[${level.toUpperCase()}] ${this.name}:`, logData);
+    this.logger[level](message, metadata);
   }
 }

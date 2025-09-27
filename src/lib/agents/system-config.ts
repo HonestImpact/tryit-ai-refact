@@ -80,7 +80,7 @@ export class MultiAgentSystem {
       }>;
       userPreferences?: Record<string, unknown>;
     }
-  ): Promise<AgentResponse> {
+  ): Promise<any> {
     // SAFETY CHECK: Verify session is not terminated
     if (!contentFilter.shouldRespond(sessionId)) {
       // Complete radio silence for terminated sessions

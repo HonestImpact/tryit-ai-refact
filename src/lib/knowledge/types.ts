@@ -1,10 +1,10 @@
 // Knowledge Layer Types
 // Built on the existing TryIt-AI foundation
 
-import type { KnowledgeItem, KnowledgeResult, SearchContext } from '../agents/types';
+import type { KnowledgeItem, KnowledgeResult, SearchContext, KnowledgeProvider } from '../agents/types';
 
 // Re-export core types
-export type { KnowledgeItem, KnowledgeResult, SearchContext };
+export type { KnowledgeItem, KnowledgeResult, SearchContext, KnowledgeProvider };
 
 // Extended knowledge types for specific implementations
 export interface VectorizedDocument {

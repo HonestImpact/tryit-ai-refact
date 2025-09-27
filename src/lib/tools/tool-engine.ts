@@ -15,6 +15,7 @@ import type {
   PatternDefinition,
   UtilityFunction
 } from './types';
+import { createLogger } from '@/lib/logger';
 
 interface ToolEngineConfig {
   readonly defaultGenerators?: boolean;
@@ -38,6 +39,7 @@ export class ToolGenerationEngine {
   private cache: Map<string, GeneratedTool> = new Map();
   private config: ToolEngineConfig;
   private metrics: GenerationMetrics;
+  private logger = createLogger('ToolGenerationEngine');
 
   constructor(config: ToolEngineConfig = {}) {
     this.config = {
@@ -457,6 +459,6 @@ const MyModule = (function() {
       ...metadata
     };
 
-    console.log(`[${level.toUpperCase()}] ToolEngine:`, logData);
+    this.logger[level](message, metadata);
   }
 }

@@ -12,6 +12,7 @@ import type {
   DocumentFilter,
   VectorStoreStats
 } from './types';
+import { createLogger } from '@/lib/logger';
 
 interface ChromaConfig {
   url?: string;
@@ -26,6 +27,7 @@ export class ChromaProvider implements VectorStore {
   private embeddings: OpenAIEmbeddings;
   private config: ChromaConfig;
   private isInitialized = false;
+  private logger = createLogger('ChromaProvider');
 
   constructor(config: ChromaConfig = {}) {
     this.config = {
@@ -55,9 +57,9 @@ export class ChromaProvider implements VectorStore {
       });
 
       this.isInitialized = true;
-      console.log(`✅ Chroma initialized: ${this.config.url}/${this.config.collectionName}`);
+      this.logger.info(`Chroma initialized: ${this.config.url}/${this.config.collectionName}`);
     } catch (error) {
-      console.error('❌ Chroma initialization failed:', error);
+      this.logger.error('Chroma initialization failed', { error });
       throw error;
     }
   }
@@ -76,11 +78,11 @@ export class ChromaProvider implements VectorStore {
       }));
 
       await this.vectorStore!.addDocuments(chromaDocs);
-      console.log(`✅ Added ${documents.length} documents to Chroma`);
+      this.logger.info(`Added ${documents.length} documents to Chroma`);
       
       return documents.map(doc => doc.id);
     } catch (error) {
-      console.error('❌ Failed to add documents to Chroma:', error);
+      this.logger.error('Failed to add documents to Chroma', { error });
       throw error;
     }
   }
@@ -94,7 +96,7 @@ export class ChromaProvider implements VectorStore {
         await this.addDocuments([document as VectorizedDocument]);
       }
     } catch (error) {
-      console.error(`❌ Failed to update document ${id}:`, error);
+      this.logger.error(`Failed to update document ${id}`, { error });
       throw error;
     }
   }
@@ -105,9 +107,9 @@ export class ChromaProvider implements VectorStore {
     try {
       // Chroma delete by filter
       await this.vectorStore!.delete({ filter: { id } });
-      console.log(`✅ Deleted document: ${id}`);
+      this.logger.info(`Deleted document: ${id}`);
     } catch (error) {
-      console.error(`❌ Failed to delete document ${id}:`, error);
+      this.logger.error(`Failed to delete document ${id}`, { error });
       throw error;
     }
   }
@@ -146,7 +148,7 @@ export class ChromaProvider implements VectorStore {
         .map(([doc, score]) => this.toSearchResult(doc, score));
         
     } catch (error) {
-      console.error('❌ Chroma similarity search failed:', error);
+      this.logger.error('Chroma similarity search failed', { error });
       throw error;
     }
   }
@@ -171,7 +173,7 @@ export class ChromaProvider implements VectorStore {
       const doc = results[0];
       return this.fromChromaDocument(doc);
     } catch (error) {
-      console.error(`❌ Failed to get document ${id}:`, error);
+      this.logger.error(`Failed to get document ${id}`, { error });
       return null;
     }
   }
@@ -189,7 +191,7 @@ export class ChromaProvider implements VectorStore {
 
       return results.map(doc => this.fromChromaDocument(doc));
     } catch (error) {
-      console.error('❌ Failed to list documents:', error);
+      this.logger.error('Failed to list documents', { error });
       return [];
     }
   }
@@ -208,7 +210,7 @@ export class ChromaProvider implements VectorStore {
         averageQueryTime: 0 // Would need to track separately
       };
     } catch (error) {
-      console.error('❌ Failed to get Chroma stats:', error);
+      this.logger.error('Failed to get Chroma stats', { error });
       return {
         totalDocuments: 0,
         totalChunks: 0,

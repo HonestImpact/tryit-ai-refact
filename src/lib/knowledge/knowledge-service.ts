@@ -14,6 +14,7 @@ import type {
   VectorizedDocument,
   DocumentMetadata
 } from './types';
+import { createLogger } from '@/lib/logger';
 import type { LLMProvider } from '../agents/types';
 
 interface KnowledgeConfig {
@@ -55,6 +56,7 @@ export class KnowledgeService implements KnowledgeProvider, KnowledgeIndexer {
   private conversationMemory?: ConversationMemory;
   private config: KnowledgeConfig;
   private isInitialized = false;
+  private logger = createLogger('KnowledgeService');
 
   constructor(
     private llmProvider: LLMProvider,
@@ -63,7 +65,7 @@ export class KnowledgeService implements KnowledgeProvider, KnowledgeIndexer {
     this.config = {
       provider: (process.env.RAG_PROVIDER as any) || 'langchain',
       chroma: {
-        url: process.env.CHROMA_URL, // Only if explicitly set
+        url: process.env.CHROMA_URL || '', // Only if explicitly set
         collectionName: process.env.CHROMA_COLLECTION || 'tryit-ai-knowledge'
       },
       langchain: {
@@ -178,6 +180,7 @@ export class KnowledgeService implements KnowledgeProvider, KnowledgeIndexer {
 
         results.push(...vectorResults.map(result => ({
           item: this.documentToKnowledgeItem(result.document),
+          score: result.similarity,
           relevanceScore: result.similarity,
           context: result.snippet
         })));
@@ -192,6 +195,7 @@ export class KnowledgeService implements KnowledgeProvider, KnowledgeIndexer {
 
         results.push(...memoryResults.map(msg => ({
           item: this.messageToKnowledgeItem(msg),
+          score: 0.8,
           relevanceScore: 0.8, // Default relevance for conversation context
           context: this.truncateContent(msg.content, 200)
         })));
@@ -287,7 +291,7 @@ export class KnowledgeService implements KnowledgeProvider, KnowledgeIndexer {
     const document: VectorizedDocument = {
       id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       content,
-      metadata,
+      metadata: metadata as any,
       chunks: chunks.map((chunk, index) => ({
         id: `chunk_${index}`,
         content: chunk,
@@ -374,6 +378,7 @@ export class KnowledgeService implements KnowledgeProvider, KnowledgeIndexer {
 
     return messages.map(msg => ({
       item: this.messageToKnowledgeItem(msg),
+      score: 0.8,
       relevanceScore: 0.8,
       context: this.truncateContent(msg.content, 200)
     }));
@@ -556,7 +561,7 @@ class SimpleState {
     return {
       id: item.id,
       content: item.content,
-      metadata: item.metadata as DocumentMetadata,
+      metadata: item.metadata as any,
       embedding: item.embedding
     };
   }
@@ -584,6 +589,6 @@ class SimpleState {
   }
 
   private log(level: 'info' | 'warn' | 'error', message: string): void {
-    console.log(`[KnowledgeService] ${level.toUpperCase()}: ${message}`);
+    this.logger[level](message);
   }
 }
