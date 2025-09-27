@@ -68,7 +68,12 @@ function getResearchErrorMessage(error: unknown): string {
 /**
  * Fallback to Noah when research system unavailable
  */
-async function fallbackToNoah(messages: any[]): Promise<NextResponse<ResearchResponse>> {
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+async function fallbackToNoah(messages: ChatMessage[]): Promise<NextResponse<ResearchResponse>> {
   logger.info('🦉 Falling back to Noah for research request');
   
   try {
@@ -139,20 +144,20 @@ async function researchHandler(req: NextRequest): Promise<NextResponse<ResearchR
       const mockProvider = {
         name: 'anthropic',
         capabilities: [],
-        generateText: async (request: any) => {
-          const result = await generateText(request);
+        generateText: async (request: unknown) => {
+          const result = await generateText(request as Parameters<typeof generateText>[0]);
           return {
             content: result.text,
             model: 'claude-sonnet-4-20250514',
             usage: { 
-              promptTokens: (result.usage as any)?.promptTokens || 0, 
-              completionTokens: (result.usage as any)?.completionTokens || 0, 
-              totalTokens: (result.usage as any)?.totalTokens || 0 
+              promptTokens: (result.usage as { promptTokens?: number })?.promptTokens || 0, 
+              completionTokens: (result.usage as { completionTokens?: number })?.completionTokens || 0, 
+              totalTokens: (result.usage as { totalTokens?: number })?.totalTokens || 0 
             },
             finishReason: result.finishReason || 'stop'
           };
         },
-        streamText: (request: any) => { throw new Error('Streaming not implemented'); },
+        streamText: () => { throw new Error('Streaming not implemented'); },
         getCosts: () => ({ promptCostPerToken: 0, completionCostPerToken: 0, currency: 'USD' }),
         getStatus: () => ({ isAvailable: true, responseTime: 0, errorRate: 0, rateLimitRemaining: 100, lastChecked: new Date() }),
         shutdown: async () => {}
@@ -172,7 +177,7 @@ async function researchHandler(req: NextRequest): Promise<NextResponse<ResearchR
           maxTokens: 2500
         },
         {
-          knowledgeService: sharedResources.knowledgeService
+          knowledgeService: (sharedResources as any).knowledgeService
         }
       );
 
@@ -196,16 +201,16 @@ async function researchHandler(req: NextRequest): Promise<NextResponse<ResearchR
     
     const responseTime = Date.now() - startTime;
     logger.info('✅ Research completed', { 
-      responseLength: researchResult.content.length,
+      responseLength: (researchResult as any).content.length,
       responseTime,
-      confidence: researchResult.confidence
+      confidence: (researchResult as any).confidence
     });
 
     return NextResponse.json({
-      content: researchResult.content,
+      content: (researchResult as any).content,
       status: 'success',
       agent: 'wanderer',
-      sources: (researchResult.metadata?.sourcesFound as number) || 0,
+      sources: ((researchResult as any).metadata?.sourcesFound as number) || 0,
       research_time: responseTime
     });
 
@@ -252,7 +257,7 @@ async function researchHealthCheck(): Promise<NextResponse<ResearchHealthRespons
       } else {
         ragStatus = 'unavailable';
       }
-    } catch (ragError) {
+    } catch {
       ragStatus = 'error';
     }
 

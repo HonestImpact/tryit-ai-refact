@@ -59,7 +59,12 @@ function getBuildErrorMessage(error: unknown): string {
   return `I'm experiencing technical difficulties with my build systems. Something unexpected happened during the implementation analysis. If you're testing this, this failure mode is valuable data.`;
 }
 
-async function fallbackToNoah(messages: any[]): Promise<NextResponse<BuildResponse>> {
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+async function fallbackToNoah(messages: ChatMessage[]): Promise<NextResponse<BuildResponse>> {
   logger.info('🦉 Falling back to Noah for build request');
 
   try {
@@ -130,20 +135,20 @@ async function buildHandler(req: NextRequest): Promise<NextResponse<BuildRespons
       const mockProvider = {
         name: 'anthropic',
         capabilities: [],
-        generateText: async (request: any) => {
-          const result = await generateText(request);
+        generateText: async (request: unknown) => {
+          const result = await generateText(request as Parameters<typeof generateText>[0]);
           return {
             content: result.text,
             model: 'claude-sonnet-4-20250514',
             usage: { 
-              promptTokens: (result.usage as any)?.promptTokens || 0, 
-              completionTokens: (result.usage as any)?.completionTokens || 0, 
-              totalTokens: (result.usage as any)?.totalTokens || 0 
+              promptTokens: (result.usage as { promptTokens?: number })?.promptTokens || 0, 
+              completionTokens: (result.usage as { completionTokens?: number })?.completionTokens || 0, 
+              totalTokens: (result.usage as { totalTokens?: number })?.totalTokens || 0 
             },
             finishReason: result.finishReason || 'stop'
           };
         },
-        streamText: (request: any) => { throw new Error('Streaming not implemented'); },
+        streamText: () => { throw new Error('Streaming not implemented'); },
         getCosts: () => ({ promptCostPerToken: 0, completionCostPerToken: 0, currency: 'USD' }),
         getStatus: () => ({ isAvailable: true, responseTime: 0, errorRate: 0, rateLimitRemaining: 100, lastChecked: new Date() }),
         shutdown: async () => {}
@@ -180,23 +185,23 @@ async function buildHandler(req: NextRequest): Promise<NextResponse<BuildRespons
     
     const responseTime = Date.now() - startTime;
     logger.info('✅ Build completed', { 
-      responseLength: (buildResult as any).content.length,
+      responseLength: (buildResult as { content: string }).content.length,
       responseTime,
-      confidence: (buildResult as any).confidence
+      confidence: (buildResult as { confidence: number }).confidence
     });
 
     // Analyze build complexity and provide metadata
-    const complexity = analyzeComplexity((buildResult as any).content, responseTime);
+    const complexity = analyzeComplexity((buildResult as { content: string }).content, responseTime);
     const estimatedTime = getEstimatedTime(complexity);
-    const nextSteps = generateNextSteps((buildResult as any).content);
+    const nextSteps = generateNextSteps((buildResult as { content: string }).content);
 
     return NextResponse.json({
-      content: (buildResult as any).content,
+      content: (buildResult as { content: string }).content,
       status: 'success',
       agent: 'tinkerer',
       complexity,
       estimated_time: estimatedTime,
-      components_used: ((buildResult as any).metadata?.componentsUsed as number) || 0,
+      components_used: ((buildResult as { metadata?: { componentsUsed?: number } }).metadata?.componentsUsed) || 0,
       build_time: responseTime,
       next_steps: nextSteps
     });
@@ -247,7 +252,7 @@ async function buildHealthCheck(): Promise<NextResponse<BuildHealthResponse>> {
         ragStatus = 'unavailable';
         componentLibraryStatus = 'unavailable';
       }
-    } catch (ragError) {
+    } catch {
       ragStatus = 'error';
       componentLibraryStatus = 'error';
     }

@@ -11,7 +11,7 @@ import { createLogger } from '@/lib/logger';
 const logger = createLogger('workflow-endpoint');
 
 // Timeout configuration for full workflow
-const WORKFLOW_TIMEOUT = 60000; // 60 seconds max for complete workflow
+// const WORKFLOW_TIMEOUT = 60000; // 60 seconds max for complete workflow (unused for now)
 
 interface WorkflowResponse {
   content: string;
@@ -79,7 +79,12 @@ function getWorkflowErrorMessage(error: unknown, phase: string): string {
   return `I'm experiencing technical difficulties during the ${phase} phase of this workflow. Something unexpected happened while coordinating between research and implementation. If you're testing this, this failure mode is valuable data.`;
 }
 
-async function fallbackToNoah(messages: any[]): Promise<NextResponse<WorkflowResponse>> {
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+async function fallbackToNoah(messages: ChatMessage[]): Promise<NextResponse<WorkflowResponse>> {
   logger.info('🦉 Falling back to Noah for workflow request');
 
   try {
@@ -156,20 +161,20 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
       const mockProvider = {
         name: 'anthropic',
         capabilities: [],
-        generateText: async (request: any) => {
-          const result = await generateText(request);
+        generateText: async (request: unknown) => {
+          const result = await generateText(request as Parameters<typeof generateText>[0]);
           return {
             content: result.text,
             model: 'claude-sonnet-4-20250514',
             usage: { 
-              promptTokens: (result.usage as any)?.promptTokens || 0, 
-              completionTokens: (result.usage as any)?.completionTokens || 0, 
-              totalTokens: (result.usage as any)?.totalTokens || 0 
+              promptTokens: (result.usage as { promptTokens?: number })?.promptTokens || 0, 
+              completionTokens: (result.usage as { completionTokens?: number })?.completionTokens || 0, 
+              totalTokens: (result.usage as { totalTokens?: number })?.totalTokens || 0 
             },
             finishReason: result.finishReason || 'stop'
           };
         },
-        streamText: (request: any) => { throw new Error('Streaming not implemented'); },
+        streamText: () => { throw new Error('Streaming not implemented'); },
         getCosts: () => ({ promptCostPerToken: 0, completionCostPerToken: 0, currency: 'USD' }),
         getStatus: () => ({ isAvailable: true, responseTime: 0, errorRate: 0, rateLimitRemaining: 100, lastChecked: new Date() }),
         shutdown: async () => {}
@@ -196,7 +201,7 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
           maxTokens: 2500
         },
         {
-          knowledgeService: (sharedResources as any).knowledgeService
+          knowledgeService: (sharedResources as { knowledgeService: unknown }).knowledgeService
         }
       );
 
@@ -222,7 +227,7 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
     logger.info('🔬 Phase 1: Research phase starting...');
     const researchStartTime = Date.now();
     
-    let researchResults: any;
+    let researchResults: { content: string; confidence: number; metadata?: { sourcesFound?: number } };
     try {
       const researchPromise = wandererAgent.process({
         id: `workflow_research_${Date.now()}`,
@@ -236,7 +241,7 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
       
       logger.info('✅ Research phase completed', { 
         researchTime,
-        confidence: (researchResults as any).confidence
+        confidence: researchResults.confidence
       });
 
     } catch (researchError) {
@@ -253,10 +258,10 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
     logger.info('🧠 Phase 2: Analysis phase starting...');
     const analysisStartTime = Date.now();
     
-    let analysisResults: any;
+    let analysisResults: { content: string };
     try {
       // Noah analyzes research and prepares implementation context
-      const analysisPrompt = `Based on this research: "${(researchResults as any).content}", analyze what needs to be implemented and create a detailed implementation plan. Focus on technical requirements and component needs.`;
+      const analysisPrompt = `Based on this research: "${researchResults.content}", analyze what needs to be implemented and create a detailed implementation plan. Focus on technical requirements and component needs.`;
       
       const analysisPromise = noahAgent.process({
         id: `workflow_analysis_${Date.now()}`,
@@ -275,14 +280,14 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
       
       // Return partial results - research succeeded
       return NextResponse.json({
-        content: `Research completed successfully, but analysis failed. Here are the research findings:\n\n${(researchResults as any).content}`,
+        content: `Research completed successfully, but analysis failed. Here are the research findings:\n\n${researchResults.content}`,
         status: 'partial',
         agent: 'wanderer',
         workflow_phase: 'analysis',
         research_results: {
-          content: (researchResults as any).content,
-          sources: ((researchResults as any).metadata?.sourcesFound as number) || 0,
-          confidence: (researchResults as any).confidence || 0
+          content: researchResults.content,
+          sources: researchResults.metadata?.sourcesFound || 0,
+          confidence: researchResults.confidence || 0
         },
         total_time: Date.now() - startTime
       });
@@ -292,10 +297,10 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
     logger.info('🔧 Phase 3: Build phase starting...');
     const buildStartTime = Date.now();
     
-    let buildResults: any;
+    let buildResults: { content: string; metadata?: { componentsUsed?: number } };
     try {
       // Create implementation request with research context
-      const implementationPrompt = `${lastMessage}\n\nResearch Context:\n${(researchResults as any).content}\n\nAnalysis:\n${(analysisResults as any).content}`;
+      const implementationPrompt = `${lastMessage}\n\nResearch Context:\n${researchResults.content}\n\nAnalysis:\n${analysisResults.content}`;
       
       const buildPromise = tinkererAgent.process({
         id: `workflow_build_${Date.now()}`,
@@ -314,14 +319,14 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
       
       // Return partial results - research and analysis succeeded
       return NextResponse.json({
-        content: `Research and analysis completed successfully, but implementation failed. Here's what I found:\n\n## Research Results\n${(researchResults as any).content}\n\n## Analysis\n${(analysisResults as any).content}`,
+        content: `Research and analysis completed successfully, but implementation failed. Here's what I found:\n\n## Research Results\n${researchResults.content}\n\n## Analysis\n${analysisResults.content}`,
         status: 'partial',
         agent: 'tinkerer',
         workflow_phase: 'build',
         research_results: {
-          content: (researchResults as any).content,
-          sources: ((researchResults as any).metadata?.sourcesFound as number) || 0,
-          confidence: (researchResults as any).confidence || 0
+          content: researchResults.content,
+          sources: researchResults.metadata?.sourcesFound || 0,
+          confidence: researchResults.confidence || 0
         },
         total_time: Date.now() - startTime
       });
@@ -339,12 +344,12 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
     });
 
     // Analyze build complexity for metadata
-    const complexity = analyzeBuildComplexity((buildResults as any).content, buildTime);
+    const complexity = analyzeBuildComplexity(buildResults.content, buildTime);
     const estimatedTime = getEstimatedImplementationTime(complexity);
-    const nextSteps = generateWorkflowNextSteps((buildResults as any).content);
+    const nextSteps = generateWorkflowNextSteps(buildResults.content);
 
     // Create comprehensive response
-    const workflowResponse = `## Complete Solution\n\n### Research Findings\n${(researchResults as any).content}\n\n### Analysis\n${(analysisResults as any).content}\n\n### Implementation\n${(buildResults as any).content}`;
+    const workflowResponse = `## Complete Solution\n\n### Research Findings\n${researchResults.content}\n\n### Analysis\n${analysisResults.content}\n\n### Implementation\n${buildResults.content}`;
 
     return NextResponse.json({
       content: workflowResponse,
@@ -352,15 +357,15 @@ async function workflowHandler(req: NextRequest): Promise<NextResponse<WorkflowR
       agent: 'noah',
       workflow_phase: 'complete',
       research_results: {
-        content: (researchResults as any).content,
-        sources: ((researchResults as any).metadata?.sourcesFound as number) || 0,
-        confidence: (researchResults as any).confidence || 0
+        content: researchResults.content,
+        sources: researchResults.metadata?.sourcesFound || 0,
+        confidence: researchResults.confidence || 0
       },
       build_results: {
-        content: (buildResults as any).content,
+        content: buildResults.content,
         complexity,
         estimated_time: estimatedTime,
-        components_used: ((buildResults as any).metadata?.componentsUsed as number) || 0
+        components_used: buildResults.metadata?.componentsUsed || 0
       },
       total_time: totalTime,
       phase_times: {
@@ -414,8 +419,8 @@ async function workflowHealthCheck(): Promise<NextResponse<WorkflowHealthRespons
       const mockProvider = {
         name: 'anthropic',
         capabilities: [],
-        generateText: async (request: any) => {
-          const result = await generateText(request);
+        generateText: async (request: unknown) => {
+          const result = await generateText(request as Parameters<typeof generateText>[0]);
           return {
             content: result.text,
             model: 'claude-sonnet-4-20250514',
@@ -423,14 +428,14 @@ async function workflowHealthCheck(): Promise<NextResponse<WorkflowHealthRespons
             finishReason: 'stop'
           };
         },
-        streamText: (request: any) => { throw new Error('Streaming not implemented'); },
+        streamText: () => { throw new Error('Streaming not implemented'); },
         getCosts: () => ({ promptCostPerToken: 0, completionCostPerToken: 0, currency: 'USD' }),
         getStatus: () => ({ isAvailable: true, responseTime: 0, errorRate: 0, rateLimitRemaining: 100, lastChecked: new Date() }),
         shutdown: async () => {}
       };
 
       // Test Noah
-      const noah = new NoahAgent(mockProvider);
+      new NoahAgent(mockProvider);
       noahAvailable = true;
 
       // Test Wanderer (with shared resources)
@@ -438,11 +443,11 @@ async function workflowHealthCheck(): Promise<NextResponse<WorkflowHealthRespons
         sharedResourceManager.initializeResources(mockProvider),
         3000
       );
-      const wanderer = new WandererAgent(mockProvider, {}, { knowledgeService: (sharedResources as any).knowledgeService });
+      new WandererAgent(mockProvider, {}, { knowledgeService: (sharedResources as { knowledgeService: unknown }).knowledgeService });
       wandererAvailable = true;
 
       // Test Tinkerer (fallback mode)
-      const tinkerer = new PracticalAgent(mockProvider);
+      new PracticalAgent(mockProvider);
       tinkererAvailable = true;
 
     } catch (agentError) {

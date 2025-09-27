@@ -152,7 +152,7 @@ export class SessionTracker {
     };
 
     // Mark previous step as continued/not continued
-    let updatedSteps = [...flow.steps];
+    const updatedSteps = [...flow.steps];
     if (updatedSteps.length > 0) {
       const lastStepIndex = updatedSteps.length - 1;
       const lastStep = updatedSteps[lastStepIndex];
