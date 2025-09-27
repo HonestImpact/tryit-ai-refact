@@ -198,8 +198,25 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
       context.sessionId
     );
 
+    // Prepare Noah's response content
+    let noahContent = result.content;
+    
+    // If artifact detected, show first 5 lines + redirect message
+    if (parsed.hasArtifact && parsed.title && parsed.content) {
+      const lines = result.content.split('\n');
+      const firstFiveLines = lines.slice(0, 5).join('\n');
+      const hasMoreContent = lines.length > 5;
+      
+      if (hasMoreContent) {
+        noahContent = `${firstFiveLines}\n\n*I've created a tool for you! Check your toolbox for the complete "${parsed.title}" with all the details.*`;
+      } else {
+        // If content is short, keep it all but still mention the toolbox
+        noahContent = `${result.content}\n\n*This tool has been saved to your toolbox as "${parsed.title}" for easy access.*`;
+      }
+    }
+
     const response: ChatResponse = {
-      content: parsed.cleanContent || result.content,
+      content: noahContent,
       status: 'success',
       agent: 'noah'
     };

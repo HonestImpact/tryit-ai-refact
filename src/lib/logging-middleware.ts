@@ -138,14 +138,14 @@ async function logChatInteraction(
         await arch.logArtifact({
           sessionId: context.sessionId,
           userInput: requestMessages[requestMessages.length - 1]?.content || '',
-          artifactContent: JSON.stringify({
-            title: responseData.artifact.title,
-            content: responseData.artifact.content,
-            reasoning: responseData.artifact.reasoning
-          }),
+          title: responseData.artifact.title || 'Generated Tool',
+          artifactContent: responseData.artifact.content || '',
           generationTime: context.startTime ? Date.now() - context.startTime : 0
         });
-        logger.info('Artifact logged to micro_tools table');
+        logger.info('Artifact logged to micro_tools table', { 
+          title: responseData.artifact.title,
+          contentLength: responseData.artifact.content?.length || 0
+        });
       } catch (artifactError) {
         logger.error('Failed to log artifact to micro_tools', { error: artifactError });
       }
@@ -227,3 +227,4 @@ export function getSessionId(req: NextRequest): string {
          req.cookies.get('session-id')?.value || 
          generateSessionId();
 }
+
