@@ -5,6 +5,7 @@ import { BaseAgent } from './base-agent';
 import { RAGIntegration } from './rag-integration';
 import { SolutionGenerator } from './solution-generator';
 import { createLogger } from '../logger';
+import type { AgentSharedResources } from './shared-resources';
 import type {
   AgentCapability,
   AgentRequest,
@@ -25,7 +26,11 @@ export class PracticalAgent extends BaseAgent {
   private readonly ragIntegration: RAGIntegration;
   private readonly solutionGenerator: SolutionGenerator;
 
-  constructor(llmProvider: LLMProvider, config: AgentConfig = {}) {
+  constructor(
+    llmProvider: LLMProvider, 
+    config: AgentConfig = {},
+    sharedResources?: AgentSharedResources
+  ) {
     const capabilities: AgentCapability[] = [
       {
         name: 'advanced-rag-integration',
@@ -55,8 +60,16 @@ export class PracticalAgent extends BaseAgent {
       ...config
     });
 
-    this.ragIntegration = new RAGIntegration();
-    this.solutionGenerator = new SolutionGenerator(llmProvider);
+    // Use shared resources if provided, otherwise create new instances (fallback)
+    if (sharedResources?.ragIntegration && sharedResources?.solutionGenerator) {
+      this.logger.info('🔗 Tinkerer using shared resources (memory-efficient)');
+      this.ragIntegration = sharedResources.ragIntegration;
+      this.solutionGenerator = sharedResources.solutionGenerator;
+    } else {
+      this.logger.warn('⚠️ Tinkerer creating own resources (fallback mode)');
+      this.ragIntegration = new RAGIntegration();
+      this.solutionGenerator = new SolutionGenerator(llmProvider);
+    }
   }
 
   protected async processRequest(request: AgentRequest): Promise<AgentResponse> {

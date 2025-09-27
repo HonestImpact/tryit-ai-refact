@@ -157,7 +157,31 @@ export class MultiAgentOrchestrator implements AgentOrchestrator {
   }
 
   private selectByCapability(request: AgentRequest): Agent | null {
-    // First, check routing rules
+    // CRITICAL: ALWAYS route through Noah first to preserve 4-workflow architecture
+    // Noah orchestrates: Noah alone, Noah→Tinkerer, Noah→Wanderer, Noah→Wanderer→Tinkerer
+    
+    const agents = Array.from(this.agents.values()).filter(this.isAgentHealthy);
+    
+    if (agents.length === 0) return null;
+    
+    // ALWAYS find Noah first - he coordinates all workflows
+    const noah = this.findAgentByName(agents, 'noah');
+    if (noah && this.isAgentHealthy(noah)) {
+      this.log('info', 'Routing to Noah for workflow orchestration', { 
+        requestId: request.id,
+        reason: 'Noah coordinates all 4 workflow patterns'
+      });
+      return noah;
+    }
+    
+    // FALLBACK: If Noah is unavailable, use legacy routing rules
+    // This preserves system functionality even if Noah is down
+    this.log('warn', 'Noah unavailable, using fallback routing', { 
+      requestId: request.id,
+      availableAgents: agents.map(a => a.id)
+    });
+    
+    // Check routing rules as fallback
     for (const rule of this.config.routing.rules || []) {
       if (this.evaluateRoutingRule(rule, request)) {
         const agent = this.agents.get(rule.targetAgent);
@@ -167,31 +191,19 @@ export class MultiAgentOrchestrator implements AgentOrchestrator {
       }
     }
 
-    // Default: find the best agent based on content analysis
-    const agents = Array.from(this.agents.values()).filter(this.isAgentHealthy);
-    
-    if (agents.length === 0) return null;
-    if (agents.length === 1) return agents[0];
-
-    // Content-based selection logic
+    // Final fallback: content-based selection
     const content = request.content.toLowerCase();
     
-    // Creative/artistic content
     if (this.isCreativeRequest(content)) {
-      return this.findAgentByName(agents, 'creative') || 
-             this.findAgentByName(agents, 'wanderer') || 
-             agents[0];
+      return this.findAgentByName(agents, 'wanderer') || agents[0];
     }
     
-    // Technical/practical content
     if (this.isPracticalRequest(content)) {
-      return this.findAgentByName(agents, 'practical') || 
-             this.findAgentByName(agents, 'tinkerer') || 
-             agents[0];
+      return this.findAgentByName(agents, 'tinkerer') || agents[0];
     }
     
-    // Default to Noah (coordinator) or first available agent
-    return this.findAgentByName(agents, 'noah') || agents[0];
+    // Last resort: any available agent
+    return agents[0];
   }
 
   private selectRoundRobin(): Agent | null {

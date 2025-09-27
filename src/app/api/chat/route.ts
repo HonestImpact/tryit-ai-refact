@@ -58,28 +58,26 @@ async function getRAGContext(userMessage: string): Promise<string[]> {
 
 // Helper function to determine if request should use multi-agent system
 function shouldUseMultiAgent(lastMessage: string, allMessages: any[]): boolean {
-  // TEMPORARILY DISABLED - Multi-agent system causing memory exhaustion (SIGKILL)
-  return false;
+  const content = lastMessage.toLowerCase();
   
-  // Original logic (commented out to prevent memory issues):
-  // const content = lastMessage.toLowerCase();
-  // 
-  // const complexityIndicators = [
-  //   'build', 'create', 'implement', 'design', 'make',
-  //   'step by step', 'multiple', 'several', 'various',
-  //   'complex', 'sophisticated', 'advanced', 'comprehensive',
-  //   'creative', 'brainstorm', 'innovative', 'technical'
-  // ];
-  // 
-  // const hasComplexityWords = complexityIndicators.some(indicator => 
-  //   content.includes(indicator)
-  // );
-  // 
-  // const isLong = content.length > 150;
-  // const hasMultipleQuestions = (content.match(/\?/g) || []).length > 1;
-  // const isMultiTurn = allMessages.length > 4;
-  // 
-  // return hasComplexityWords || isLong || hasMultipleQuestions || isMultiTurn;
+  // Use multi-agent for complex requests that might benefit from coordination
+  const complexityIndicators = [
+    'build', 'create', 'implement', 'design', 'make',
+    'step by step', 'multiple', 'several', 'various',
+    'complex', 'sophisticated', 'advanced', 'comprehensive',
+    'creative', 'brainstorm', 'innovative', 'technical'
+  ];
+  
+  const hasComplexityWords = complexityIndicators.some(indicator => 
+    content.includes(indicator)
+  );
+  
+  // Also check if it's a long request or has multiple questions
+  const isLong = content.length > 150;
+  const hasMultipleQuestions = (content.match(/\?/g) || []).length > 1;
+  const isMultiTurn = allMessages.length > 4; // Long conversations
+  
+  return hasComplexityWords || isLong || hasMultipleQuestions || isMultiTurn;
 }
 
 async function chatHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<ChatResponse>> {

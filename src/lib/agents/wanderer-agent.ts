@@ -4,6 +4,7 @@
 import { BaseAgent } from './base-agent';
 import KnowledgeServiceSingleton from '../knowledge/knowledge-singleton';
 import { createLogger } from '../logger';
+import type { AgentSharedResources } from './shared-resources';
 import type {
   AgentCapability,
   AgentRequest,
@@ -36,8 +37,13 @@ interface ResearchFindings {
 
 export class WandererAgent extends BaseAgent {
   private readonly logger = createLogger('wanderer-agent');
+  private readonly knowledgeService: typeof KnowledgeServiceSingleton;
 
-  constructor(llmProvider: LLMProvider, config: AgentConfig = {}) {
+  constructor(
+    llmProvider: LLMProvider, 
+    config: AgentConfig = {},
+    sharedResources?: AgentSharedResources
+  ) {
     const capabilities: AgentCapability[] = [
       {
         name: 'deep-research',
@@ -71,6 +77,15 @@ export class WandererAgent extends BaseAgent {
       maxTokens: 2500,   // Comprehensive research responses
       ...config
     });
+
+    // Use shared knowledge service if provided, otherwise use singleton (fallback)
+    if (sharedResources?.knowledgeService) {
+      this.logger.info('🔗 Wanderer using shared knowledge service (memory-efficient)');
+      this.knowledgeService = sharedResources.knowledgeService;
+    } else {
+      this.logger.warn('⚠️ Wanderer using singleton knowledge service (fallback mode)');
+      this.knowledgeService = KnowledgeServiceSingleton;
+    }
   }
 
   protected async processRequest(request: AgentRequest): Promise<AgentResponse> {
@@ -255,7 +270,7 @@ export class WandererAgent extends BaseAgent {
   private async addRagResearch(context: ResearchContext): Promise<ResearchFindings> {
     try {
       // Search our knowledge base for relevant information
-      const ragResults = await KnowledgeServiceSingleton.search(context.query, {
+      const ragResults = await this.knowledgeService.search(context.query, {
         maxResults: context.requiredDepth === 'comprehensive' ? 8 : 
                    context.requiredDepth === 'detailed' ? 5 : 3,
         minRelevanceScore: 0.6

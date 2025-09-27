@@ -59,8 +59,13 @@ export class NoahAgent extends BaseAgent {
       try {
         // Check if this is a workflow (research → build)
         if (delegationDecision.isWorkflow && delegationDecision.nextAgent) {
-          // TODO: Implement workflow handling - for now delegate to first agent
-          this.log('info', 'Workflow detected, delegating to first agent', { workflow: delegationDecision });
+          this.log('info', 'Executing Wanderer → Tinkerer workflow', { 
+            workflow: delegationDecision,
+            firstAgent: delegationDecision.targetAgent,
+            secondAgent: delegationDecision.nextAgent
+          });
+          
+          return await this.executeWorkflow(request, delegationDecision);
         }
         
         // Standard single-agent delegation
@@ -276,6 +281,171 @@ export class NoahAgent extends BaseAgent {
     confidence = Math.max(confidence, 0.6);
     
     return Math.min(1, confidence);
+  }
+
+  // ===== ADVANCED WORKFLOW SYSTEM =====
+
+  /**
+   * Execute the sophisticated Wanderer → Tinkerer workflow
+   * Preserves research results and passes them to implementation
+   */
+  private async executeWorkflow(
+    originalRequest: AgentRequest, 
+    delegationDecision: DelegationDecision
+  ): Promise<AgentResponse> {
+    if (!this.orchestrator || !delegationDecision.nextAgent) {
+      throw new Error('Workflow execution requires orchestrator and nextAgent');
+    }
+
+    try {
+      // PHASE 1: Wanderer Research
+      this.log('info', 'Phase 1: Wanderer conducting research', { 
+        requestId: originalRequest.id,
+        researchPrompt: delegationDecision.enhancedPrompt 
+      });
+
+      const researchRequest: AgentRequest = {
+        ...originalRequest,
+        id: `${originalRequest.id}-research`,
+        content: delegationDecision.enhancedPrompt || originalRequest.content
+      };
+
+      const researchResponse = await this.orchestrator.routeRequest(researchRequest);
+
+      // PHASE 2: Tinkerer Implementation with Research Context
+      this.log('info', 'Phase 2: Tinkerer building with research context', { 
+        requestId: originalRequest.id,
+        researchFindings: researchResponse.content.substring(0, 200) + '...'
+      });
+
+      const implementationPrompt = this.createImplementationPrompt(
+        originalRequest.content, 
+        researchResponse.content
+      );
+
+      const implementationRequest: AgentRequest = {
+        ...originalRequest,
+        id: `${originalRequest.id}-implementation`,
+        content: implementationPrompt
+      };
+
+      const implementationResponse = await this.orchestrator.routeRequest(implementationRequest);
+
+      // PHASE 3: Noah's Coordination Wrapper
+      const workflowResponse = this.wrapWorkflowResponse(
+        originalRequest,
+        researchResponse,
+        implementationResponse,
+        delegationDecision
+      );
+
+      this.log('info', 'Workflow completed successfully', {
+        requestId: originalRequest.id,
+        researchAgent: researchResponse.agentId,
+        implementationAgent: implementationResponse.agentId,
+        totalTokens: (researchResponse.metadata?.tokensUsed || 0) + 
+                    (implementationResponse.metadata?.tokensUsed || 0)
+      });
+
+      return workflowResponse;
+
+    } catch (workflowError) {
+      this.log('error', 'Workflow execution failed', { 
+        error: workflowError,
+        requestId: originalRequest.id 
+      });
+      
+      // Fallback to single-agent delegation
+      return await this.executeSingleAgentFallback(originalRequest, delegationDecision);
+    }
+  }
+
+  /**
+   * Create implementation prompt that includes research findings
+   */
+  private createImplementationPrompt(originalRequest: string, researchFindings: string): string {
+    return `Based on the following research findings, implement the requested solution:
+
+RESEARCH FINDINGS:
+${researchFindings}
+
+ORIGINAL REQUEST:
+${originalRequest}
+
+Please create a comprehensive implementation that leverages the research insights above.`;
+  }
+
+  /**
+   * Wrap the workflow response with Noah's coordination
+   */
+  private wrapWorkflowResponse(
+    originalRequest: AgentRequest,
+    researchResponse: AgentResponse,
+    implementationResponse: AgentResponse,
+    delegationDecision: DelegationDecision
+  ): AgentResponse {
+    const workflowContent = `I coordinated a research and implementation workflow for your request.
+
+${implementationResponse.content}
+
+This solution was built using comprehensive research findings from our knowledge base, ensuring it's both well-informed and practical.`;
+
+    return {
+      requestId: originalRequest.id,
+      agentId: this.id,
+      content: workflowContent,
+      confidence: Math.min(researchResponse.confidence, implementationResponse.confidence),
+      reasoning: `Workflow: Research (${researchResponse.agentId}) → Implementation (${implementationResponse.agentId})`,
+      timestamp: new Date(),
+      metadata: {
+        workflow: true,
+        researchAgent: researchResponse.agentId,
+        implementationAgent: implementationResponse.agentId,
+        researchRequestId: researchResponse.requestId,
+        implementationRequestId: implementationResponse.requestId,
+        delegationReason: delegationDecision.reason,
+        tokensUsed: (researchResponse.metadata?.tokensUsed || 0) + 
+                   (implementationResponse.metadata?.tokensUsed || 0)
+      }
+    };
+  }
+
+  /**
+   * Fallback when workflow fails
+   */
+  private async executeSingleAgentFallback(
+    request: AgentRequest, 
+    delegationDecision: DelegationDecision
+  ): Promise<AgentResponse> {
+    this.log('warn', 'Executing single-agent fallback', { 
+      requestId: request.id,
+      fallbackAgent: delegationDecision.targetAgent 
+    });
+
+    const fallbackRequest: AgentRequest = {
+      ...request,
+      id: `${request.id}-fallback`,
+      content: delegationDecision.enhancedPrompt || request.content
+    };
+
+    const fallbackResponse = await this.orchestrator!.routeRequest(fallbackRequest);
+    
+    return {
+      requestId: request.id,
+      agentId: this.id,
+      content: this.wrapSpecialistResponse(fallbackResponse, delegationDecision),
+      confidence: fallbackResponse.confidence * 0.9, // Slightly lower confidence for fallback
+      reasoning: `Fallback delegation to ${delegationDecision.targetAgent}: ${fallbackResponse.reasoning}`,
+      timestamp: new Date(),
+      metadata: {
+        delegated: true,
+        fallback: true,
+        targetAgent: delegationDecision.targetAgent,
+        specialistRequestId: fallbackResponse.requestId,
+        delegationReason: delegationDecision.reason,
+        tokensUsed: fallbackResponse.metadata?.tokensUsed || 0
+      }
+    };
   }
 
   // ===== ADVANCED DELEGATION SYSTEM =====

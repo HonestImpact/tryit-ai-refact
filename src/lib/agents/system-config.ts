@@ -8,6 +8,7 @@ import { MultiAgentOrchestrator } from './orchestrator';
 import { ProviderManager } from '../providers/provider-manager';
 import { AnthropicProvider } from '../providers/anthropic-provider';
 import { contentFilter } from '../safety/content-filter';
+import { sharedResourceManager, type SharedResources } from './shared-resources';
 import type {
   Agent,
   AgentOrchestrator,
@@ -38,6 +39,7 @@ export class MultiAgentSystem {
   private providerManager: ProviderManager;
   private orchestrator: AgentOrchestrator;
   private agents: Map<string, Agent> = new Map();
+  private sharedResources: SharedResources | null = null;
   private isInitialized: boolean = false;
   private isShutdown: boolean = false;
 
@@ -52,17 +54,20 @@ export class MultiAgentSystem {
     }
 
     try {
-      // Initialize providers
+      // Initialize providers first
       await this.initializeProviders();
       
-      // Initialize agents
+      // Initialize shared resources with primary provider
+      await this.initializeSharedResources();
+      
+      // Initialize agents with shared resources
       await this.initializeAgents();
       
       // Register agents with orchestrator
       this.registerAgents();
       
       this.isInitialized = true;
-      this.log('info', 'Multi-agent system initialized successfully');
+      this.log('info', 'Multi-agent system initialized successfully with shared resources');
     } catch (error) {
       this.log('error', 'Failed to initialize multi-agent system:', { error });
       throw error;
@@ -146,11 +151,21 @@ export class MultiAgentSystem {
     this.log('info', 'Shutting down multi-agent system...');
     
     try {
+      // Shutdown orchestrator and provider manager
       await this.orchestrator.shutdown();
       await this.providerManager.shutdown();
+      
+      // Shutdown shared resources
+      if (this.sharedResources) {
+        await sharedResourceManager.shutdown();
+        this.sharedResources = null;
+      }
+      
+      // Clear agents
       this.agents.clear();
       this.isShutdown = true;
-      this.log('info', 'Multi-agent system shutdown complete');
+      
+      this.log('info', 'Multi-agent system shutdown complete with shared resource cleanup');
     } catch (error) {
       this.log('error', 'Error during shutdown:', { error });
       throw error;
@@ -183,45 +198,81 @@ export class MultiAgentSystem {
     // Future providers can be initialized here
   }
 
+  /**
+   * Initialize shared resources that all agents will use
+   * This eliminates memory duplication and prevents SIGKILL issues
+   */
+  private async initializeSharedResources(): Promise<void> {
+    try {
+      const primaryProvider = this.getPrimaryProvider();
+      this.sharedResources = await sharedResourceManager.initializeResources(primaryProvider);
+      this.log('info', 'Shared resources initialized successfully', {
+        hasRAGIntegration: !!this.sharedResources.ragIntegration,
+        hasSolutionGenerator: !!this.sharedResources.solutionGenerator,
+        hasKnowledgeService: !!this.sharedResources.knowledgeService
+      });
+    } catch (error) {
+      this.log('error', 'Failed to initialize shared resources:', { error });
+      throw error;
+    }
+  }
+
   private async initializeAgents(): Promise<void> {
+    if (!this.sharedResources) {
+      throw new Error('Shared resources must be initialized before agents');
+    }
+
     // Get primary provider for agents
     const primaryProvider = this.getPrimaryProvider();
     
-    // Initialize Noah agent (coordinator)
+    // Initialize Noah agent (coordinator) - uses shared LLM provider
     try {
       const noahAgent = new NoahAgent(primaryProvider, this.config.agents.noah);
       this.agents.set('noah', noahAgent);
-      this.log('info', 'Noah agent initialized');
+      this.log('info', 'Noah agent initialized with shared provider');
     } catch (error) {
       this.log('error', 'Failed to initialize Noah agent:', { error });
       throw error;
     }
 
-    // Initialize Tinkerer agent (technical implementation)
+    // Initialize Tinkerer agent (technical implementation) - uses shared resources
     try {
-      const tinkererAgent = new PracticalAgent(primaryProvider, this.config.agents.tinkerer);
+      const tinkererAgent = new PracticalAgent(
+        primaryProvider, 
+        this.config.agents.tinkerer,
+        {
+          ragIntegration: this.sharedResources.ragIntegration,
+          solutionGenerator: this.sharedResources.solutionGenerator
+        }
+      );
       this.agents.set('tinkerer', tinkererAgent);
-      this.log('info', 'Tinkerer agent initialized');
+      this.log('info', 'Tinkerer agent initialized with shared RAG and solution generator');
     } catch (error) {
       this.log('error', 'Failed to initialize Tinkerer agent:', { error });
       this.log('warn', 'System will continue without Tinkerer capabilities');
     }
 
-    // Initialize Wanderer agent (research specialist)
+    // Initialize Wanderer agent (research specialist) - uses shared knowledge service
     try {
-      const wandererAgent = new WandererAgent(primaryProvider, this.config.agents.wanderer);
+      const wandererAgent = new WandererAgent(
+        primaryProvider, 
+        this.config.agents.wanderer,
+        {
+          knowledgeService: this.sharedResources.knowledgeService
+        }
+      );
       this.agents.set('wanderer', wandererAgent);
-      this.log('info', 'Wanderer agent initialized');
+      this.log('info', 'Wanderer agent initialized with shared knowledge service');
     } catch (error) {
       this.log('error', 'Failed to initialize Wanderer agent:', { error });
       this.log('warn', 'System will continue without Wanderer capabilities');
     }
 
-    // Connect Noah with orchestrator for delegation
+    // Connect Noah with orchestrator for delegation (preserves 4-workflow architecture)
     const noahAgent = this.agents.get('noah') as NoahAgent;
     if (noahAgent && 'setOrchestrator' in noahAgent) {
       (noahAgent as any).setOrchestrator(this.orchestrator);
-      this.log('info', 'Noah delegation system activated');
+      this.log('info', 'Noah delegation system activated - 4 workflows preserved');
     }
   }
 
