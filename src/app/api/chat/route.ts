@@ -179,6 +179,7 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
     const generatePromise = llmProvider.generateText({
       messages: messages.map((msg: any) => ({ role: msg.role, content: msg.content })),
       system: AI_CONFIG.CHAT_SYSTEM_PROMPT, // Noah's full persona
+      model: AI_CONFIG.getModel(), // Use configured model
       temperature: 0.7
     });
 
@@ -239,7 +240,8 @@ async function healthCheck(): Promise<NextResponse<HealthResponse>> {
     const llmProvider = createLLMProvider();
     const testPromise = llmProvider.generateText({
       messages: [{ role: 'user', content: 'test' }],
-      system: 'Respond with just "ok"'
+      system: 'Respond with just "ok"',
+      model: AI_CONFIG.getModel() // Use configured model
     });
 
     await withTimeout(testPromise, 5000); // 5s timeout for health check

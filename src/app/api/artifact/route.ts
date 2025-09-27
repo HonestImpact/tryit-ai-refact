@@ -21,6 +21,7 @@ async function artifactHandler(req: NextRequest, context: LoggingContext): Promi
     const llmProvider = createLLMProvider();
     const result = await llmProvider.generateText({
       messages: [{ role: 'user', content: AI_CONFIG.ARTIFACT_PROMPT_TEMPLATE(userInput, response) }],
+      model: AI_CONFIG.getModel(),
       temperature: 0.7
     });
 

@@ -242,11 +242,11 @@ export class KnowledgeServiceSingleton {
    * Initialize the KnowledgeService with optimized configuration
    */
   private static async createInstance(): Promise<KnowledgeService> {
-    // Get or create LLM provider
+    // Get or create LLM provider using dynamic provider factory
     if (!this.llmProvider) {
-      this.llmProvider = new AnthropicProvider(
-        process.env.ANTHROPIC_API_KEY || ''
-      );
+      // Import here to avoid circular dependencies
+      const { createLLMProvider } = await import('../providers/provider-factory');
+      this.llmProvider = createLLMProvider();
     }
 
     // Create service with optimized defaults

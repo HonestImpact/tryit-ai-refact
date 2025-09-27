@@ -338,7 +338,22 @@ export class MultiAgentSystem {
 
   private canFallbackToSingleAgent(): boolean {
     // Even if multi-agent system fails, can we fall back to single-agent mode?
-    return process.env.ANTHROPIC_API_KEY != null;
+    // Check if any LLM provider is available based on current LLM setting
+    const llmType = process.env.LLM || 'ANTHROPIC';
+    switch (llmType.toUpperCase()) {
+      case 'ANTHROPIC':
+      case 'CLAUDE':
+        return process.env.ANTHROPIC_API_KEY != null;
+      case 'OPENAI':
+      case 'GPT':
+        return process.env.OPENAI_API_KEY != null;
+      case 'GOOGLE':
+      case 'GEMINI':
+      case 'AISTUDIO':
+        return process.env.GOOGLE_API_KEY != null || process.env.AISTUDIO_API_KEY != null;
+      default:
+        return process.env.ANTHROPIC_API_KEY != null; // Default fallback
+    }
   }
 
   private generateRequestId(): string {

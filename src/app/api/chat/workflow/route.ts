@@ -98,6 +98,7 @@ async function fallbackToNoah(messages: ChatMessage[]): Promise<NextResponse<Wor
           { role: 'user', content: fallbackPrompt }
         ],
         system: AI_CONFIG.CHAT_SYSTEM_PROMPT,
+        model: AI_CONFIG.getModel(),
         temperature: 0.7
       }),
       15000 // 15s timeout for fallback
@@ -441,7 +442,8 @@ async function workflowHealthCheck(): Promise<NextResponse<WorkflowHealthRespons
     const llmProvider = createLLMProvider();
     const testPromise = llmProvider.generateText({
       messages: [{ role: 'user', content: 'test workflow capability' }],
-      system: 'Respond with just "workflow ok"'
+      system: 'Respond with just "workflow ok"',
+      model: AI_CONFIG.getModel()
     });
 
     await withTimeout(testPromise, 8000); // 8s timeout for health check
