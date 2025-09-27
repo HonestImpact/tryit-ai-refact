@@ -16,8 +16,18 @@ export class BookmarkletGenerator extends BaseToolGenerator {
     this.loadDefaultTemplates();
   }
 
+  private validateConfig(parameters: Record<string, unknown>): BookmarkletConfig {
+    return {
+      name: String(parameters.name || 'Bookmarklet'),
+      description: String(parameters.description || 'Generated bookmarklet'),
+      code: String(parameters.code || ''),
+      permissions: Array.isArray(parameters.permissions) ? parameters.permissions : [],
+      domains: Array.isArray(parameters.domains) ? parameters.domains : ['*']
+    };
+  }
+
   protected async generateTool(specification: ToolSpec): Promise<GeneratedTool> {
-    const config = specification.parameters as BookmarkletConfig;
+    const config = this.validateConfig(specification.parameters);
     const context = this.buildGenerationContext(specification);
     
     // Select appropriate template

@@ -288,7 +288,7 @@ export class ProviderManager {
               () => fallbackProvider.generateText(request),
               request,
               fallbackProvider.name
-            );
+            ) as Promise<T>;
           }
         }
       }

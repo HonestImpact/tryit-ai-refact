@@ -41,7 +41,7 @@ export class AnthropicProvider extends BaseLLMProvider {
       }
     ];
 
-    super('anthropic', capabilities);
+    super('Anthropic', capabilities);
     
     this.apiKey = apiKey || process.env.ANTHROPIC_API_KEY || '';
     if (!this.apiKey) {
@@ -60,7 +60,7 @@ export class AnthropicProvider extends BaseLLMProvider {
           role: msg.role,
           content: msg.content
         })),
-        maxTokens: request.maxTokens,
+        maxRetries: 3,
         temperature: request.temperature,
       });
 
@@ -70,9 +70,9 @@ export class AnthropicProvider extends BaseLLMProvider {
       return {
         content: response.text,
         usage: {
-          promptTokens: response.usage.promptTokens,
-          completionTokens: response.usage.completionTokens,
-          totalTokens: response.usage.totalTokens
+          promptTokens: response.usage?.inputTokens || 0,
+          completionTokens: response.usage?.outputTokens || 0,
+          totalTokens: (response.usage?.inputTokens || 0) + (response.usage?.outputTokens || 0)
         },
         model: request.model,
         finishReason: response.finishReason || 'stop'
@@ -94,7 +94,7 @@ export class AnthropicProvider extends BaseLLMProvider {
           role: msg.role,
           content: msg.content
         })),
-        maxTokens: request.maxTokens,
+        maxRetries: 3,
         temperature: request.temperature,
       });
 

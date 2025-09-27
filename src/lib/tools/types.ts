@@ -9,7 +9,8 @@ import type {
   ValidationResult,
   ValidationError,
   ToolType,
-  ExportFormat
+  ExportFormat,
+  ToolGenerator
 } from '../agents/types';
 
 // Re-export core types
@@ -21,7 +22,8 @@ export type {
   ValidationResult,
   ValidationError,
   ToolType,
-  ExportFormat
+  ExportFormat,
+  ToolGenerator
 };
 
 // Extended tool types for specific implementations

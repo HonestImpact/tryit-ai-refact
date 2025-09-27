@@ -241,7 +241,7 @@ Response:`);
       const results = await this.vectorStore!.similaritySearchWithScore(
         searchQuery, 
         limit,
-        filter || undefined
+        filter as any || undefined
       );
 
       return results

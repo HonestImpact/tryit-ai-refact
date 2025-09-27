@@ -87,7 +87,7 @@ class VectorStore {
   async deleteCollection(): Promise<void> {
     try {
       if (this.vectorStore) {
-        await this.vectorStore.delete();
+        await this.vectorStore.delete({});
         console.log("🗑️ Collection deleted successfully");
       }
     } catch (error) {

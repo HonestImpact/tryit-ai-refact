@@ -16,8 +16,18 @@ export class JavaScriptGenerator extends BaseToolGenerator {
     this.loadDefaultTemplates();
   }
 
+  private validateConfig(parameters: Record<string, unknown>): JSToolConfig {
+    return {
+      moduleType: (typeof parameters.moduleType === 'string' && ['iife', 'umd', 'esm', 'cjs'].includes(parameters.moduleType)) ? parameters.moduleType as 'iife' | 'umd' | 'esm' | 'cjs' : 'cjs',
+      dependencies: Array.isArray(parameters.dependencies) ? parameters.dependencies : [],
+      target: (typeof parameters.target === 'string' && ['es5', 'es2015', 'es2020', 'esnext'].includes(parameters.target)) ? parameters.target as 'es5' | 'es2015' | 'es2020' | 'esnext' : 'es2015',
+      minify: Boolean(parameters.minify),
+      sourcemap: Boolean(parameters.sourcemap)
+    };
+  }
+
   protected async generateTool(specification: ToolSpec): Promise<GeneratedTool> {
-    const config = specification.parameters as JSToolConfig;
+    const config = this.validateConfig(specification.parameters);
     const context = this.buildGenerationContext(specification);
     
     // Select appropriate template
@@ -557,9 +567,9 @@ This JavaScript tool was automatically generated based on your specifications.
       },
       {
         name: 'Error handling test',
-        input: null,
+        input: {},
         expectedOutput: 'Error',
-        description: 'Test error handling with null input'
+        description: 'Test error handling with empty input'
       },
       {
         name: 'Validation test',

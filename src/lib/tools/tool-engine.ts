@@ -427,27 +427,38 @@ const MyModule = (function() {
     if (this.cache.size >= (this.config.maxCacheSize || 100)) {
       // Remove oldest entry (simple LRU)
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey) {
+        this.cache.delete(firstKey);
+      }
     }
     
     this.cache.set(key, tool);
   }
 
   private updateMetrics(type: ToolType, generationTime: number, success: boolean): void {
-    this.metrics.totalGenerated++;
+    const totalGenerated = this.metrics.totalGenerated + 1;
+    const errors = success ? this.metrics.errors : this.metrics.errors + 1;
+    const successCount = totalGenerated - errors;
     
+    const byType = { ...this.metrics.byType };
     if (success) {
-      this.metrics.byType[type] = (this.metrics.byType[type] || 0) + 1;
-      
-      // Update average time
-      const totalTime = this.metrics.averageTime * (this.metrics.totalGenerated - 1) + generationTime;
-      this.metrics.averageTime = totalTime / this.metrics.totalGenerated;
-    } else {
-      this.metrics.errors++;
+      byType[type] = (byType[type] || 0) + 1;
     }
     
+    // Update average time
+    const totalTime = this.metrics.averageTime * (totalGenerated - 1) + (success ? generationTime : 0);
+    const averageTime = success ? totalTime / successCount : this.metrics.averageTime;
+    
     // Update success rate
-    this.metrics.successRate = (this.metrics.totalGenerated - this.metrics.errors) / this.metrics.totalGenerated;
+    const successRate = successCount / totalGenerated;
+    
+    this.metrics = {
+      totalGenerated,
+      successRate,
+      averageTime,
+      byType,
+      errors
+    };
   }
 
   private log(level: 'info' | 'warn' | 'error', message: string, metadata?: Record<string, unknown>): void {

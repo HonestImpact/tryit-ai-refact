@@ -129,8 +129,15 @@ export class LangChainMemoryProvider implements ConversationMemory {
   public async summarizeConversation(sessionId: string): Promise<string> {
     try {
       const summaryMemory = await this.getOrCreateSummaryMemory(sessionId);
+      const recentMessages = await this.getRecentMessages(sessionId);
+      const langchainMessages = recentMessages.map(msg => 
+        msg.role === 'user' 
+          ? new HumanMessage(msg.content)
+          : new AIMessage(msg.content)
+      );
+      
       const summary = await summaryMemory.predictNewSummary(
-        await this.getRecentMessages(sessionId),
+        langchainMessages,
         ''
       );
       
@@ -245,8 +252,7 @@ Reasoning:
       };
 
       summaryMemory = new ConversationSummaryMemory({
-        llm: llmWrapper as any, // Type assertion for compatibility
-        maxTokenLimit: this.config.contextWindow
+        llm: llmWrapper as any // Type assertion for compatibility
       });
       
       this.summaryMemories.set(sessionId, summaryMemory);

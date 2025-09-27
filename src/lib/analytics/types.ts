@@ -179,6 +179,11 @@ export interface FlowStep {
   readonly timestamp: Date;
   readonly successful: boolean;
   readonly userContinued: boolean;
+  readonly metadata?: {
+    errorOccurred?: boolean;
+    userSatisfaction?: number;
+    [key: string]: any;
+  };
 }
 
 export interface DropOffPoint {

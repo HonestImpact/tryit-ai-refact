@@ -89,11 +89,7 @@ class RAGSetup {
     console.log('🧠 Initializing knowledge service...');
 
     // Create LLM provider (needed for knowledge service)
-    const llmProvider = new AnthropicProvider({
-      apiKey: process.env.ANTHROPIC_API_KEY!,
-      model: 'claude-3-5-sonnet-20241022',
-      maxTokens: 4000
-    });
+    const llmProvider = new AnthropicProvider(process.env.ANTHROPIC_API_KEY!);
 
     // Configure knowledge service
     const config: any = {

@@ -15,7 +15,7 @@ export interface VectorizedDocument {
   readonly chunks?: DocumentChunk[];
 }
 
-export interface DocumentMetadata {
+export interface DocumentMetadata extends Record<string, unknown> {
   readonly source: string;
   readonly type: 'component' | 'pattern' | 'example' | 'documentation' | 'conversation';
   readonly tags: string[];

@@ -12,6 +12,5 @@ export { ProviderManager, getProviderManager } from './provider-manager';
 
 // Types (re-export from agents)
 export type {
-  LLMProvider,
-  LLMProviderConfig
+  LLMProvider
 } from '../agents/types';

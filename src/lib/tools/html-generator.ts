@@ -16,8 +16,19 @@ export class HTMLGenerator extends BaseToolGenerator {
     this.loadDefaultTemplates();
   }
 
+  private validateConfig(parameters: Record<string, unknown>): HTMLToolConfig {
+    return {
+      title: String(parameters.title || 'HTML Tool'),
+      description: String(parameters.description || 'Generated HTML tool'),
+      styles: (typeof parameters.styles === 'string' && ['inline', 'external', 'none'].includes(parameters.styles)) ? parameters.styles as 'inline' | 'external' | 'none' : 'inline',
+      scripts: (typeof parameters.scripts === 'string' && ['inline', 'external', 'none'].includes(parameters.scripts)) ? parameters.scripts as 'inline' | 'external' | 'none' : 'inline',
+      responsive: Boolean(parameters.responsive ?? true),
+      darkMode: Boolean(parameters.darkMode ?? false)
+    };
+  }
+
   protected async generateTool(specification: ToolSpec): Promise<GeneratedTool> {
-    const config = specification.parameters as HTMLToolConfig;
+    const config = this.validateConfig(specification.parameters);
     const context = this.buildGenerationContext(specification);
     
     // Select appropriate template
@@ -465,7 +476,7 @@ body {
   private combineAssets(html: string, css: string, js: string, config?: HTMLToolConfig): string {
     if (config?.styles === 'external') {
       // Replace style tag with link to external CSS
-      html = html.replace(/<style>.*<\/style>/s, '<link rel="stylesheet" href="styles.css">');
+      html = html.replace(/<style>[\s\S]*?<\/style>/g, '<link rel="stylesheet" href="styles.css">');
     } else {
       // Inline CSS
       html = html.replace('{{styles}}', css);
@@ -473,7 +484,7 @@ body {
     
     if (config?.scripts === 'external') {
       // Replace script tag with link to external JS
-      html = html.replace(/<script>.*<\/script>/s, '<script src="script.js"></script>');
+      html = html.replace(/<script>[\s\S]*?<\/script>/g, '<script src="script.js"></script>');
     } else {
       // Inline JavaScript
       html = html.replace('{{scripts}}', js);

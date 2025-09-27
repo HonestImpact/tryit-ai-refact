@@ -305,7 +305,7 @@ export class VectorizeProvider implements VectorStore {
     return {
       id: vectorizeDoc.id,
       content: metadata.content || '',
-      embedding: vectorizeDoc.values,
+      embedding: vectorizeDoc.values || [],
       metadata: {
         source: metadata.source || 'unknown',
         type: metadata.type || 'documentation',
@@ -322,7 +322,10 @@ export class VectorizeProvider implements VectorStore {
   }
 
   private toSearchResult(match: VectorizeQueryResult): SearchResult {
-    const document = this.fromVectorizeDocument(match);
+    const document = this.fromVectorizeDocument({
+      ...match,
+      values: match.values || []
+    } as VectorizeDocument);
     
     return {
       document,
@@ -404,8 +407,13 @@ export class VectorizeProvider implements VectorStore {
       const existing = combinedMap.get(result.document.id);
       if (existing) {
         // Combine scores
-        existing.similarity += result.similarity * keywordWeight;
-        existing.highlights = [...(existing.highlights || []), ...(result.highlights || [])];
+        const newSimilarity = existing.similarity + result.similarity * keywordWeight;
+        const newHighlights = [...(existing.highlights || []), ...(result.highlights || [])];
+        combinedMap.set(result.document.id, {
+          ...existing,
+          similarity: newSimilarity,
+          highlights: newHighlights
+        });
       } else {
         combinedMap.set(result.document.id, {
           ...result,

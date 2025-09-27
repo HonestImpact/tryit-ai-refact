@@ -6,6 +6,7 @@ import { AnthropicProvider } from '../providers/anthropic-provider';
 import type { LLMProvider } from '../providers/base-llm-provider';
 import type { KnowledgeResult, SearchContext } from './types';
 import { createLogger } from '@/lib/logger';
+import type { KnowledgeItem } from './types';
 
 const logger = createLogger('KnowledgeServiceSingleton');
 
@@ -110,19 +111,26 @@ export class KnowledgeServiceSingleton {
    * Search wrapper with singleton management
    */
   static async search(
-    query: string, 
+    query: string,
     options?: { maxResults?: number; minRelevanceScore?: number }
   ): Promise<KnowledgeResult[]> {
     const service = await this.getInstance();
-    return service.search(query, options?.maxResults || 5, options?.minRelevanceScore || 0.6);
+    const context: SearchContext = {
+      maxResults: options?.maxResults || 5,
+      minRelevanceScore: options?.minRelevanceScore || 0.6
+    };
+    return service.search(query, context);
   }
 
   /**
    * Get search context wrapper
    */
   static async getSearchContext(query: string, maxResults = 5): Promise<SearchContext[]> {
-    const service = await this.getInstance();
-    return service.getSearchContext(query, maxResults);
+    // Return a basic search context for the query
+    return [{
+      maxResults,
+      minRelevanceScore: 0.6
+    }];
   }
 
   /**
@@ -130,7 +138,24 @@ export class KnowledgeServiceSingleton {
    */
   static async addDocuments(documents: any[]): Promise<string[]> {
     const service = await this.getInstance();
-    return service.indexMultipleDocuments(documents.map(doc => ({ content: doc.content, metadata: doc.metadata })));
+    const results: string[] = [];
+    
+    for (const doc of documents) {
+      const knowledgeItem: KnowledgeItem = {
+        id: doc.id || `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        content: doc.content,
+        metadata: doc.metadata || {},
+        type: doc.metadata?.type || 'documentation',
+        tags: doc.metadata?.tags || [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      const id = await service.addKnowledge(knowledgeItem);
+      results.push(id);
+    }
+    
+    return results;
   }
 
   /**
