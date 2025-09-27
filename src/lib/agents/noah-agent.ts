@@ -343,8 +343,8 @@ export class NoahAgent extends BaseAgent {
         requestId: originalRequest.id,
         researchAgent: researchResponse.agentId,
         implementationAgent: implementationResponse.agentId,
-        totalTokens: (researchResponse.metadata?.tokensUsed || 0) + 
-                    (implementationResponse.metadata?.tokensUsed || 0)
+        totalTokens: ((researchResponse.metadata?.tokensUsed as number) || 0) + 
+                    ((implementationResponse.metadata?.tokensUsed as number) || 0)
       });
 
       return workflowResponse;
@@ -404,8 +404,8 @@ This solution was built using comprehensive research findings from our knowledge
         researchRequestId: researchResponse.requestId,
         implementationRequestId: implementationResponse.requestId,
         delegationReason: delegationDecision.reason,
-        tokensUsed: (researchResponse.metadata?.tokensUsed || 0) + 
-                   (implementationResponse.metadata?.tokensUsed || 0)
+        tokensUsed: ((researchResponse.metadata?.tokensUsed as number) || 0) + 
+                   ((implementationResponse.metadata?.tokensUsed as number) || 0)
       }
     };
   }
@@ -443,7 +443,7 @@ This solution was built using comprehensive research findings from our knowledge
         targetAgent: delegationDecision.targetAgent,
         specialistRequestId: fallbackResponse.requestId,
         delegationReason: delegationDecision.reason,
-        tokensUsed: fallbackResponse.metadata?.tokensUsed || 0
+        tokensUsed: (fallbackResponse.metadata?.tokensUsed as number) || 0
       }
     };
   }

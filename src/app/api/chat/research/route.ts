@@ -136,30 +136,36 @@ async function researchHandler(req: NextRequest): Promise<NextResponse<ResearchR
       logger.info('🏗️ Initializing research capabilities...');
       
       // Get shared resources (memory efficient)
+      const mockProvider = {
+        name: 'anthropic',
+        capabilities: [],
+        generateText: async (request: any) => {
+          const result = await generateText(request);
+          return {
+            content: result.text,
+            model: 'claude-sonnet-4-20250514',
+            usage: { 
+              promptTokens: (result.usage as any)?.promptTokens || 0, 
+              completionTokens: (result.usage as any)?.completionTokens || 0, 
+              totalTokens: (result.usage as any)?.totalTokens || 0 
+            },
+            finishReason: result.finishReason || 'stop'
+          };
+        },
+        streamText: (request: any) => { throw new Error('Streaming not implemented'); },
+        getCosts: () => ({ promptCostPerToken: 0, completionCostPerToken: 0, currency: 'USD' }),
+        getStatus: () => ({ isAvailable: true, responseTime: 0, errorRate: 0, rateLimitRemaining: 100, lastChecked: new Date() }),
+        shutdown: async () => {}
+      };
+
       const sharedResources = await withTimeout(
-        sharedResourceManager.initializeResources({
-          name: 'anthropic',
-          capabilities: [],
-          generateText: (request: any) => generateText(request),
-          streamText: (request: any) => { throw new Error('Streaming not implemented'); },
-          getCosts: () => ({ promptCostPerToken: 0, completionCostPerToken: 0, currency: 'USD' }),
-          getStatus: () => ({ isAvailable: true, responseTime: 0, errorRate: 0, rateLimitRemaining: 100, lastChecked: new Date() }),
-          shutdown: async () => {}
-        }),
+        sharedResourceManager.initializeResources(mockProvider),
         5000 // 5s timeout for initialization
       );
 
       // Create Wanderer with shared resources
       wandererAgent = new WandererAgent(
-        {
-          name: 'anthropic',
-          capabilities: [],
-          generateText: (request: any) => generateText(request),
-          streamText: (request: any) => { throw new Error('Streaming not implemented'); },
-          getCosts: () => ({ promptCostPerToken: 0, completionCostPerToken: 0, currency: 'USD' }),
-          getStatus: () => ({ isAvailable: true, responseTime: 0, errorRate: 0, rateLimitRemaining: 100, lastChecked: new Date() }),
-          shutdown: async () => {}
-        },
+        mockProvider,
         {
           model: AI_CONFIG.getModel(),
           temperature: 0.75,
@@ -199,7 +205,7 @@ async function researchHandler(req: NextRequest): Promise<NextResponse<ResearchR
       content: researchResult.content,
       status: 'success',
       agent: 'wanderer',
-      sources: researchResult.metadata?.sourcesFound || 0,
+      sources: (researchResult.metadata?.sourcesFound as number) || 0,
       research_time: responseTime
     });
 
