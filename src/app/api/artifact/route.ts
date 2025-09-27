@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withLogging, LoggingContext } from '@/lib/logging-middleware';
-import { anthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
 import { AI_CONFIG } from '@/lib/ai-config';
+import { createLLMProvider } from '@/lib/providers/provider-factory';
 
 async function artifactHandler(req: NextRequest, context: LoggingContext): Promise<NextResponse<{ content: string }>> {
   try {
@@ -18,12 +17,14 @@ async function artifactHandler(req: NextRequest, context: LoggingContext): Promi
     // Store the parsed body in context for logging
     context.requestBody = { userInput };
 
-    const { text } = await generateText({
-      model: anthropic(AI_CONFIG.getModel()),
-      prompt: AI_CONFIG.ARTIFACT_PROMPT_TEMPLATE(userInput, response)
+    // Use dynamic LLM provider (respects LLM environment variable)
+    const llmProvider = createLLMProvider();
+    const result = await llmProvider.generateText({
+      messages: [{ role: 'user', content: AI_CONFIG.ARTIFACT_PROMPT_TEMPLATE(userInput, response) }],
+      temperature: 0.7
     });
 
-    return NextResponse.json({ content: text });
+    return NextResponse.json({ content: result.content });
   } catch (error) {
     console.error('Artifact API Error:', error);
     return NextResponse.json(
