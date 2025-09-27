@@ -28,20 +28,8 @@ async function getRAGContext(userMessage: string): Promise<string[]> {
   }
 
   try {
-    // Dynamic import to avoid circular dependencies
-    const { KnowledgeService } = await import('@/lib/knowledge/knowledge-service');
-    const { AnthropicProvider } = await import('@/lib/providers/anthropic-provider');
-
-    // Initialize knowledge service if RAG is enabled
-    const llmProvider = new AnthropicProvider(
-      process.env.ANTHROPIC_API_KEY!
-    );
-
-    const knowledgeService = new KnowledgeService(llmProvider);
-    await knowledgeService.initialize();
-
-    // Search for relevant components
-    const results = await knowledgeService.search(userMessage, {
+    // Use the singleton to avoid initialization overhead
+    const results = await KnowledgeServiceSingleton.search(userMessage, {
       maxResults: AI_CONFIG.RAG_CONTEXT_LIMIT,
       minRelevanceScore: AI_CONFIG.RAG_RELEVANCE_THRESHOLD
     });
