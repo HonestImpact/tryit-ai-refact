@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { anthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
 import { AI_CONFIG } from '@/lib/ai-config';
 import { NoahAgent } from '@/lib/agents/noah-agent';
 import { WandererAgent } from '@/lib/agents/wanderer-agent';
@@ -91,11 +89,12 @@ async function fallbackToNoah(messages: ChatMessage[]): Promise<NextResponse<Wor
   try {
     const fallbackPrompt = `The user asked for a complex workflow that would normally involve research and implementation, but my advanced orchestration capabilities aren't available right now. Please help with what you can access directly: ${messages[messages.length - 1]?.content}`;
 
+    // Use dynamic LLM provider for fallback
+    const llmProvider = createLLMProvider();
     const result = await withTimeout(
-      generateText({
-        model: anthropic(AI_CONFIG.getModel()),
+      llmProvider.generateText({
         messages: [
-          ...messages.slice(0, -1),
+          ...messages.slice(0, -1).map((msg: any) => ({ role: msg.role, content: msg.content })),
           { role: 'user', content: fallbackPrompt }
         ],
         system: AI_CONFIG.CHAT_SYSTEM_PROMPT,
@@ -105,7 +104,7 @@ async function fallbackToNoah(messages: ChatMessage[]): Promise<NextResponse<Wor
     );
 
     return NextResponse.json({
-      content: result.text,
+      content: result.content,
       status: 'fallback',
       agent: 'noah',
       workflow_phase: 'complete'
@@ -438,9 +437,9 @@ async function workflowHealthCheck(): Promise<NextResponse<WorkflowHealthRespons
       logger.warn('⚠️ Some agents unavailable during health check', { error: agentError });
     }
 
-    // Test basic Anthropic API connectivity
-    const testPromise = generateText({
-      model: anthropic(AI_CONFIG.getModel()),
+    // Test basic LLM provider connectivity
+    const llmProvider = createLLMProvider();
+    const testPromise = llmProvider.generateText({
       messages: [{ role: 'user', content: 'test workflow capability' }],
       system: 'Respond with just "workflow ok"'
     });

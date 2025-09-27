@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { anthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
 import { AI_CONFIG } from '@/lib/ai-config';
 import { PracticalAgent } from '@/lib/agents/practical-agent';
 import { sharedResourceManager } from '@/lib/agents/shared-resources';
@@ -71,11 +69,12 @@ async function fallbackToNoah(messages: ChatMessage[]): Promise<NextResponse<Bui
   try {
     const fallbackPrompt = `The user asked for code generation or implementation, but my advanced build capabilities aren't available right now. Please help with what you can access directly: ${messages[messages.length - 1]?.content}`;
 
+    // Use dynamic LLM provider for fallback
+    const llmProvider = createLLMProvider();
     const result = await withTimeout(
-      generateText({
-        model: anthropic(AI_CONFIG.getModel()),
+      llmProvider.generateText({
         messages: [
-          ...messages.slice(0, -1),
+          ...messages.slice(0, -1).map((msg: any) => ({ role: msg.role, content: msg.content })),
           { role: 'user', content: fallbackPrompt }
         ],
         system: AI_CONFIG.CHAT_SYSTEM_PROMPT,
@@ -85,7 +84,7 @@ async function fallbackToNoah(messages: ChatMessage[]): Promise<NextResponse<Bui
     );
 
     return NextResponse.json({
-      content: result.text,
+      content: result.content,
       status: 'fallback',
       agent: 'noah'
     });
@@ -247,9 +246,9 @@ async function buildHealthCheck(): Promise<NextResponse<BuildHealthResponse>> {
       componentLibraryStatus = 'error';
     }
 
-    // Test basic Anthropic API connectivity
-    const testPromise = generateText({
-      model: anthropic(AI_CONFIG.getModel()),
+    // Test basic LLM provider connectivity
+    const llmProvider = createLLMProvider();
+    const testPromise = llmProvider.generateText({
       messages: [{ role: 'user', content: 'test build capability' }],
       system: 'Respond with just "build ok"'
     });
