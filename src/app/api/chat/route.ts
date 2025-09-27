@@ -41,6 +41,78 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
 }
 
 /**
+ * Detect if a request needs complex tool creation (should go to Tinkerer)
+ */
+function shouldDelegateToTinkerer(content: string): boolean {
+  const lowerContent = content.toLowerCase();
+  
+  // Complex tool indicators
+  const complexIndicators = [
+    'database', 'api', 'backend', 'server', 'authentication', 'login',
+    'multi-step', 'workflow', 'integration', 'advanced', 'sophisticated',
+    'dashboard', 'analytics', 'real-time', 'websocket', 'framework',
+    'react', 'vue', 'angular', 'node.js', 'python', 'full-stack'
+  ];
+  
+  // Simple tool indicators (Noah can handle these)
+  const simpleIndicators = [
+    'calculator', 'timer', 'converter', 'form', 'checklist', 'tracker',
+    'simple', 'basic', 'quick', 'small', 'minimal'
+  ];
+  
+  const hasComplexIndicators = complexIndicators.some(indicator => 
+    lowerContent.includes(indicator)
+  );
+  
+  const hasSimpleIndicators = simpleIndicators.some(indicator => 
+    lowerContent.includes(indicator)
+  );
+  
+  // If explicitly simple, Noah handles it
+  if (hasSimpleIndicators && !hasComplexIndicators) {
+    return false;
+  }
+  
+  // If complex indicators present, delegate to Tinkerer
+  return hasComplexIndicators;
+}
+
+/**
+ * Delegate complex tool requests to Tinkerer via build endpoint
+ */
+async function delegateToTinkerer(messages: any[], context: LoggingContext): Promise<NextResponse<ChatResponse> | null> {
+  try {
+    const buildResponse = await fetch(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/chat/build`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-id': context.sessionId
+      },
+      body: JSON.stringify({ messages })
+    });
+
+    if (!buildResponse.ok) {
+      throw new Error(`Tinkerer delegation failed: ${buildResponse.status}`);
+    }
+
+    const buildData = await buildResponse.json();
+    
+    // Convert Tinkerer response to Noah response format
+    return NextResponse.json({
+      content: buildData.content,
+      status: 'success',
+      agent: 'noah-delegated-to-tinkerer',
+      artifact: buildData.artifact
+    });
+
+  } catch (error) {
+    logger.warn('Tinkerer delegation failed, falling back to Noah', { error });
+    // Fall back to Noah handling it directly
+    return null;
+  }
+}
+
+/**
  * User-friendly error messages that match Noah's persona
  */
 function getErrorMessage(error: unknown): string {
@@ -90,6 +162,17 @@ async function noahChatHandler(req: NextRequest, context: LoggingContext): Promi
       messageCount: messages.length,
       messageLength: lastMessage.length 
     });
+
+    // Check if this needs complex tool creation (delegate to Tinkerer)
+    if (shouldDelegateToTinkerer(lastMessage)) {
+      logger.info('🔄 Delegating complex tool request to Tinkerer');
+      const delegationResult = await delegateToTinkerer(messages, context);
+      if (delegationResult) {
+        return delegationResult;
+      }
+      // If delegation failed, continue with Noah handling it directly
+      logger.info('🦉 Tinkerer delegation failed, Noah handling directly');
+    }
 
     // Call Anthropic API with timeout protection
     logger.info('🧠 Calling Anthropic API...');
