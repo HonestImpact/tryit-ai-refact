@@ -111,21 +111,35 @@ src/
 
 ### AI Integration Details
 
-- **Provider**: Uses `@ai-sdk/anthropic` with `generateText()` for non-streaming responses
-- **Models**: Claude 3.5 Sonnet (configurable via `MODEL_ID` environment variable)
+- **Provider**: Dynamic LLM provider system supporting 10+ providers via `createLLMProvider()`
+- **Supported Providers**: Anthropic (Claude), OpenAI (GPT), Google (Gemini), Perplexity, Groq (Llama), HuggingFace (Qwen), Together AI, Replicate, Cohere, Mistral
+- **Provider Selection**: Set via `LLM` environment variable (defaults to ANTHROPIC)
+- **Models**: Configurable via `MODEL_ID` environment variable
 - **System Prompts**: Configured for Noah persona (AI skeptic engagement)
-- **Environment**: Requires `ANTHROPIC_API_KEY` in `.env.local`
+- **Environment**: Requires appropriate API key based on selected LLM provider
 - **Testing Mode**: Set `LOCAL_FAKE_LLM=true` for development without API calls
 
 ### Environment Setup
 
 Create `.env.local` with:
 ```
-# Required for production
+# LLM Provider Selection (choose one)
+LLM=ANTHROPIC  # Default: ANTHROPIC, OPENAI, GOOGLE, PERPLEXITY, GROQ, etc.
+
+# API Keys (add the one for your chosen LLM provider)
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+GOOGLE_API_KEY=your_google_api_key_here
+PERPLEXITY_API_KEY=your_perplexity_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
+HUGGINGFACE_API_KEY=your_huggingface_api_key_here
+TOGETHER_API_KEY=your_together_api_key_here
+REPLICATE_API_TOKEN=your_replicate_api_token_here
+COHERE_API_KEY=your_cohere_api_key_here
+MISTRAL_API_KEY=your_mistral_api_key_here
 
 # AI Model Configuration
-MODEL_ID=claude-sonnet-4-20250514
+MODEL_ID=claude-sonnet-4-20250514  # Or model appropriate for your provider
 
 # Optional - Supabase (falls back to filesystem if not provided)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url

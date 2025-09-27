@@ -252,7 +252,7 @@ export default function TrustRecoveryProtocol() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-slate-900">TryIt-AI (Refact) Kit (Refact)</h1>
+                <h1 className="text-xl font-semibold text-slate-900">TryIt-AI Kit</h1>
                 <p className="text-sm text-slate-500">Trust Recovery Protocol</p>
               </div>
             </div>
